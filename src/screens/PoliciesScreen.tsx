@@ -1,0 +1,4 @@
+import { ScrollView, StyleSheet, Text } from 'react-native';
+import { colors } from '@/theme/tokens';
+export function PoliciesScreen(){return <ScrollView style={styles.container} contentContainerStyle={styles.content}><Text style={styles.title}>Privacy & Terms</Text><Text style={styles.body}>Tesla STEM Clubs collects only school account identity, followed clubs, role assignments, and notification tokens needed to operate the directory. Push notifications are optional and sent only for followed clubs unless a Super Admin approves broader messaging. Users may request account deletion and data removal from settings or school administrators. Use must comply with LWSD school policies, respectful conduct, and app store terms.</Text></ScrollView>}
+const styles=StyleSheet.create({container:{flex:1,backgroundColor:colors.bg},content:{padding:20},title:{color:colors.text,fontSize:28,fontWeight:'900',marginBottom:16},body:{color:colors.muted,lineHeight:24,fontSize:16}})
