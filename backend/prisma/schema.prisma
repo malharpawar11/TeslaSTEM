@@ -1,0 +1,306 @@
+// ClubHub backend database schema
+// Conventions:
+//   - All ids are CUID2 strings unless otherwise noted.
+//   - Timestamps are timestamptz (Postgres) with millisecond precision.
+//   - Soft deletes use deletedAt; cascade deletes are explicit and conservative.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- enums ----------
+
+enum Role {
+  STUDENT
+  CLUB_ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum OAuthProvider {
+  GOOGLE
+  MICROSOFT
+}
+
+enum MembershipType {
+  FOLLOWER
+  MEMBER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportTargetType {
+  CLUB
+  ANNOUNCEMENT
+  USER
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+// ---------- users / identity ----------
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  emailVerifiedAt DateTime?
+  displayName     String
+  role            Role          @default(STUDENT)
+  status          UserStatus    @default(ACTIVE)
+  passwordHash    String?       // null when only OAuth identity
+  // bumped on "logout everywhere" or role change to invalidate outstanding access tokens
+  tokenVersion    Int           @default(0)
+  lastLoginAt     DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  oauthIdentities      OAuthIdentity[]
+  refreshTokens        RefreshToken[]
+  emailTokens          EmailVerificationToken[]
+  passwordResetTokens  PasswordResetToken[]
+  devices              DeviceToken[]
+  clubsCreated         Club[]                 @relation("ClubCreatedBy")
+  clubAdminAssignments ClubAdminAssignment[]  @relation("ClubAdminUser")
+  clubAdminAssignedBy  ClubAdminAssignment[]  @relation("ClubAdminAssignedBy")
+  memberships          ClubMembership[]
+  announcements        Announcement[]
+  announcementReads    AnnouncementDelivery[]
+  reportsFiled         Report[]               @relation("ReportReporter")
+  reportsResolved      Report[]               @relation("ReportResolver")
+  auditLogs            AuditLog[]
+
+  @@index([role])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model OAuthIdentity {
+  id            String        @id @default(cuid())
+  userId        String
+  provider      OAuthProvider
+  // stable subject from the IdP (Google `sub`, Microsoft `oid`)
+  providerSub   String
+  // raw email reported by IdP (verified per provider rules)
+  providerEmail String
+  createdAt     DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSub])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  // sha-256 hash of the opaque token; raw token never stored
+  tokenHash    String    @unique
+  // refresh-token family — reuse of an old token revokes the whole family
+  familyId     String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([familyId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DeviceToken {
+  id            String         @id @default(cuid())
+  userId        String
+  // Expo push token (ExponentPushToken[xxxx]); unique so re-registration upserts
+  expoPushToken String         @unique
+  platform      DevicePlatform
+  appVersion    String?
+  lastSeenAt    DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------- clubs ----------
+
+model Club {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  category     String
+  description  String
+  meetingDay   String?
+  meetingTime  String?
+  location     String?
+  advisor      String?
+  contactEmail String?
+  imageUrl     String?
+  isApproved   Boolean  @default(false)
+  approvedAt   DateTime?
+  approvedById String?
+  createdById  String?
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy     User?                 @relation("ClubCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  admins        ClubAdminAssignment[]
+  memberships   ClubMembership[]
+  announcements Announcement[]
+
+  @@index([isApproved, deletedAt])
+  @@index([category])
+  @@index([name])
+}
+
+model ClubAdminAssignment {
+  clubId       String
+  userId       String
+  assignedById String?
+  createdAt    DateTime @default(now())
+
+  club       Club  @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user       User  @relation("ClubAdminUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy User? @relation("ClubAdminAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@id([clubId, userId])
+  @@index([userId])
+}
+
+model ClubMembership {
+  clubId   String
+  userId   String
+  type     MembershipType @default(FOLLOWER)
+  joinedAt DateTime       @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([clubId, userId])
+  @@index([userId])
+  @@index([clubId, type])
+}
+
+// ---------- announcements ----------
+
+model Announcement {
+  id         String   @id @default(cuid())
+  clubId     String
+  authorId   String
+  title      String
+  body       String
+  schoolWide Boolean  @default(false)
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  club       Club                   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  author     User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  deliveries AnnouncementDelivery[]
+
+  @@index([clubId, createdAt(sort: Desc)])
+  @@index([authorId])
+}
+
+model AnnouncementDelivery {
+  announcementId String
+  userId         String
+  deliveredAt    DateTime  @default(now())
+  readAt         DateTime?
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, userId])
+  @@index([userId, readAt])
+}
+
+// ---------- moderation ----------
+
+model Report {
+  id          String           @id @default(cuid())
+  reporterId  String
+  targetType  ReportTargetType
+  targetId    String
+  reason      String
+  details     String?
+  status      ReportStatus     @default(OPEN)
+  resolvedById String?
+  resolvedAt  DateTime?
+  resolution  String?
+  createdAt   DateTime         @default(now())
+
+  reporter   User  @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User? @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+}
+
+// ---------- audit ----------
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+}
