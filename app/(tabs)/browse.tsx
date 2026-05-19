@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { clubs } from '@/data/mockData';
 import { Club } from '@/types/domain';
+import { useClubs } from '@/context/ClubsContext';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterChips } from '@/components/FilterChips';
 import { ClubCard } from '@/components/ClubCard';
@@ -28,6 +28,7 @@ export default function BrowseScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFollowing, toggleFollow } = useFollows();
+  const { clubs } = useClubs();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
 
@@ -43,7 +44,7 @@ export default function BrowseScreen() {
           .includes(q);
       return matchesFilter && matchesQuery;
     });
-  }, [query, filter]);
+  }, [clubs, query, filter]);
 
   const renderItem = useCallback(
     ({ item, index }: { item: Club; index: number }) => (

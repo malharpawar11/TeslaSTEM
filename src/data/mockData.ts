@@ -61,7 +61,7 @@ const RAW: RawClub[] = [
 ];
 
 /** Deterministic pseudo-random so counts/officers stay stable across reloads. */
-function seed(str: string): number {
+export function seed(str: string): number {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
@@ -77,7 +77,7 @@ function pick<T>(arr: T[], s: number): T {
   return arr[Math.floor(s * arr.length) % arr.length];
 }
 
-function makeOfficers(name: string): Officer[] {
+export function makeOfficers(name: string): Officer[] {
   const roles: Officer['role'][] = ['President', 'Vice President', 'Secretary', 'Treasurer'];
   return roles.map((role, i) => {
     const s1 = seed(name + role + 'f');
@@ -93,7 +93,7 @@ const ANNOUNCE_TEMPLATES = [
   { title: 'Guest speaker this week', body: 'We have an industry professional joining us to share their experience and answer your questions.' },
 ];
 
-function makeAnnouncements(name: string): Announcement[] {
+export function makeAnnouncements(name: string): Announcement[] {
   const count = 2 + Math.floor(seed(name + 'count') * 2); // 2–3
   const out: Announcement[] = [];
   for (let i = 0; i < count; i++) {
@@ -110,7 +110,7 @@ function makeAnnouncements(name: string): Announcement[] {
   return out;
 }
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 

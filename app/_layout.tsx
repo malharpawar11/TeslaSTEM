@@ -5,6 +5,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { ClubsProvider } from '@/context/ClubsContext';
 import { FollowProvider } from '@/context/FollowContext';
 
 cssInterop(GestureHandlerRootView, { className: 'style' });
@@ -27,9 +29,13 @@ export default function RootLayout() {
     <GestureHandlerRootView className="flex-1">
       <SafeAreaProvider>
         <ThemeProvider>
-          <FollowProvider>
-            <RootStack />
-          </FollowProvider>
+          <AuthProvider>
+            <ClubsProvider>
+              <FollowProvider>
+                <RootStack />
+              </FollowProvider>
+            </ClubsProvider>
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

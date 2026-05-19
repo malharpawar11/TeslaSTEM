@@ -7,6 +7,8 @@ import { CATEGORIES, ClubCategory } from '@/types/domain';
 import { PressableScale } from '@/components/PressableScale';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/context/ThemeContext';
+import { useClubs } from '@/context/ClubsContext';
+import { submitClub } from '@/data/clubsRepo';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const GRADES = ['9', '10', '11', '12'];
@@ -71,7 +73,10 @@ function Field({
 
 export default function SubmitScreen() {
   const insets = useSafeAreaInsets();
+  const { refresh } = useClubs();
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ClubCategory | ''>('');
@@ -114,8 +119,27 @@ export default function SubmitScreen() {
     return Object.keys(e).length === 0;
   };
 
-  const onSubmit = () => {
-    if (validate()) setSubmitted(true);
+  const onSubmit = async () => {
+    if (!validate()) return;
+    setSubmitError(null);
+    setSending(true);
+    const res = await submitClub({
+      name: name.trim(),
+      category: category as ClubCategory,
+      description: description.trim(),
+      day: days.join(' & '),
+      time: time.trim(),
+      location: location.trim(),
+      advisor: advisor.trim(),
+      contactEmail: clubEmail.trim().toLowerCase(),
+    });
+    setSending(false);
+    if (!res.ok) {
+      setSubmitError(res.error);
+      return;
+    }
+    if (res.remote) refresh();
+    setSubmitted(true);
   };
 
   if (submitted) {
@@ -160,6 +184,7 @@ export default function SubmitScreen() {
             setMaxMembers('');
             setGrades([]);
             setErrors({});
+            setSubmitError(null);
           }}
           className="mt-8 h-12 justify-center rounded-2xl bg-python-green px-8"
         >
@@ -306,14 +331,27 @@ export default function SubmitScreen() {
           )}
         </SectionCard>
 
+        {submitError ? (
+          <View className="mt-2 rounded-2xl border border-python-blue bg-python-blue/10 p-3">
+            <Text className="text-sm font-semibold text-python-blue">{submitError}</Text>
+          </View>
+        ) : null}
+
         <PressableScale
-          onPress={onSubmit}
+          onPress={() => {
+            if (!sending) onSubmit();
+          }}
           accessibilityRole="button"
           accessibilityLabel="Submit club for approval"
-          className="mt-2 h-14 flex-row items-center justify-center gap-2 rounded-2xl bg-python-green"
+          accessibilityState={{ disabled: sending }}
+          className={`mt-2 h-14 flex-row items-center justify-center gap-2 rounded-2xl bg-python-green ${
+            sending ? 'opacity-60' : ''
+          }`}
         >
           <Ionicons name="paper-plane" size={20} color="#FFFFFF" />
-          <Text className="text-base font-extrabold text-white">Submit for Approval</Text>
+          <Text className="text-base font-extrabold text-white">
+            {sending ? 'Submitting…' : 'Submit for Approval'}
+          </Text>
         </PressableScale>
       </ScrollView>
     </View>

@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { getClub } from '@/data/mockData';
+import { useClubs } from '@/context/ClubsContext';
 import { ClubProfileHeader } from '@/components/ClubProfileHeader';
 import { PressableScale } from '@/components/PressableScale';
 import { useFollows } from '@/context/FollowContext';
@@ -31,6 +31,7 @@ export default function ClubProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFollowing, toggleFollow } = useFollows();
+  const { getClub } = useClubs();
   const [tab, setTab] = useState<Tab>('About');
 
   const club = getClub(String(id));
