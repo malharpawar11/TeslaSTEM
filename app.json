@@ -5,10 +5,10 @@
     "scheme": "teslastemclubs",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./teslastemlogo.png",
+    "icon": "./logo.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./teslastemlogo.png",
+      "image": "./logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#050807"
     },
@@ -25,7 +25,7 @@
     "android": {
       "package": "org.teslastem.clubs",
       "adaptiveIcon": {
-        "foregroundImage": "./teslastemlogo.png",
+        "foregroundImage": "./logo.png",
         "backgroundColor": "#050807"
       },
       "permissions": [
@@ -33,7 +33,7 @@
       ]
     },
     "web": {
-      "favicon": "./teslastemlogo.png",
+      "favicon": "./logo.png",
       "bundler": "metro",
       "output": "single"
     },

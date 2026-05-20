@@ -1,79 +1,118 @@
-import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Switch } from 'react-native';
+import { ReactNode, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Switch, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { CATEGORIES, ClubCategory } from '@/types/domain';
-import { PressableScale } from '@/components/PressableScale';
+import { useRouter } from 'expo-router';
+import { Button, Card, Input, Chip } from '@/components/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/context/ThemeContext';
 import { useClubs } from '@/context/ClubsContext';
 import { submitClub } from '@/data/clubsRepo';
+import { CATEGORIES, ClubCategory } from '@/types/domain';
+import { timing } from '@/theme/motion';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const GRADES = ['9', '10', '11', '12'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function SectionCard({ title, icon, children }: { title: string; icon: keyof typeof Ionicons.glyphMap; children: React.ReactNode }) {
+/* ------------------------------------------------------------------ */
+/*  Inline Section component — Card wrapper + eyebrow + title         */
+/* ------------------------------------------------------------------ */
+interface SectionProps {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  children: ReactNode;
+}
+
+function Section({ eyebrow, title, description, icon, children }: SectionProps) {
   return (
-    <View className="mb-4 rounded-2xl border border-light-border bg-light-card p-4 dark:border-dark-border dark:bg-dark-card">
-      <View className="mb-3 flex-row items-center gap-2">
-        <Ionicons name={icon} size={18} color="#4CAF50" />
-        <Text className="text-base font-extrabold text-light-text dark:text-dark-text">{title}</Text>
+    <Card elevation="ambient" className="mb-4 p-5">
+      <View className="mb-4">
+        <View className="mb-2 flex-row items-center gap-2">
+          <View className="h-7 w-7 items-center justify-center rounded-lg bg-python-green/14">
+            <Ionicons name={icon} size={15} color="#4CAF50" />
+          </View>
+          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+            {eyebrow}
+          </Text>
+        </View>
+        <Text className="text-xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+          {title}
+        </Text>
+        {description ? (
+          <Text className="mt-1 text-sm text-light-muted dark:text-dark-muted leading-5">
+            {description}
+          </Text>
+        ) : null}
       </View>
       {children}
-    </View>
+    </Card>
   );
 }
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  error,
-  required,
-  keyboardType,
-  placeholder,
-  multiline,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  error?: string;
-  required?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'number-pad';
-  placeholder?: string;
-  multiline?: boolean;
-}) {
-  const { isDark } = useTheme();
+/* ------------------------------------------------------------------ */
+/*  Tiny inline "Field group label" — used for chip-group sections    */
+/* ------------------------------------------------------------------ */
+function GroupLabel({ label, required }: { label: string; required?: boolean }) {
   return (
-    <View className="mb-3">
-      <Text className="mb-1 text-xs font-semibold uppercase text-light-muted dark:text-dark-muted">
+    <View className="mb-2 flex-row items-center gap-1">
+      <Text className="text-xs font-semibold tracking-wide text-light-secondary dark:text-dark-secondary">
         {label}
-        {required ? <Text className="text-python-green"> *</Text> : null}
       </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={isDark ? '#9AA3AD' : '#5A6470'}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        accessibilityLabel={label}
-        className={`rounded-xl border bg-light-bg px-3 text-base text-light-text dark:bg-dark-bg dark:text-dark-text ${
-          multiline ? 'h-24 py-3' : 'h-12'
-        } ${error ? 'border-python-blue' : 'border-light-border dark:border-dark-border'}`}
-      />
-      {error ? (
-        <Text className="mt-1 text-xs font-semibold text-python-blue">{error}</Text>
-      ) : null}
+      {required ? <Text className="text-xs font-bold text-python-green">*</Text> : null}
     </View>
   );
 }
 
+function GroupError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <View className="mt-1.5 flex-row items-center gap-1.5">
+      <Ionicons name="alert-circle" size={13} color="#E11D48" />
+      <Text className="text-xs font-semibold text-danger">{message}</Text>
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Progress bar — Reanimated width tied to required-fields-filled    */
+/* ------------------------------------------------------------------ */
+function ProgressBar({ progress }: { progress: number }) {
+  const width = useSharedValue(progress);
+  width.value = withTiming(progress, timing.smooth);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${width.value * 100}%`,
+  }));
+
+  return (
+    <View className="mt-3 h-1 w-full overflow-hidden rounded-full bg-light-surface-2 dark:bg-dark-surface-2">
+      <Animated.View
+        style={fillStyle}
+        className="h-full rounded-full bg-python-green"
+      />
+    </View>
+  );
+}
+
+/* ================================================================== */
+/*  SubmitScreen                                                      */
+/* ================================================================== */
 export default function SubmitScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { refresh } = useClubs();
+  const { isDark } = useTheme();
+
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -101,6 +140,22 @@ export default function SubmitScreen() {
 
   const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+
+  /* Progress: 10 required fields */
+  const progress = useMemo(() => {
+    let filled = 0;
+    if (name.trim()) filled++;
+    if (category) filled++;
+    if (description.trim()) filled++;
+    if (days.length >= 1) filled++;
+    if (time.trim()) filled++;
+    if (location.trim()) filled++;
+    if (president.trim()) filled++;
+    if (advisor.trim()) filled++;
+    if (EMAIL_RE.test(advisorEmail)) filled++;
+    if (EMAIL_RE.test(clubEmail)) filled++;
+    return filled / 10;
+  }, [name, category, description, days, time, location, president, advisor, advisorEmail, clubEmail]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -142,218 +197,480 @@ export default function SubmitScreen() {
     setSubmitted(true);
   };
 
+  const resetAll = () => {
+    setSubmitted(false);
+    setName('');
+    setCategory('');
+    setDescription('');
+    setFoundingYear('');
+    setDays([]);
+    setTime('');
+    setLocation('');
+    setPresident('');
+    setVp('');
+    setSecretary('');
+    setTreasurer('');
+    setAdvisor('');
+    setAdvisorEmail('');
+    setClubEmail('');
+    setInstagram('');
+    setWebsite('');
+    setMaxMembers('');
+    setOpenToAll(true);
+    setGrades([]);
+    setErrors({});
+    setSubmitError(null);
+  };
+
+  /* ================================================================ */
+  /*  Success state                                                    */
+  /* ================================================================ */
   if (submitted) {
     return (
-      <View className="flex-1 items-center justify-center bg-light-bg px-8 dark:bg-dark-bg">
+      <View
+        className="flex-1 items-center justify-center bg-light-bg px-8 dark:bg-dark-bg"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
+        {/* outer halo ring */}
         <Animated.View
-          entering={ZoomIn.duration(400)}
-          className="h-24 w-24 items-center justify-center rounded-full bg-python-green"
+          entering={ZoomIn.duration(360)}
+          className="h-24 w-24 items-center justify-center rounded-full bg-python-green/14"
         >
-          <Ionicons name="checkmark" size={52} color="#FFFFFF" />
+          {/* inner solid ring */}
+          <Animated.View
+            entering={ZoomIn.delay(150).duration(360).springify()}
+            className="h-[72px] w-[72px] items-center justify-center rounded-full bg-python-green"
+          >
+            <Ionicons name="checkmark" size={40} color="#FFFFFF" />
+          </Animated.View>
         </Animated.View>
+
         <Animated.Text
-          entering={FadeInDown.delay(200).duration(500)}
-          className="mt-6 text-center text-2xl font-extrabold text-light-text dark:text-dark-text"
+          entering={FadeInDown.delay(240).duration(420)}
+          className="mt-7 text-center text-3xl font-extrabold tracking-tight text-light-text dark:text-dark-text"
         >
-          Submitted for Approval
+          Submitted for Review
         </Animated.Text>
         <Animated.Text
-          entering={FadeInDown.delay(350).duration(500)}
-          className="mt-2 text-center text-base text-light-muted dark:text-dark-muted"
+          entering={FadeInDown.delay(340).duration(420)}
+          className="mt-2 max-w-xs text-center text-base text-light-muted dark:text-dark-muted leading-6"
         >
-          {name} has been sent to the admin team. You&apos;ll be notified once it&apos;s reviewed.
+          {name} has been sent to the admin team. You&apos;ll be notified when it&apos;s reviewed — usually within 48 hours.
         </Animated.Text>
-        <PressableScale
-          onPress={() => {
-            setSubmitted(false);
-            setName('');
-            setCategory('');
-            setDescription('');
-            setDays([]);
-            setTime('');
-            setLocation('');
-            setPresident('');
-            setVp('');
-            setSecretary('');
-            setTreasurer('');
-            setAdvisor('');
-            setAdvisorEmail('');
-            setClubEmail('');
-            setInstagram('');
-            setWebsite('');
-            setMaxMembers('');
-            setGrades([]);
-            setErrors({});
-            setSubmitError(null);
-          }}
-          className="mt-8 h-12 justify-center rounded-2xl bg-python-green px-8"
+
+        {/* Confirmation card with mini-stats */}
+        <Animated.View entering={FadeInDown.delay(440).duration(420)} className="w-full max-w-sm">
+          <Card elevation="ambient" className="mt-6 p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 items-center">
+                <View className="mb-1.5 h-8 w-8 items-center justify-center rounded-full bg-python-green/14">
+                  <Ionicons name="paper-plane" size={15} color="#4CAF50" />
+                </View>
+                <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                  Submitted
+                </Text>
+                <View className="mt-1.5 flex-row items-center gap-1">
+                  <Ionicons name="checkmark-circle" size={13} color="#4CAF50" />
+                  <Text className="text-xs font-semibold text-python-green-dark dark:text-python-green-light">
+                    Done
+                  </Text>
+                </View>
+              </View>
+
+              <View className="mx-2 h-10 w-px bg-light-hairline dark:bg-dark-border" />
+
+              <View className="flex-1 items-center">
+                <View className="mb-1.5 h-8 w-8 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2">
+                  <Ionicons name="hourglass" size={14} color={isDark ? '#8A8F99' : '#6B7280'} />
+                </View>
+                <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                  Pending
+                </Text>
+                <View className="mt-1.5 flex-row items-center gap-1">
+                  <View className="h-1.5 w-1.5 rounded-full bg-light-muted dark:bg-dark-muted" />
+                  <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
+                    Review
+                  </Text>
+                </View>
+              </View>
+
+              <View className="mx-2 h-10 w-px bg-light-hairline dark:bg-dark-border" />
+
+              <View className="flex-1 items-center">
+                <View className="mb-1.5 h-8 w-8 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2">
+                  <Ionicons name="notifications" size={14} color={isDark ? '#8A8F99' : '#6B7280'} />
+                </View>
+                <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                  Notify
+                </Text>
+                <View className="mt-1.5 flex-row items-center gap-1">
+                  <View className="h-1.5 w-1.5 rounded-full bg-light-muted dark:bg-dark-muted" />
+                  <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
+                    On approve
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Card>
+        </Animated.View>
+
+        <Animated.View
+          entering={FadeInDown.delay(540).duration(420)}
+          className="mt-7 w-full max-w-sm gap-2.5"
         >
-          <Text className="text-base font-extrabold text-white">Register Another Club</Text>
-        </PressableScale>
+          <Button
+            label="Done"
+            variant="primary"
+            size="lg"
+            fullWidth
+            icon="checkmark"
+            onPress={() => router.replace('/browse')}
+          />
+          <Button
+            label="Register another club"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onPress={resetAll}
+          />
+        </Animated.View>
       </View>
     );
   }
 
+  /* ================================================================ */
+  /*  Form                                                             */
+  /* ================================================================ */
   return (
-    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <View className="flex-row items-center justify-between px-5 pb-2" style={{ paddingTop: insets.top + 8 }}>
-        <View>
-          <Text className="text-3xl font-extrabold text-light-text dark:text-dark-text">
-            Register Your Club
-          </Text>
-          <Text className="mt-1 text-sm text-light-muted dark:text-dark-muted">
-            Start a club at Tesla STEM Pythons
-          </Text>
-        </View>
-        <ThemeToggle />
-      </View>
-
-      <ScrollView
-        className="flex-1 px-5 pt-3"
-        showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-36"
-        keyboardShouldPersistTaps="handled"
-      >
-        <SectionCard title="Club Info" icon="information-circle-outline">
-          <Field label="Club name" value={name} onChangeText={setName} error={errors.name} required placeholder="e.g. Robotics Club" />
-          <Text className="mb-1 text-xs font-semibold uppercase text-light-muted dark:text-dark-muted">
-            Category<Text className="text-python-green"> *</Text>
-          </Text>
-          <View className="mb-1 flex-row flex-wrap gap-2">
-            {CATEGORIES.map((c) => {
-              const active = category === c;
-              return (
-                <PressableScale
-                  key={c}
-                  onPress={() => setCategory(c)}
-                  accessibilityState={{ selected: active }}
-                  className={`h-9 justify-center rounded-full border px-3 ${
-                    active ? 'border-python-green bg-python-green' : 'border-light-border dark:border-dark-border'
-                  }`}
-                >
-                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-light-muted dark:text-dark-muted'}`}>
-                    {c}
-                  </Text>
-                </PressableScale>
-              );
-            })}
-          </View>
-          {errors.category ? <Text className="mb-2 text-xs font-semibold text-python-blue">{errors.category}</Text> : null}
-          <View className="mt-2">
-            <Field label="Description" value={description} onChangeText={setDescription} error={errors.description} required multiline placeholder="What is the club about?" />
-            <Field label="Founding year" value={foundingYear} onChangeText={setFoundingYear} keyboardType="number-pad" placeholder="2026" />
-          </View>
-        </SectionCard>
-
-        <SectionCard title="Meeting Details" icon="calendar-outline">
-          <Text className="mb-1 text-xs font-semibold uppercase text-light-muted dark:text-dark-muted">
-            Meeting days<Text className="text-python-green"> *</Text>
-          </Text>
-          <View className="mb-1 flex-row gap-2">
-            {DAYS.map((d) => {
-              const active = days.includes(d);
-              return (
-                <PressableScale
-                  key={d}
-                  onPress={() => toggle(days, setDays, d)}
-                  accessibilityState={{ selected: active }}
-                  className={`h-10 flex-1 items-center justify-center rounded-xl border ${
-                    active ? 'border-python-green bg-python-green' : 'border-light-border dark:border-dark-border'
-                  }`}
-                >
-                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-light-muted dark:text-dark-muted'}`}>
-                    {d}
-                  </Text>
-                </PressableScale>
-              );
-            })}
-          </View>
-          {errors.days ? <Text className="mb-2 text-xs font-semibold text-python-blue">{errors.days}</Text> : null}
-          <View className="mt-2">
-            <Field label="Time" value={time} onChangeText={setTime} error={errors.time} required placeholder="e.g. After School" />
-            <Field label="Location" value={location} onChangeText={setLocation} error={errors.location} required placeholder="e.g. RM 110" />
-          </View>
-        </SectionCard>
-
-        <SectionCard title="Leadership" icon="people-outline">
-          <Field label="President" value={president} onChangeText={setPresident} error={errors.president} required />
-          <Field label="Vice President" value={vp} onChangeText={setVp} />
-          <Field label="Secretary" value={secretary} onChangeText={setSecretary} />
-          <Field label="Treasurer" value={treasurer} onChangeText={setTreasurer} />
-          <Field label="Advisor name" value={advisor} onChangeText={setAdvisor} error={errors.advisor} required />
-          <Field label="Advisor email" value={advisorEmail} onChangeText={setAdvisorEmail} error={errors.advisorEmail} required keyboardType="email-address" placeholder="advisor@lwsd.org" />
-        </SectionCard>
-
-        <SectionCard title="Contact" icon="mail-outline">
-          <Field label="Club email" value={clubEmail} onChangeText={setClubEmail} error={errors.clubEmail} required keyboardType="email-address" placeholder="club@lwsd.org" />
-          <Field label="Instagram" value={instagram} onChangeText={setInstagram} placeholder="@teslastem.club" />
-          <Field label="Website" value={website} onChangeText={setWebsite} placeholder="https://" />
-        </SectionCard>
-
-        <SectionCard title="Settings" icon="settings-outline">
-          <Field label="Max members" value={maxMembers} onChangeText={setMaxMembers} keyboardType="number-pad" placeholder="No limit" />
-          <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-base text-light-text dark:text-dark-text">Open to all grades</Text>
-            <Switch
-              value={openToAll}
-              onValueChange={setOpenToAll}
-              trackColor={{ false: '#9AA3AD', true: '#4CAF50' }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          {!openToAll && (
-            <View>
-              <Text className="mb-1 text-xs font-semibold uppercase text-light-muted dark:text-dark-muted">
-                Grades
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+        {/* ---------- Header ---------- */}
+        <View className="px-5 pb-3" style={{ paddingTop: insets.top + 12 }}>
+          <View className="flex-row items-start justify-between gap-4">
+            <View className="flex-1">
+              <Text className="mb-1.5 text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                REGISTRATION · 2026
               </Text>
-              <View className="flex-row gap-2">
-                {GRADES.map((g) => {
-                  const active = grades.includes(g);
-                  return (
-                    <PressableScale
-                      key={g}
-                      onPress={() => toggle(grades, setGrades, g)}
-                      accessibilityState={{ selected: active }}
-                      className={`h-10 flex-1 flex-row items-center justify-center gap-1 rounded-xl border ${
-                        active ? 'border-python-green bg-python-green' : 'border-light-border dark:border-dark-border'
-                      }`}
-                    >
-                      {active && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                      <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-light-muted dark:text-dark-muted'}`}>
-                        {g}
-                      </Text>
-                    </PressableScale>
-                  );
-                })}
-              </View>
-              {errors.grades ? <Text className="mt-1 text-xs font-semibold text-python-blue">{errors.grades}</Text> : null}
+              <Text className="text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
+                Register Your Club
+              </Text>
+              <Text className="mt-1.5 text-base text-light-muted dark:text-dark-muted leading-6">
+                Tell us about your club. Submissions are reviewed by the Tesla STEM admin team within 48 hours.
+              </Text>
             </View>
-          )}
-        </SectionCard>
-
-        {submitError ? (
-          <View className="mt-2 rounded-2xl border border-python-blue bg-python-blue/10 p-3">
-            <Text className="text-sm font-semibold text-python-blue">{submitError}</Text>
+            <ThemeToggle />
           </View>
-        ) : null}
 
-        <PressableScale
-          onPress={() => {
-            if (!sending) onSubmit();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Submit club for approval"
-          accessibilityState={{ disabled: sending }}
-          className={`mt-2 h-14 flex-row items-center justify-center gap-2 rounded-2xl bg-python-green ${
-            sending ? 'opacity-60' : ''
-          }`}
+          <ProgressBar progress={progress} />
+          <View className="mt-2 flex-row items-center justify-between">
+            <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+              {Math.round(progress * 10)} of 10 required
+            </Text>
+            <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+              {Math.round(progress * 100)}%
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView
+          className="flex-1 px-5 pt-4"
+          showsVerticalScrollIndicator={false}
+          contentContainerClassName="pb-40"
+          keyboardShouldPersistTaps="handled"
         >
-          <Ionicons name="paper-plane" size={20} color="#FFFFFF" />
-          <Text className="text-base font-extrabold text-white">
-            {sending ? 'Submitting…' : 'Submit for Approval'}
+          {/* ---------- 1. Club Info ---------- */}
+          <Section
+            eyebrow="01 · CLUB INFO"
+            title="The basics"
+            description="What your club is called and what it stands for."
+            icon="information-circle"
+          >
+            <View className="gap-4">
+              <Input
+                label="Club name"
+                value={name}
+                onChangeText={setName}
+                error={errors.name}
+                required
+                placeholder="e.g. Robotics Club"
+                returnKeyType="next"
+              />
+
+              <View>
+                <GroupLabel label="Category" required />
+                <View className="flex-row flex-wrap gap-2">
+                  {CATEGORIES.map((c) => (
+                    <Chip
+                      key={c}
+                      label={c}
+                      active={category === c}
+                      onPress={() => setCategory(c)}
+                      size="sm"
+                    />
+                  ))}
+                </View>
+                <GroupError message={errors.category} />
+              </View>
+
+              <Input
+                label="Description"
+                value={description}
+                onChangeText={setDescription}
+                error={errors.description}
+                required
+                multiline
+                placeholder="What is the club about? Who is it for?"
+                helper="A short blurb — 1 or 2 sentences is plenty."
+              />
+
+              <Input
+                label="Founding year"
+                value={foundingYear}
+                onChangeText={setFoundingYear}
+                keyboardType="number-pad"
+                placeholder="2026"
+                icon="calendar-outline"
+              />
+            </View>
+          </Section>
+
+          {/* ---------- 2. Schedule ---------- */}
+          <Section
+            eyebrow="02 · SCHEDULE"
+            title="When you meet"
+            description="Days and time so members know where to find you."
+            icon="calendar"
+          >
+            <View className="gap-4">
+              <View>
+                <GroupLabel label="Meeting days" required />
+                <View className="flex-row flex-wrap gap-2">
+                  {DAYS.map((d) => (
+                    <Chip
+                      key={d}
+                      label={d}
+                      active={days.includes(d)}
+                      onPress={() => toggle(days, setDays, d)}
+                      size="sm"
+                    />
+                  ))}
+                </View>
+                <GroupError message={errors.days} />
+              </View>
+
+              <Input
+                label="Time"
+                value={time}
+                onChangeText={setTime}
+                error={errors.time}
+                required
+                placeholder="e.g. After School, 3:30–4:30 PM"
+                icon="time-outline"
+              />
+              <Input
+                label="Location"
+                value={location}
+                onChangeText={setLocation}
+                error={errors.location}
+                required
+                placeholder="e.g. Room 110"
+                icon="location-outline"
+              />
+            </View>
+          </Section>
+
+          {/* ---------- 3. Leadership ---------- */}
+          <Section
+            eyebrow="03 · LEADERSHIP"
+            title="Who runs the club"
+            description="Officers and the staff advisor on file."
+            icon="people"
+          >
+            <View className="gap-4">
+              <Input
+                label="President"
+                value={president}
+                onChangeText={setPresident}
+                error={errors.president}
+                required
+                placeholder="Full name"
+                icon="person-outline"
+              />
+              <Input
+                label="Vice President"
+                value={vp}
+                onChangeText={setVp}
+                placeholder="Full name"
+                icon="person-outline"
+              />
+              <Input
+                label="Secretary"
+                value={secretary}
+                onChangeText={setSecretary}
+                placeholder="Full name"
+                icon="person-outline"
+              />
+              <Input
+                label="Treasurer"
+                value={treasurer}
+                onChangeText={setTreasurer}
+                placeholder="Full name"
+                icon="person-outline"
+              />
+              <Input
+                label="Advisor name"
+                value={advisor}
+                onChangeText={setAdvisor}
+                error={errors.advisor}
+                required
+                placeholder="Staff member"
+                icon="school-outline"
+              />
+              <Input
+                label="Advisor email"
+                value={advisorEmail}
+                onChangeText={setAdvisorEmail}
+                error={errors.advisorEmail}
+                required
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="advisor@lwsd.org"
+                icon="mail-outline"
+              />
+            </View>
+          </Section>
+
+          {/* ---------- 4. Contact ---------- */}
+          <Section
+            eyebrow="04 · CONTACT"
+            title="How to reach you"
+            description="Where students should send questions."
+            icon="mail"
+          >
+            <View className="gap-4">
+              <Input
+                label="Club email"
+                value={clubEmail}
+                onChangeText={setClubEmail}
+                error={errors.clubEmail}
+                required
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="club@lwsd.org"
+                icon="mail-outline"
+              />
+              <Input
+                label="Instagram"
+                value={instagram}
+                onChangeText={setInstagram}
+                autoCapitalize="none"
+                placeholder="@teslastem.club"
+                icon="logo-instagram"
+              />
+              <Input
+                label="Website"
+                value={website}
+                onChangeText={setWebsite}
+                autoCapitalize="none"
+                placeholder="https://"
+                icon="globe-outline"
+              />
+            </View>
+          </Section>
+
+          {/* ---------- 5. Settings ---------- */}
+          <Section
+            eyebrow="05 · SETTINGS"
+            title="Who can join"
+            description="Capacity and eligibility rules for new members."
+            icon="settings"
+          >
+            <View className="gap-4">
+              <Input
+                label="Max members"
+                value={maxMembers}
+                onChangeText={setMaxMembers}
+                keyboardType="number-pad"
+                placeholder="No limit"
+                icon="people-outline"
+                helper="Leave blank for no cap."
+              />
+
+              <View className="rounded-2xl border border-light-hairline bg-light-surface-2/60 p-3.5 dark:border-dark-border dark:bg-dark-surface-2/60">
+                <View className="flex-row items-center justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                      Open to all grades
+                    </Text>
+                    <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted leading-4">
+                      Allow students from any grade level to join the club.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={openToAll}
+                    onValueChange={setOpenToAll}
+                    trackColor={{ false: isDark ? '#2A2E36' : '#D1D5DB', true: '#4CAF50' }}
+                    thumbColor="#FFFFFF"
+                    ios_backgroundColor={isDark ? '#2A2E36' : '#D1D5DB'}
+                  />
+                </View>
+
+                {!openToAll && (
+                  <Animated.View entering={FadeInDown.duration(220)} className="mt-4">
+                    <GroupLabel label="Grades allowed" required />
+                    <View className="flex-row gap-2">
+                      {GRADES.map((g) => (
+                        <View key={g} className="flex-1">
+                          <Chip
+                            label={g}
+                            active={grades.includes(g)}
+                            onPress={() => toggle(grades, setGrades, g)}
+                            size="sm"
+                          />
+                        </View>
+                      ))}
+                    </View>
+                    <GroupError message={errors.grades} />
+                  </Animated.View>
+                )}
+              </View>
+            </View>
+          </Section>
+
+          {/* ---------- Submit error banner ---------- */}
+          {submitError ? (
+            <Animated.View entering={FadeInDown.duration(220)}>
+              <Card
+                elevation="flat"
+                className="mb-3 flex-row items-start gap-2.5 border-danger/40 bg-danger/14 p-4"
+              >
+                <Ionicons name="alert-circle" size={18} color="#E11D48" />
+                <Text className="flex-1 text-sm font-semibold text-danger leading-5">
+                  {submitError}
+                </Text>
+              </Card>
+            </Animated.View>
+          ) : null}
+
+          {/* ---------- Submit button ---------- */}
+          <Button
+            label="Submit for Approval"
+            variant="primary"
+            size="xl"
+            fullWidth
+            icon="paper-plane"
+            loading={sending}
+            onPress={onSubmit}
+          />
+
+          <Text className="mt-3 text-center text-xs text-light-muted dark:text-dark-muted leading-4">
+            By submitting, you confirm the information is accurate and an advisor has agreed to sponsor this club.
           </Text>
-        </PressableScale>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }

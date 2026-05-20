@@ -1,16 +1,25 @@
 import { useMemo, useState, useCallback } from 'react';
-import { View, Text, FlatList } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { Club } from '@/types/domain';
+import Animated, {
+  FadeInDown,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
+import { Club, ClubCategory } from '@/types/domain';
 import { useClubs } from '@/context/ClubsContext';
+import { useFollows } from '@/context/FollowContext';
+import { useTheme } from '@/context/ThemeContext';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterChips } from '@/components/FilterChips';
 import { ClubCard } from '@/components/ClubCard';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { useFollows } from '@/context/FollowContext';
+import { EmptyState, SkeletonRow, Chip } from '@/components/ui';
+import { surface } from '@/theme/tokens';
 
 const FILTERS = [
   'All',
@@ -24,31 +33,144 @@ const FILTERS = [
   'Wellness',
 ];
 
+// Scroll thresholds for the compressing header.
+const HEADER_COLLAPSE_DISTANCE = 88;
+
 export default function BrowseScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isFollowing, toggleFollow } = useFollows();
-  const { clubs } = useClubs();
+  const { isDark } = useTheme();
+  const c = surface(isDark);
+  const { isFollowing, toggleFollow, follows } = useFollows();
+  const { clubs, loading } = useClubs();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState<string>('All');
+  const [followingOnly, setFollowingOnly] = useState(false);
+
+  // Per-category counts, including 'All'. Computed once per clubs change.
+  const counts = useMemo<Record<string, number>>(() => {
+    const m: Record<string, number> = { All: clubs.length };
+    for (const club of clubs) {
+      m[club.category] = (m[club.category] ?? 0) + 1;
+    }
+    return m;
+  }, [clubs]);
+
+  const followingCount = useMemo(
+    () => clubs.reduce((n, club) => (follows.has(club.id) ? n + 1 : n), 0),
+    [clubs, follows],
+  );
 
   const data = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return clubs.filter((c) => {
-      const matchesFilter = filter === 'All' || c.category === filter;
-      const matchesQuery =
-        !q ||
-        [c.name, c.advisor, c.day, c.time, c.category, c.description, c.location]
-          .join(' ')
-          .toLowerCase()
-          .includes(q);
-      return matchesFilter && matchesQuery;
+    return clubs.filter((club) => {
+      if (followingOnly && !follows.has(club.id)) return false;
+      if (filter !== 'All' && club.category !== (filter as ClubCategory)) return false;
+      if (!q) return true;
+      return [
+        club.name,
+        club.advisor,
+        club.day,
+        club.time,
+        club.category,
+        club.description,
+        club.location,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(q);
     });
-  }, [clubs, query, filter]);
+  }, [clubs, query, filter, followingOnly, follows]);
+
+  const clearFilters = useCallback(() => {
+    setQuery('');
+    setFilter('All');
+    setFollowingOnly(false);
+  }, []);
+
+  // Measured height of the absolute sticky header — drives list paddingTop so
+  // the first card is never hidden beneath it.
+  const [headerHeight, setHeaderHeight] = useState(218);
+
+  // Scroll-aware header: title shrinks, meta fades, SearchBar sticks.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
+
+  const titleStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      scrollY.value,
+      [0, HEADER_COLLAPSE_DISTANCE],
+      [1, 0.58],
+      Extrapolation.CLAMP,
+    );
+    const translateX = interpolate(
+      scrollY.value,
+      [0, HEADER_COLLAPSE_DISTANCE],
+      [0, -28],
+      Extrapolation.CLAMP,
+    );
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_COLLAPSE_DISTANCE],
+      [0, -6],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [{ translateX }, { translateY }, { scale }],
+    };
+  });
+
+  const metaStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [0, HEADER_COLLAPSE_DISTANCE * 0.45],
+      [1, 0],
+      Extrapolation.CLAMP,
+    );
+    const height = interpolate(
+      scrollY.value,
+      [0, HEADER_COLLAPSE_DISTANCE],
+      [20, 0],
+      Extrapolation.CLAMP,
+    );
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_COLLAPSE_DISTANCE],
+      [0, -8],
+      Extrapolation.CLAMP,
+    );
+    return { opacity, height, transform: [{ translateY }] };
+  });
+
+  const stickyBgStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [HEADER_COLLAPSE_DISTANCE * 0.45, HEADER_COLLAPSE_DISTANCE],
+      [0, 1],
+      Extrapolation.CLAMP,
+    );
+    return { opacity };
+  });
+
+  const stickyBorderStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [HEADER_COLLAPSE_DISTANCE * 0.6, HEADER_COLLAPSE_DISTANCE],
+      [0, 1],
+      Extrapolation.CLAMP,
+    );
+    return { opacity };
+  });
 
   const renderItem = useCallback(
     ({ item, index }: { item: Club; index: number }) => (
-      <Animated.View entering={FadeInDown.delay(Math.min(index * 35, 350)).duration(420)}>
+      <Animated.View
+        entering={FadeInDown.delay(Math.min(index * 25, 220)).duration(380)}
+      >
         <ClubCard
           club={item}
           followed={isFollowing(item.id)}
@@ -60,49 +182,192 @@ export default function BrowseScreen() {
     [isFollowing, toggleFollow, router],
   );
 
+  const filtersActive =
+    !!query.trim() || filter !== 'All' || followingOnly;
+
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <View className="px-5 pb-2" style={{ paddingTop: insets.top + 8 }}>
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-3xl font-extrabold text-light-text dark:text-dark-text">
-              Browse Clubs
-            </Text>
-            <Text className="mt-1 text-sm text-light-muted dark:text-dark-muted">
-              {clubs.length} clubs at Tesla STEM
-            </Text>
-          </View>
-          <ThemeToggle />
-        </View>
-        <View className="mt-4">
-          <SearchBar value={query} onChangeText={setQuery} />
-        </View>
-      </View>
+      {/* Sticky scroll-aware header (absolute over the list) */}
+      <Animated.View
+        pointerEvents="box-none"
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          paddingTop: insets.top,
+        }}
+      >
+        {/* Filled background that appears once user scrolls */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: c.bg,
+            },
+            stickyBgStyle,
+          ]}
+        />
 
-      <View className="pb-1">
-        <FilterChips options={FILTERS} selected={filter} onSelect={setFilter} />
-      </View>
-
-      <FlatList
-        data={data}
-        keyExtractor={(c) => c.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerClassName="px-5 pt-3 pb-36"
-        ListEmptyComponent={
-          <View className="mt-24 items-center px-8">
-            <View className="h-16 w-16 items-center justify-center rounded-3xl bg-python-blue/15">
-              <Ionicons name="search" size={28} color="#1565C0" />
+        <View className="px-5 pt-2.5">
+          {/* Top row: title lockup + theme toggle */}
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1 pr-3">
+              <Animated.Text
+                style={[titleStyle, { transformOrigin: 'left center' as never }]}
+                className="text-4xl font-extrabold tracking-tighter text-light-text dark:text-dark-text"
+                numberOfLines={1}
+              >
+                Browse Clubs
+              </Animated.Text>
+              <Animated.View style={metaStyle} className="overflow-hidden">
+                <Text
+                  className="mt-1 text-sm font-medium text-light-muted dark:text-dark-muted"
+                  numberOfLines={1}
+                >
+                  <Text className="font-semibold text-light-secondary dark:text-dark-secondary">
+                    {clubs.length} clubs
+                  </Text>
+                  <Text className="text-light-subtle dark:text-dark-subtle">  ·  </Text>
+                  Tesla STEM
+                  <Text className="text-light-subtle dark:text-dark-subtle">  ·  </Text>
+                  2026
+                </Text>
+              </Animated.View>
             </View>
-            <Text className="mt-4 text-lg font-bold text-light-text dark:text-dark-text">
-              No clubs found
-            </Text>
-            <Text className="mt-1 text-center text-sm text-light-muted dark:text-dark-muted">
-              Try a different search term or filter.
-            </Text>
+            <View className="pt-1">
+              <ThemeToggle />
+            </View>
           </View>
-        }
-      />
+
+          {/* SearchBar (becomes sticky as header collapses) */}
+          <View className="mt-3.5">
+            <SearchBar
+              value={query}
+              onChangeText={setQuery}
+              resultCount={query.length === 0 ? undefined : data.length}
+            />
+          </View>
+        </View>
+
+        {/* Filter chips row */}
+        <View className="mt-2">
+          <FilterChips
+            options={FILTERS}
+            selected={filter}
+            onSelect={setFilter}
+            counts={counts}
+          />
+        </View>
+
+        {/* Following-only mini toggle row */}
+        <View className="flex-row items-center gap-2 px-5 pb-3 pt-1.5">
+          <Chip
+            label="All clubs"
+            active={!followingOnly}
+            onPress={() => setFollowingOnly(false)}
+            size="sm"
+            tone="brand"
+          />
+          <Chip
+            label="Following"
+            active={followingOnly}
+            onPress={() => setFollowingOnly(true)}
+            size="sm"
+            tone="brand"
+            icon="heart"
+            count={followingCount}
+          />
+        </View>
+
+        {/* Hairline that fades in when collapsed */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              height: 1,
+              backgroundColor: isDark ? c.border : c.hairline,
+            },
+            stickyBorderStyle,
+          ]}
+        />
+      </Animated.View>
+
+      {/* Loading state */}
+      {loading && clubs.length === 0 ? (
+        <View
+          style={{
+            paddingTop: headerHeight + 8,
+            paddingHorizontal: 20,
+            paddingBottom: 120,
+          }}
+        >
+          <SkeletonRow count={4} />
+        </View>
+      ) : data.length === 0 ? (
+        // Empty state when no clubs match filters/search
+        <View
+          style={{
+            paddingTop: headerHeight + 8,
+            paddingBottom: 120,
+            flex: 1,
+          }}
+        >
+          <EmptyState
+            icon="search"
+            title="No clubs match those filters"
+            description="Try clearing filters or your search."
+            actionLabel={filtersActive ? 'Clear filters' : undefined}
+            onAction={filtersActive ? clearFilters : undefined}
+          />
+        </View>
+      ) : (
+        <Animated.FlatList
+          data={data}
+          keyExtractor={(c) => c.id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: headerHeight + 8,
+            paddingHorizontal: 20,
+            paddingBottom: 120,
+          }}
+          // Web/native perf: only render what's needed.
+          initialNumToRender={8}
+          windowSize={9}
+          removeClippedSubviews={Platform.OS !== 'web'}
+        />
+      )}
+
+      {/* Subtle scroll-fade gradient at top of list (under sticky header) */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: headerHeight,
+          left: 0,
+          right: 0,
+          height: 18,
+          zIndex: 9,
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: c.bg,
+            opacity: 0.85,
+          }}
+        />
+      </View>
     </View>
   );
 }

@@ -1,27 +1,123 @@
-import { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, LayoutChangeEvent, Share, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import {
+  Card,
+  MetaRow,
+  Avatar,
+  Button,
+  PressableScale,
+  EmptyState,
+} from '@/components/ui';
 import { useClubs } from '@/context/ClubsContext';
 import { ClubProfileHeader } from '@/components/ClubProfileHeader';
-import { PressableScale } from '@/components/PressableScale';
 import { useFollows } from '@/context/FollowContext';
+import { useTheme } from '@/context/ThemeContext';
+import { clubInitials } from '@/types/domain';
+import { brand, palette } from '@/theme/tokens';
+import { spring } from '@/theme/motion';
 
 type Tab = 'About' | 'Announcements' | 'Officers';
 const TABS: Tab[] = ['About', 'Announcements', 'Officers'];
 
-function InfoRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+function avatarInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+interface SegmentedTabsProps {
+  value: Tab;
+  onChange: (t: Tab) => void;
+}
+
+function SegmentedTabs({ value, onChange }: SegmentedTabsProps) {
+  const [tabWidth, setTabWidth] = useState(0);
+  const activeIndex = TABS.indexOf(value);
+  const indicatorX = useSharedValue(0);
+
+  const onContainerLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      const w = e.nativeEvent.layout.width;
+      // Container has p-1 (4px) on each side. Three tabs share width minus the
+      // 4px gap (gap-1) between them, plus the padding.
+      const innerPad = 4; // p-1
+      const gap = 4; // gap-1
+      const usable = w - innerPad * 2 - gap * (TABS.length - 1);
+      const per = usable / TABS.length;
+      setTabWidth(per);
+      indicatorX.value = innerPad + activeIndex * (per + gap);
+    },
+    [activeIndex, indicatorX],
+  );
+
+  const select = (t: Tab) => {
+    const idx = TABS.indexOf(t);
+    const innerPad = 4;
+    const gap = 4;
+    indicatorX.value = withSpring(innerPad + idx * (tabWidth + gap), spring.pop);
+    onChange(t);
+  };
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
   return (
-    <View className="flex-row items-start gap-3 border-b border-light-border py-3 dark:border-dark-border">
-      <Ionicons name={icon} size={18} color="#4CAF50" />
-      <View className="flex-1">
-        <Text className="text-xs font-semibold uppercase text-light-muted dark:text-dark-muted">
-          {label}
-        </Text>
-        <Text className="mt-0.5 text-base text-light-text dark:text-dark-text">{value}</Text>
-      </View>
+    <View
+      onLayout={onContainerLayout}
+      className="relative flex-row gap-1 rounded-full bg-light-surface-2 p-1 dark:bg-dark-surface-2"
+    >
+      {tabWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            indicatorStyle,
+            {
+              position: 'absolute',
+              top: 4,
+              bottom: 4,
+              left: 0,
+              width: tabWidth,
+            },
+          ]}
+          className="rounded-full bg-light-surface shadow-ambient dark:bg-dark-surface"
+        />
+      ) : null}
+      {TABS.map((t) => {
+        const active = t === value;
+        return (
+          <PressableScale
+            key={t}
+            onPress={() => select(t)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            scaleTo={0.97}
+            className="h-9 flex-1 items-center justify-center rounded-full"
+          >
+            <Text
+              className={`text-sm font-semibold ${
+                active
+                  ? 'text-light-text dark:text-dark-text'
+                  : 'text-light-muted dark:text-dark-muted'
+              }`}
+            >
+              {t}
+            </Text>
+          </PressableScale>
+        );
+      })}
     </View>
   );
 }
@@ -32,151 +128,246 @@ export default function ClubProfileScreen() {
   const insets = useSafeAreaInsets();
   const { isFollowing, toggleFollow } = useFollows();
   const { getClub } = useClubs();
+  const { isDark } = useTheme();
   const [tab, setTab] = useState<Tab>('About');
+
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
 
   const club = getClub(String(id));
 
   if (!club) {
     return (
-      <View className="flex-1 items-center justify-center bg-light-bg px-8 dark:bg-dark-bg">
-        <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-          Club not found
-        </Text>
-        <PressableScale
-          onPress={() => router.back()}
-          className="mt-4 h-11 justify-center rounded-full bg-python-green px-6"
-        >
-          <Text className="font-bold text-white">Go back</Text>
-        </PressableScale>
+      <View className="flex-1 items-center justify-center bg-light-bg dark:bg-dark-bg">
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Club not found"
+          description="This club may have moved or been removed."
+          actionLabel="Go back"
+          onAction={() => router.back()}
+        />
       </View>
     );
   }
 
   const followed = isFollowing(club.id);
 
+  const handleShare = async () => {
+    try {
+      if (Platform.OS === 'web') return;
+      await Share.share({
+        message: `Check out ${club.name} at Tesla STEM — ${club.description}`,
+        title: club.name,
+      });
+    } catch {
+      // noop
+    }
+  };
+
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <ClubProfileHeader club={club} onBack={() => router.back()} />
-
-      <View className="flex-row gap-2 px-5 py-4">
-        {TABS.map((t) => {
-          const active = t === tab;
-          return (
-            <PressableScale
-              key={t}
-              onPress={() => setTab(t)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              className={`h-10 flex-1 items-center justify-center rounded-xl border ${
-                active
-                  ? 'border-python-green bg-python-green'
-                  : 'border-light-border bg-light-card dark:border-dark-border dark:bg-dark-card'
-              }`}
-            >
-              <Text
-                className={`text-sm font-bold ${
-                  active ? 'text-white' : 'text-light-muted dark:text-dark-muted'
-                }`}
-              >
-                {t}
-              </Text>
-            </PressableScale>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        className="flex-1 px-5"
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-32"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
       >
-        {tab === 'About' && (
-          <Animated.View entering={FadeIn.duration(250)}>
-            <Text className="text-base leading-6 text-light-text dark:text-dark-text">
-              {club.description}
-            </Text>
-            <View className="mt-4 rounded-2xl border border-light-border bg-light-card px-4 dark:border-dark-border dark:bg-dark-card">
-              <InfoRow icon="calendar-outline" label="Meeting" value={`${club.day} · ${club.time}`} />
-              <InfoRow icon="location-outline" label="Location" value={club.location} />
-              <InfoRow icon="person-outline" label="Advisor" value={club.advisor} />
-              <InfoRow icon="mail-outline" label="Contact" value={club.contactEmail} />
-              <InfoRow icon="logo-instagram" label="Instagram" value={club.instagram} />
-              <InfoRow icon="flag-outline" label="Founded" value={String(club.foundingYear)} />
-            </View>
-          </Animated.View>
-        )}
+        <ClubProfileHeader
+          club={club}
+          onBack={() => router.back()}
+          onShare={handleShare}
+          scrollY={scrollY}
+        />
 
-        {tab === 'Announcements' && (
-          <Animated.View entering={FadeIn.duration(250)} className="gap-3">
-            {club.announcements.map((a) => (
-              <View
-                key={a.id}
-                className="rounded-2xl border border-light-border bg-light-card p-4 dark:border-dark-border dark:bg-dark-card"
-              >
-                <View className="flex-row items-center justify-between">
-                  <Text className="flex-1 text-base font-bold text-light-text dark:text-dark-text">
-                    {a.title}
-                  </Text>
-                  <Text className="text-xs font-semibold text-python-green">{a.date}</Text>
-                </View>
-                <Text className="mt-2 text-sm leading-5 text-light-muted dark:text-dark-muted">
-                  {a.body}
+        <View className="px-5 pt-5">
+          <SegmentedTabs value={tab} onChange={setTab} />
+        </View>
+
+        <View className="px-5 pt-5">
+          {tab === 'About' && (
+            <Animated.View entering={FadeIn.duration(260)}>
+              <Text className="text-base leading-7 text-light-secondary dark:text-dark-secondary">
+                {club.description}
+              </Text>
+
+              <View className="mt-6">
+                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                  Club details
                 </Text>
+                <Card elevation="ambient" className="px-4">
+                  <MetaRow
+                    icon="calendar-outline"
+                    label="Meeting"
+                    value={`${club.day} · ${club.time}`}
+                  />
+                  <MetaRow
+                    icon="location-outline"
+                    label="Location"
+                    value={club.location}
+                    iconTone="info"
+                  />
+                  <MetaRow icon="person-outline" label="Advisor" value={club.advisor} />
+                  <MetaRow
+                    icon="people-outline"
+                    label="Members"
+                    value={`${club.memberCount} active members`}
+                    iconTone="info"
+                  />
+                  <MetaRow icon="mail-outline" label="Contact" value={club.contactEmail} />
+                  <MetaRow
+                    icon="logo-instagram"
+                    label="Instagram"
+                    value={club.instagram}
+                    iconTone="info"
+                  />
+                  <MetaRow
+                    icon="flag-outline"
+                    label="Founded"
+                    value={String(club.foundingYear)}
+                    divider={false}
+                  />
+                </Card>
               </View>
-            ))}
-          </Animated.View>
-        )}
+            </Animated.View>
+          )}
 
-        {tab === 'Officers' && (
-          <Animated.View entering={FadeIn.duration(250)} className="gap-3">
-            {club.officers.map((o) => (
-              <View
-                key={o.role}
-                className="flex-row items-center gap-3 rounded-2xl border border-light-border bg-light-card p-4 dark:border-dark-border dark:bg-dark-card"
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-full bg-python-blue/15">
-                  <Ionicons name="person" size={20} color="#1565C0" />
+          {tab === 'Announcements' && (
+            <Animated.View entering={FadeIn.duration(260)}>
+              {club.announcements.length === 0 ? (
+                <EmptyState
+                  icon="megaphone-outline"
+                  title="No announcements yet"
+                  description="When this club shares updates, they'll appear here."
+                  tone="neutral"
+                />
+              ) : (
+                <View className="relative pl-7">
+                  {/* Continuous timeline rail */}
+                  <View
+                    pointerEvents="none"
+                    className="absolute left-2 top-2 bottom-2 w-px bg-light-border dark:bg-dark-border"
+                  />
+                  {club.announcements.map((a, i) => (
+                    <Animated.View
+                      key={a.id}
+                      entering={FadeInDown.duration(380).delay(i * 70)}
+                      className={i === club.announcements.length - 1 ? '' : 'mb-3'}
+                    >
+                      {/* Timeline dot */}
+                      <View
+                        pointerEvents="none"
+                        className="absolute -left-7 top-4 h-3 w-3 rounded-full border-2 border-light-bg bg-python-green dark:border-dark-bg"
+                      />
+                      <Card elevation="ambient" className="p-4">
+                        <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                          {a.date}
+                        </Text>
+                        <Text className="mt-1 text-base font-bold tracking-tight text-light-text dark:text-dark-text">
+                          {a.title}
+                        </Text>
+                        <Text className="mt-1.5 text-sm leading-6 text-light-secondary dark:text-dark-secondary">
+                          {a.body}
+                        </Text>
+                      </Card>
+                    </Animated.View>
+                  ))}
                 </View>
-                <View>
-                  <Text className="text-xs font-semibold uppercase text-light-muted dark:text-dark-muted">
-                    {o.role}
-                  </Text>
-                  <Text className="text-base font-bold text-light-text dark:text-dark-text">
-                    {o.name}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </Animated.View>
-        )}
-      </ScrollView>
+              )}
+            </Animated.View>
+          )}
 
+          {tab === 'Officers' && (
+            <Animated.View entering={FadeIn.duration(260)}>
+              {club.officers.length === 0 ? (
+                <EmptyState
+                  icon="people-outline"
+                  title="No officers listed"
+                  description="Officer information will appear here once added."
+                  tone="neutral"
+                />
+              ) : (
+                <View className="gap-3">
+                  {club.officers.map((o, i) => (
+                    <Animated.View
+                      key={o.role}
+                      entering={FadeInDown.duration(380).delay(i * 60)}
+                    >
+                      <Card elevation="ambient" className="flex-row items-center gap-4 p-4">
+                        <Avatar
+                          size="md"
+                          tone={i % 2 === 0 ? 'brand' : 'info'}
+                          initials={avatarInitials(o.name)}
+                        />
+                        <View className="flex-1">
+                          <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                            {o.role}
+                          </Text>
+                          <Text className="mt-0.5 text-base font-bold tracking-tight text-light-text dark:text-dark-text">
+                            {o.name}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={isDark ? '#8A8F99' : '#9CA3AF'}
+                        />
+                      </Card>
+                    </Animated.View>
+                  ))}
+                </View>
+              )}
+            </Animated.View>
+          )}
+        </View>
+      </Animated.ScrollView>
+
+      {/* Sticky CTA bar with blur background */}
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-light-border bg-light-bg px-5 pt-3 dark:border-dark-border dark:bg-dark-bg"
-        style={{ paddingBottom: insets.bottom + 12 }}
+        pointerEvents="box-none"
+        className="absolute bottom-0 left-0 right-0"
       >
-        <PressableScale
-          onPress={() => toggleFollow(club.id)}
-          accessibilityRole="button"
-          accessibilityState={{ selected: followed }}
-          accessibilityLabel={followed ? 'Unfollow club' : 'Follow club'}
-          className={`h-14 flex-row items-center justify-center gap-2 rounded-2xl ${
-            followed ? 'border-2 border-python-green bg-transparent' : 'bg-python-green'
-          }`}
+        <BlurView
+          intensity={isDark ? 40 : 60}
+          tint={isDark ? 'dark' : 'light'}
+          style={{
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: insets.bottom + 12,
+            borderTopWidth: 1,
+            borderTopColor: isDark ? 'rgba(30,33,40,0.7)' : 'rgba(238,240,243,0.9)',
+          }}
         >
-          <Ionicons
-            name={followed ? 'checkmark-circle' : 'notifications-outline'}
-            size={20}
-            color={followed ? '#4CAF50' : '#FFFFFF'}
-          />
-          <Text
-            className={`text-base font-extrabold ${
-              followed ? 'text-python-green' : 'text-white'
-            }`}
-          >
-            {followed ? 'Following Club' : 'Follow Club'}
-          </Text>
-        </PressableScale>
+          <View className="flex-row items-center gap-3">
+            <View className="flex-1">
+              <Button
+                size="xl"
+                fullWidth
+                variant={followed ? 'outline' : 'primary'}
+                icon={followed ? 'checkmark-circle' : 'notifications-outline'}
+                label={followed ? "You're Following" : 'Follow Club'}
+                onPress={() => toggleFollow(club.id)}
+                accessibilityLabel={followed ? 'Unfollow club' : 'Follow club'}
+              />
+            </View>
+            <PressableScale
+              onPress={handleShare}
+              accessibilityRole="button"
+              accessibilityLabel="Share club"
+              scaleTo={0.94}
+              className="h-14 w-14 items-center justify-center rounded-2xl border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+            >
+              <Ionicons
+                name="share-outline"
+                size={22}
+                color={isDark ? palette.white : brand.greenDeep}
+              />
+            </PressableScale>
+          </View>
+        </BlurView>
       </View>
     </View>
   );

@@ -1,44 +1,29 @@
-import { ScrollView, Text } from 'react-native';
-import { PressableScale } from './PressableScale';
+import { ScrollView } from 'react-native';
+import { Chip } from './ui/Chip';
 
 interface Props {
   options: string[];
   selected: string;
   onSelect: (value: string) => void;
+  counts?: Record<string, number>;
 }
 
-export function FilterChips({ options, selected, onSelect }: Props) {
+export function FilterChips({ options, selected, onSelect, counts }: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerClassName="gap-2 px-5 py-1"
+      contentContainerClassName="gap-2 px-5 py-1.5"
     >
-      {options.map((opt) => {
-        const active = opt === selected;
-        return (
-          <PressableScale
-            key={opt}
-            onPress={() => onSelect(opt)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={`Filter by ${opt}`}
-            className={`h-10 justify-center rounded-full border px-4 ${
-              active
-                ? 'border-python-green bg-python-green'
-                : 'border-light-border bg-light-card dark:border-dark-border dark:bg-dark-card'
-            }`}
-          >
-            <Text
-              className={`text-sm font-semibold ${
-                active ? 'text-white' : 'text-light-muted dark:text-dark-muted'
-              }`}
-            >
-              {opt}
-            </Text>
-          </PressableScale>
-        );
-      })}
+      {options.map((opt) => (
+        <Chip
+          key={opt}
+          label={opt}
+          active={opt === selected}
+          onPress={() => onSelect(opt)}
+          count={counts?.[opt]}
+        />
+      ))}
     </ScrollView>
   );
 }
