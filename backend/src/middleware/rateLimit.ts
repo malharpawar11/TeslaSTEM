@@ -20,7 +20,8 @@ function makeLimiter(
     legacyHeaders: false,
     keyGenerator: keyFn,
     store: new RedisStore({
-      sendCommand: (...args: string[]) => redis.call(...(args as [string, ...string[]])) as Promise<unknown>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sendCommand: ((...args: string[]) => redis.call(...(args as [string, ...string[]]))) as any,
       prefix: `rl:${prefix}:`,
     }),
     ...opts,

@@ -18,7 +18,7 @@ import {
 } from './service';
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
-  const q = req.query as { limit: number; cursor?: string; q?: string; category?: string; approved?: boolean };
+  const q = req.query as unknown as { limit: number; cursor?: string; q?: string; category?: string; approved?: boolean };
   const rows = await listClubs({
     limit: q.limit,
     cursor: q.cursor,
@@ -115,7 +115,7 @@ export const approve = asyncHandler(async (req: Request, res: Response) => {
 
 export const members = asyncHandler(async (req: Request, res: Response) => {
   const { clubId } = req.params as { clubId: string };
-  const q = req.query as { limit: number; cursor?: string };
+  const q = req.query as unknown as { limit: number; cursor?: string };
   const rows = await listClubMembers(clubId, { limit: q.limit, cursor: q.cursor });
   // cursor is the userId of the last item since composite key includes (clubId, userId)
   const hasMore = rows.length > q.limit;

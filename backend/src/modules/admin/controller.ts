@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { asyncHandler } from '@/utils/asyncHandler';
 
 export const listAuditLogs = asyncHandler(async (req: Request, res: Response) => {
-  const q = req.query as { limit: number; cursor?: string; action?: string; actorId?: string };
+  const q = req.query as unknown as { limit: number; cursor?: string; action?: string; actorId?: string };
 
   // Cursor is the stringified bigint id of the previous page's last row.
   const rows = await prisma.auditLog.findMany({

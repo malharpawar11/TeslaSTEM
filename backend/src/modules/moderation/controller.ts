@@ -47,7 +47,7 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const list = asyncHandler(async (req: Request, res: Response) => {
-  const q = req.query as { limit: number; cursor?: string; status?: 'OPEN' | 'RESOLVED' | 'DISMISSED' };
+  const q = req.query as unknown as { limit: number; cursor?: string; status?: 'OPEN' | 'RESOLVED' | 'DISMISSED' };
   const rows = await prisma.report.findMany({
     where: q.status ? { status: q.status } : undefined,
     orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],

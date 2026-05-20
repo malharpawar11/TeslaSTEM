@@ -31,14 +31,14 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 
 export const listForClub = asyncHandler(async (req: Request, res: Response) => {
   const { clubId } = req.params as { clubId: string };
-  const q = req.query as { limit: number; cursor?: string };
+  const q = req.query as unknown as { limit: number; cursor?: string };
   const rows = await listClubAnnouncements(clubId, q);
   res.json(buildCursorPage(rows, q.limit));
 });
 
 export const myFeed = asyncHandler(async (req: Request, res: Response) => {
   if (!req.auth) throw unauthorized();
-  const q = req.query as { limit: number; cursor?: string };
+  const q = req.query as unknown as { limit: number; cursor?: string };
   const rows = await myAnnouncementFeed(req.auth.id, q);
   res.json(buildCursorPage(rows, q.limit));
 });

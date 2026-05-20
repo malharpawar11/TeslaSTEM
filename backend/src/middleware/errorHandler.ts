@@ -23,7 +23,7 @@ export function errorHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction,
 ): void {
-  const requestId = req.id;
+  const requestId = String(req.id);
 
   if (err instanceof AppError) {
     if (!err.expose) logger.error({ err, requestId }, 'app error (server)');

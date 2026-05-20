@@ -20,7 +20,7 @@ export function requireClubAdmin(paramName: string = 'clubId') {
       if (!req.auth) throw unauthorized();
       if (req.auth.role === 'SUPER_ADMIN') return next();
 
-      const clubId = req.params[paramName];
+      const clubId = req.params[paramName] as string | undefined;
       if (!clubId) throw forbidden('Club not specified');
 
       const assignment = await prisma.clubAdminAssignment.findUnique({
