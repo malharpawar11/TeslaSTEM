@@ -1,5 +1,5 @@
 import { useState, ReactNode } from 'react';
-import { View, Text, TextInput, TextInputProps } from 'react-native';
+import { View, Text, TextInput, TextInputProps, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTheme } from '@/context/ThemeContext';
@@ -95,6 +95,12 @@ export function Input({
             className={`flex-1 text-base text-light-text dark:text-dark-text ${
               multiline ? 'min-h-24 py-3' : 'h-12'
             }`}
+            // react-native-web renders TextInput as an <input>; suppress the
+            // browser's default focus outline so only our own green ring shows.
+            style={[
+              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+              rest.style,
+            ]}
           />
           {trailing}
         </View>

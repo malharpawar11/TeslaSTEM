@@ -272,35 +272,38 @@ export default function PoliciesScreen() {
                 Club Directory · v1.0 · Built with care
               </Text>
             </View>
+          </View>
 
-            <View className="flex-row gap-2">
-              <PressableScale
-                onPress={() => {}}
-                accessibilityRole="button"
-                accessibilityLabel="GitHub"
-                scaleTo={0.95}
-                pressedOpacity={0.85}
-                className="h-9 flex-row items-center gap-1.5 rounded-full border border-light-border bg-light-surface px-3 dark:border-dark-border dark:bg-dark-surface"
-              >
-                <Ionicons name="logo-github" size={13} color={brand.green} />
-                <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
-                  GitHub
-                </Text>
-              </PressableScale>
-              <PressableScale
-                onPress={() => {}}
-                accessibilityRole="button"
-                accessibilityLabel="Feedback"
-                scaleTo={0.95}
-                pressedOpacity={0.85}
-                className="h-9 flex-row items-center gap-1.5 rounded-full border border-light-border bg-light-surface px-3 dark:border-dark-border dark:bg-dark-surface"
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={13} color={brand.blue} />
-                <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
-                  Feedback
-                </Text>
-              </PressableScale>
-            </View>
+          {/* Buttons live on their own row so the title column above keeps its
+              full width — sharing a row with these pills squeezes it to nothing
+              on narrow screens and wraps the text character-by-character. */}
+          <View className="mt-4 flex-row gap-2">
+            <PressableScale
+              onPress={() => {}}
+              accessibilityRole="button"
+              accessibilityLabel="GitHub"
+              scaleTo={0.97}
+              pressedOpacity={0.85}
+              className="h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border border-light-border bg-light-surface px-3 dark:border-dark-border dark:bg-dark-surface"
+            >
+              <Ionicons name="logo-github" size={13} color={brand.green} />
+              <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
+                GitHub
+              </Text>
+            </PressableScale>
+            <PressableScale
+              onPress={() => {}}
+              accessibilityRole="button"
+              accessibilityLabel="Feedback"
+              scaleTo={0.97}
+              pressedOpacity={0.85}
+              className="h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border border-light-border bg-light-surface px-3 dark:border-dark-border dark:bg-dark-surface"
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={13} color={brand.blue} />
+              <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
+                Feedback
+              </Text>
+            </PressableScale>
           </View>
         </Card>
       </ScrollView>

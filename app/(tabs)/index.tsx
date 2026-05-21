@@ -309,7 +309,7 @@ export default function HomeScreen() {
           {/* Feature strip — three actions, chevron separators */}
           <Animated.View
             entering={FadeInDown.delay(460).duration(duration.xl)}
-            className="mt-8 flex-row items-center gap-3"
+            className="mt-8 flex-row items-center justify-center gap-3"
           >
             <Text className="text-xs font-semibold uppercase tracking-widest text-white/75">
               Browse
