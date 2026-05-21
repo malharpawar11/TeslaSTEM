@@ -98,7 +98,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const e = email.trim().toLowerCase();
     if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.' };
     if (!supabase) return { error: 'Backend not configured.' };
-    const { error } = await supabase.auth.signInWithOtp({ email: e });
+    // Use the current origin on web so the magic link in the email points to
+    // the right host (production or local dev). Fall back to the production URL
+    // on native where window is unavailable.
+    const emailRedirectTo =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://tesla-stem-clubs.vercel.app';
+    const { error } = await supabase.auth.signInWithOtp({
+      email: e,
+      options: { emailRedirectTo },
+    });
     return { error: error?.message ?? null };
   }, []);
 
