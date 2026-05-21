@@ -6,12 +6,16 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch"]
+  previewFeatures = ["fullTextSearch", "multiSchema"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+  // auth schema listed so Prisma resolves the Supabase profiles->auth.users FK
+  // during introspection. Prisma does not manage any auth schema tables.
+  schemas   = ["public", "auth"]
 }
 
 // ---------- enums ----------
@@ -20,40 +24,54 @@ enum Role {
   STUDENT
   CLUB_ADMIN
   SUPER_ADMIN
+
+  @@schema("public")
 }
 
 enum UserStatus {
   ACTIVE
   SUSPENDED
   DELETED
+
+  @@schema("public")
 }
 
 enum OAuthProvider {
   GOOGLE
   MICROSOFT
+
+  @@schema("public")
 }
 
 enum MembershipType {
   FOLLOWER
   MEMBER
+
+  @@schema("public")
 }
 
 enum ReportStatus {
   OPEN
   RESOLVED
   DISMISSED
+
+  @@schema("public")
 }
 
 enum ReportTargetType {
   CLUB
   ANNOUNCEMENT
   USER
+
+  @@schema("public")
 }
 
 enum DevicePlatform {
   IOS
   ANDROID
   WEB
+
+  @@schema("public")
 }
 
 // ---------- users / identity ----------
@@ -65,8 +83,7 @@ model User {
   displayName     String
   role            Role          @default(STUDENT)
   status          UserStatus    @default(ACTIVE)
-  passwordHash    String?       // null when only OAuth identity
-  // bumped on "logout everywhere" or role change to invalidate outstanding access tokens
+  passwordHash    String?
   tokenVersion    Int           @default(0)
   lastLoginAt     DateTime?
   deletedAt       DateTime?
@@ -91,15 +108,14 @@ model User {
   @@index([role])
   @@index([status])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model OAuthIdentity {
   id            String        @id @default(cuid())
   userId        String
   provider      OAuthProvider
-  // stable subject from the IdP (Google `sub`, Microsoft `oid`)
   providerSub   String
-  // raw email reported by IdP (verified per provider rules)
   providerEmail String
   createdAt     DateTime      @default(now())
 
@@ -107,14 +123,13 @@ model OAuthIdentity {
 
   @@unique([provider, providerSub])
   @@index([userId])
+  @@schema("public")
 }
 
 model RefreshToken {
   id           String    @id @default(cuid())
   userId       String
-  // sha-256 hash of the opaque token; raw token never stored
   tokenHash    String    @unique
-  // refresh-token family — reuse of an old token revokes the whole family
   familyId     String
   expiresAt    DateTime
   revokedAt    DateTime?
@@ -127,38 +142,40 @@ model RefreshToken {
 
   @@index([userId, expiresAt])
   @@index([familyId])
+  @@schema("public")
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
 
 model DeviceToken {
   id            String         @id @default(cuid())
   userId        String
-  // Expo push token (ExponentPushToken[xxxx]); unique so re-registration upserts
   expoPushToken String         @unique
   platform      DevicePlatform
   appVersion    String?
@@ -168,13 +185,14 @@ model DeviceToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
 
 // ---------- clubs ----------
 
 model Club {
-  id           String   @id @default(cuid())
-  slug         String   @unique
+  id           String    @id @default(cuid())
+  slug         String    @unique
   name         String
   category     String
   description  String
@@ -184,13 +202,13 @@ model Club {
   advisor      String?
   contactEmail String?
   imageUrl     String?
-  isApproved   Boolean  @default(false)
+  isApproved   Boolean   @default(false)
   approvedAt   DateTime?
   approvedById String?
   createdById  String?
   deletedAt    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   createdBy     User?                 @relation("ClubCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   admins        ClubAdminAssignment[]
@@ -200,6 +218,7 @@ model Club {
   @@index([isApproved, deletedAt])
   @@index([category])
   @@index([name])
+  @@schema("public")
 }
 
 model ClubAdminAssignment {
@@ -214,6 +233,7 @@ model ClubAdminAssignment {
 
   @@id([clubId, userId])
   @@index([userId])
+  @@schema("public")
 }
 
 model ClubMembership {
@@ -228,19 +248,20 @@ model ClubMembership {
   @@id([clubId, userId])
   @@index([userId])
   @@index([clubId, type])
+  @@schema("public")
 }
 
 // ---------- announcements ----------
 
 model Announcement {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   clubId     String
   authorId   String
   title      String
   body       String
-  schoolWide Boolean  @default(false)
+  schoolWide Boolean   @default(false)
   deletedAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   club       Club                   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   author     User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -248,6 +269,7 @@ model Announcement {
 
   @@index([clubId, createdAt(sort: Desc)])
   @@index([authorId])
+  @@schema("public")
 }
 
 model AnnouncementDelivery {
@@ -261,28 +283,30 @@ model AnnouncementDelivery {
 
   @@id([announcementId, userId])
   @@index([userId, readAt])
+  @@schema("public")
 }
 
 // ---------- moderation ----------
 
 model Report {
-  id          String           @id @default(cuid())
-  reporterId  String
-  targetType  ReportTargetType
-  targetId    String
-  reason      String
-  details     String?
-  status      ReportStatus     @default(OPEN)
+  id           String           @id @default(cuid())
+  reporterId   String
+  targetType   ReportTargetType
+  targetId     String
+  reason       String
+  details      String?
+  status       ReportStatus     @default(OPEN)
   resolvedById String?
-  resolvedAt  DateTime?
-  resolution  String?
-  createdAt   DateTime         @default(now())
+  resolvedAt   DateTime?
+  resolution   String?
+  createdAt    DateTime         @default(now())
 
   reporter   User  @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   resolvedBy User? @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([targetType, targetId])
+  @@schema("public")
 }
 
 // ---------- audit ----------
@@ -303,4 +327,5 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
   @@index([action])
+  @@schema("public")
 }

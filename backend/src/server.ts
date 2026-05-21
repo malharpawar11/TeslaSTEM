@@ -8,7 +8,14 @@ async function preflight(): Promise<void> {
   // Fail loudly at boot if dependencies are not reachable. This keeps a
   // misconfigured replica from serving traffic.
   await prisma.$queryRaw`select 1`;
-  await redis.ping();
+
+  try {
+    await redis.ping();
+  } catch (err) {
+    if (env.NODE_ENV === 'production') throw err;
+    // In development, Redis is optional — rate limiting fails open without it.
+    logger.warn({ err }, 'redis unavailable — rate-limiting disabled');
+  }
 
   // Optional: seed a super admin on first boot from env.
   if (env.BOOTSTRAP_SUPER_ADMIN_EMAIL) {
