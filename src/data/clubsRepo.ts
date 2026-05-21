@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Club, ClubCategory, CATEGORIES } from '@/types/domain';
+import { Club, ClubCategory, CATEGORIES, ApprovalStatus } from '@/types/domain';
 import {
   clubs as mockClubs,
   makeOfficers,
@@ -64,13 +64,19 @@ function fromDb(row: DbClub): Club {
   };
 }
 
-/** Approved clubs from Supabase, or the mock set when unconfigured/offline. */
+/**
+ * Approved clubs from Supabase, or the mock set when unconfigured/offline.
+ * Only `status = 'approved'` rows are requested; RLS enforces the same rule
+ * server-side, so a tampered client still cannot read pending/rejected clubs.
+ */
 export async function fetchClubs(): Promise<{ clubs: Club[]; source: ClubsSource }> {
   if (!supabase) return { clubs: mockClubs, source: 'mock' };
   const { data, error } = await supabase
     .from('clubs')
-    .select('id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,created_at,announcements(id,title,body,created_at)')
-    .eq('approved', true)
+    .select(
+      'id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,created_at,announcements(id,title,body,created_at)',
+    )
+    .eq('status', 'approved')
     .order('name');
   if (error || !data) return { clubs: mockClubs, source: 'mock' };
   return { clubs: (data as DbClub[]).map(fromDb), source: 'backend' };
@@ -92,9 +98,10 @@ export type SubmitResult =
   | { ok: false; error: string };
 
 /**
- * Inserts a pending club (approved=false; a super-admin gates it later).
- * Requires a signed-in @lwsd.org user — RLS ties the row to created_by.
- * When the backend isn't configured the caller keeps its local demo flow.
+ * Inserts a club for review (`status = 'pending'`; a special admin gates it).
+ * Requires a signed-in @lwsd.org user — RLS ties the row to created_by and
+ * only permits inserting a pending, self-owned club. When the backend isn't
+ * configured the caller keeps its local demo flow.
  */
 export async function submitClub(input: ClubSubmission): Promise<SubmitResult> {
   if (!supabase) return { ok: true, remote: false };
@@ -111,8 +118,12 @@ export async function submitClub(input: ClubSubmission): Promise<SubmitResult> {
     location: input.location,
     advisor: input.advisor,
     contact_email: input.contactEmail,
-    approved: false,
+    status: 'pending',
     created_by: uid,
+    // The submitter is the club's president by default; verifying their
+    // president status happens when a special admin approves the club.
+    president_id: uid,
+    president_email: auth.user?.email ?? input.contactEmail,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -122,6 +133,42 @@ export async function submitClub(input: ClubSubmission): Promise<SubmitResult> {
     p_metadata: { name: input.name },
   });
   return { ok: true, remote: true };
+}
+
+/** A club the signed-in user submitted — used by the Submit tab to show status. */
+export interface MySubmission {
+  id: string;
+  name: string;
+  category: string;
+  status: ApprovalStatus;
+  rejectionReason: string | null;
+  createdAt: string | null;
+}
+
+/**
+ * The signed-in user's own club submissions, any status. RLS already scopes
+ * `clubs` rows to `created_by = auth.uid()` for non-approved clubs, so this
+ * returns exactly the caller's submissions.
+ */
+export async function fetchMySubmissions(): Promise<MySubmission[]> {
+  if (!supabase) return [];
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) return [];
+  const { data, error } = await supabase
+    .from('clubs')
+    .select('id,name,category,status,rejection_reason,created_at')
+    .eq('created_by', uid)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data.map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    category: r.category as string,
+    status: r.status as ApprovalStatus,
+    rejectionReason: (r.rejection_reason as string | null) ?? null,
+    createdAt: (r.created_at as string | null) ?? null,
+  }));
 }
 
 export { isSupabaseConfigured };

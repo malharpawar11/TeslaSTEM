@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { View, Text, Platform } from 'react-native';
+import { View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -336,15 +336,21 @@ export default function BrowseScreen() {
           showsVerticalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          // The list is the only in-flow child of a flex-1 container, so it
+          // must explicitly claim the space. react-native-web's ScrollView
+          // grows by default; native ScrollView does not — without flex:1 the
+          // list has no viewport and renders zero rows on iOS/Android.
+          style={{ flex: 1 }}
           contentContainerStyle={{
             paddingTop: headerHeight + 8,
             paddingHorizontal: 20,
             paddingBottom: 120,
           }}
-          // Web/native perf: only render what's needed.
+          // Web/native perf: only render what's needed. removeClippedSubviews
+          // is intentionally omitted — it drops content on native when rows
+          // are wrapped in entering-animated views, as they are here.
           initialNumToRender={8}
           windowSize={9}
-          removeClippedSubviews={Platform.OS !== 'web'}
         />
       )}
 

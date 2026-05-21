@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, LayoutChangeEvent, Share, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ import {
   MetaRow,
   Avatar,
   Button,
+  Input,
   PressableScale,
   EmptyState,
 } from '@/components/ui';
@@ -24,6 +25,8 @@ import { useClubs } from '@/context/ClubsContext';
 import { ClubProfileHeader } from '@/components/ClubProfileHeader';
 import { useFollows } from '@/context/FollowContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { canManageClub, createAnnouncement } from '@/data/announcementsRepo';
 import { clubInitials } from '@/types/domain';
 import { brand, palette } from '@/theme/tokens';
 import { spring } from '@/theme/motion';
@@ -127,8 +130,9 @@ export default function ClubProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFollowing, toggleFollow } = useFollows();
-  const { getClub } = useClubs();
+  const { getClub, refresh } = useClubs();
   const { isDark } = useTheme();
+  const { session } = useAuth();
   const [tab, setTab] = useState<Tab>('About');
 
   const scrollY = useSharedValue(0);
@@ -139,6 +143,51 @@ export default function ClubProfileScreen() {
   });
 
   const club = getClub(String(id));
+  const clubId = club?.id;
+
+  // Announcement composer — shown only to users who may manage this club.
+  // `canManageClub` calls the same can_admin_club() the RLS policy uses, so
+  // the control's visibility matches what the database will actually allow.
+  const [canManage, setCanManage] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annBody, setAnnBody] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!clubId || !session) {
+      setCanManage(false);
+      return;
+    }
+    let active = true;
+    canManageClub(clubId).then((ok) => {
+      if (active) setCanManage(ok);
+    });
+    return () => {
+      active = false;
+    };
+  }, [clubId, session]);
+
+  const submitAnnouncement = useCallback(async () => {
+    if (!clubId) return;
+    if (!annTitle.trim() || !annBody.trim()) {
+      setPostError('Add a title and a message.');
+      return;
+    }
+    setPostError(null);
+    setPosting(true);
+    const res = await createAnnouncement(clubId, annTitle, annBody);
+    setPosting(false);
+    if (!res.ok) {
+      setPostError(res.error);
+      return;
+    }
+    setAnnTitle('');
+    setAnnBody('');
+    setComposerOpen(false);
+    await refresh();
+  }, [clubId, annTitle, annBody, refresh]);
 
   if (!club) {
     return (
@@ -237,6 +286,78 @@ export default function ClubProfileScreen() {
 
           {tab === 'Announcements' && (
             <Animated.View entering={FadeIn.duration(260)}>
+              {/* Permission-gated composer — only club managers see this.
+                  The DB re-checks the same permission when the row inserts. */}
+              {canManage ? (
+                <View className="mb-4">
+                  {composerOpen ? (
+                    <Card elevation="ambient" className="p-4">
+                      <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                        New announcement
+                      </Text>
+                      <View className="gap-3">
+                        <Input
+                          label="Title"
+                          value={annTitle}
+                          onChangeText={setAnnTitle}
+                          placeholder="What's happening?"
+                          returnKeyType="next"
+                        />
+                        <Input
+                          label="Message"
+                          value={annBody}
+                          onChangeText={setAnnBody}
+                          multiline
+                          placeholder="Share the details with members…"
+                        />
+                        {postError ? (
+                          <View className="flex-row items-center gap-1.5">
+                            <Ionicons name="alert-circle" size={13} color="#E11D48" />
+                            <Text className="text-xs font-semibold text-danger">
+                              {postError}
+                            </Text>
+                          </View>
+                        ) : null}
+                        <View className="flex-row gap-2.5">
+                          <View className="flex-1">
+                            <Button
+                              label="Cancel"
+                              variant="secondary"
+                              size="md"
+                              fullWidth
+                              onPress={() => {
+                                setComposerOpen(false);
+                                setPostError(null);
+                              }}
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Button
+                              label="Post"
+                              variant="primary"
+                              size="md"
+                              fullWidth
+                              icon="megaphone"
+                              loading={posting}
+                              onPress={submitAnnouncement}
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    </Card>
+                  ) : (
+                    <Button
+                      label="Post an announcement"
+                      variant="outline"
+                      size="lg"
+                      fullWidth
+                      icon="megaphone-outline"
+                      onPress={() => setComposerOpen(true)}
+                    />
+                  )}
+                </View>
+              ) : null}
+
               {club.announcements.length === 0 ? (
                 <EmptyState
                   icon="megaphone-outline"

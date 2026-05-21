@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Switch, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -10,13 +10,17 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Button, Card, Input, Chip } from '@/components/ui';
+import { Button, Card, Input, Chip, Tag, Skeleton } from '@/components/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SignInGate } from '@/components/SignInGate';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { useClubs } from '@/context/ClubsContext';
-import { submitClub } from '@/data/clubsRepo';
+import { submitClub, fetchMySubmissions, type MySubmission } from '@/data/clubsRepo';
+import { requestPresidentVerification } from '@/data/adminRepo';
 import { CATEGORIES, ClubCategory } from '@/types/domain';
 import { timing } from '@/theme/motion';
+import { semantic } from '@/theme/tokens';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const GRADES = ['9', '10', '11', '12'];
@@ -104,19 +108,230 @@ function ProgressBar({ progress }: { progress: number }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  President status strip                                             */
+/* ------------------------------------------------------------------ */
+interface PresidentStripProps {
+  status: 'pending' | 'approved' | 'rejected' | null;
+  onRequest: () => void;
+  requesting: boolean;
+}
+
+function PresidentStrip({ status, onRequest, requesting }: PresidentStripProps) {
+  if (status === 'approved') {
+    return (
+      <Card elevation="flat" className="mb-4 flex-row items-center gap-3 border-python-green/30 bg-python-green/8 p-4">
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-python-green/20">
+          <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm font-bold text-python-green-dark dark:text-python-green-light">
+            Verified president
+          </Text>
+          <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted leading-4">
+            Your president status is confirmed by the admin team.
+          </Text>
+        </View>
+      </Card>
+    );
+  }
+
+  if (status === 'pending') {
+    return (
+      <Card elevation="flat" className="mb-4 flex-row items-center gap-3 border-warn/30 bg-warn/8 p-4">
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-warn/20">
+          <Ionicons name="hourglass-outline" size={16} color={semantic.warn} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm font-bold text-warn">
+            President verification pending
+          </Text>
+          <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted leading-4">
+            The admin team is reviewing your request. You can still submit clubs.
+          </Text>
+        </View>
+      </Card>
+    );
+  }
+
+  if (status === 'rejected') {
+    return (
+      <Card elevation="flat" className="mb-4 gap-3 border-danger/30 bg-danger/8 p-4">
+        <View className="flex-row items-center gap-3">
+          <View className="h-8 w-8 items-center justify-center rounded-full bg-danger/20">
+            <Ionicons name="close-circle-outline" size={18} color={semantic.danger} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-bold text-danger">
+              President verification rejected
+            </Text>
+            <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted leading-4">
+              You can re-request verification below.
+            </Text>
+          </View>
+        </View>
+        <Button
+          label="Re-request verification"
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          loading={requesting}
+          onPress={onRequest}
+        />
+      </Card>
+    );
+  }
+
+  // null — never requested
+  return (
+    <Card elevation="flat" className="mb-4 gap-2.5 border-light-hairline bg-light-surface-2/60 p-4 dark:border-dark-border dark:bg-dark-surface-2/60">
+      <View className="flex-row items-start gap-3">
+        <View className="mt-0.5 h-7 w-7 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2">
+          <Ionicons name="ribbon-outline" size={15} color="#6B7280" />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            Club submission = president registration
+          </Text>
+          <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted leading-4">
+            Submitting a club registers you as its president (pending admin verification). Clubs are not public until a special admin approves them — approval also verifies you as president.
+          </Text>
+        </View>
+      </View>
+      <Button
+        label="Request president verification"
+        variant="secondary"
+        size="sm"
+        icon="ribbon-outline"
+        loading={requesting}
+        onPress={onRequest}
+      />
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  My submissions list                                                */
+/* ------------------------------------------------------------------ */
+interface SubmissionsListProps {
+  submissions: MySubmission[];
+  loading: boolean;
+  error: string | null;
+}
+
+function statusTone(status: MySubmission['status']): 'warn' | 'brand' | 'danger' {
+  if (status === 'approved') return 'brand';
+  if (status === 'rejected') return 'danger';
+  return 'warn';
+}
+
+function statusLabel(status: MySubmission['status']): string {
+  if (status === 'approved') return 'Approved';
+  if (status === 'rejected') return 'Rejected';
+  return 'Pending';
+}
+
+function SubmissionsList({ submissions, loading, error }: SubmissionsListProps) {
+  if (loading) {
+    return (
+      <Card elevation="flat" className="mb-4 gap-3 p-4">
+        <View className="mb-1 flex-row items-center gap-2">
+          <Ionicons name="list" size={14} color="#6B7280" />
+          <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+            Your submissions
+          </Text>
+        </View>
+        <View className="gap-2.5">
+          <Skeleton height={52} radius="xl" />
+          <Skeleton height={52} radius="xl" />
+        </View>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card elevation="flat" className="mb-4 flex-row items-center gap-2.5 border-danger/30 bg-danger/8 p-4">
+        <Ionicons name="alert-circle-outline" size={16} color={semantic.danger} />
+        <Text className="flex-1 text-xs font-semibold text-danger">{error}</Text>
+      </Card>
+    );
+  }
+
+  if (submissions.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card elevation="flat" className="mb-4 p-4">
+      <View className="mb-3 flex-row items-center gap-2">
+        <View className="h-6 w-6 items-center justify-center rounded-md bg-light-surface-2 dark:bg-dark-surface-2">
+          <Ionicons name="list" size={13} color="#6B7280" />
+        </View>
+        <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+          Your submissions
+        </Text>
+      </View>
+      <View className="gap-2.5">
+        {submissions.map((sub) => (
+          <View
+            key={sub.id}
+            className="rounded-2xl border border-light-hairline bg-light-surface-2/60 p-3 dark:border-dark-border dark:bg-dark-surface-2/60"
+          >
+            <View className="flex-row items-start justify-between gap-2">
+              <View className="flex-1">
+                <Text
+                  className="text-sm font-bold text-light-text dark:text-dark-text"
+                  numberOfLines={1}
+                >
+                  {sub.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted">
+                  {sub.category}
+                  {sub.createdAt ? ` · ${sub.createdAt.slice(0, 10)}` : ''}
+                </Text>
+              </View>
+              <Tag label={statusLabel(sub.status)} tone={statusTone(sub.status)} />
+            </View>
+            {sub.status === 'rejected' && sub.rejectionReason ? (
+              <View className="mt-2 flex-row items-start gap-1.5 rounded-xl bg-danger/8 p-2">
+                <Ionicons name="information-circle-outline" size={13} color={semantic.danger} />
+                <Text className="flex-1 text-xs text-danger leading-4">
+                  {sub.rejectionReason}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 /* ================================================================== */
-/*  SubmitScreen                                                      */
+/*  Inner form — rendered when the gate passes                        */
 /* ================================================================== */
-export default function SubmitScreen() {
+function SubmitForm() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { refresh } = useClubs();
   const { isDark } = useTheme();
+  const { profile, configured, refreshProfile } = useAuth();
 
+  /* ---- submission state ---- */
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  /* ---- president verification ---- */
+  const [requesting, setRequesting] = useState(false);
+
+  /* ---- my submissions ---- */
+  const [submissions, setSubmissions] = useState<MySubmission[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subsError, setSubsError] = useState<string | null>(null);
+
+  /* ---- form fields ---- */
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ClubCategory | ''>('');
   const [description, setDescription] = useState('');
@@ -141,7 +356,39 @@ export default function SubmitScreen() {
   const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  /* Progress: 10 required fields */
+  /* ---- load submissions on mount ---- */
+  const loadSubmissions = useCallback(async () => {
+    if (!configured) {
+      setSubmissions([]);
+      return;
+    }
+    setSubsLoading(true);
+    setSubsError(null);
+    try {
+      const data = await fetchMySubmissions();
+      setSubmissions(data);
+    } catch {
+      setSubsError('Could not load your submissions.');
+    } finally {
+      setSubsLoading(false);
+    }
+  }, [configured]);
+
+  useEffect(() => {
+    loadSubmissions();
+  }, [loadSubmissions]);
+
+  /* ---- request president verification ---- */
+  const handleRequestVerification = useCallback(async () => {
+    setRequesting(true);
+    const res = await requestPresidentVerification();
+    setRequesting(false);
+    if (res.ok) {
+      await refreshProfile();
+    }
+  }, [refreshProfile]);
+
+  /* ---- progress: 10 required fields ---- */
   const progress = useMemo(() => {
     let filled = 0;
     if (name.trim()) filled++;
@@ -193,7 +440,10 @@ export default function SubmitScreen() {
       setSubmitError(res.error);
       return;
     }
-    if (res.remote) refresh();
+    if (res.remote) {
+      refresh();
+      await loadSubmissions();
+    }
     setSubmitted(true);
   };
 
@@ -220,6 +470,7 @@ export default function SubmitScreen() {
     setGrades([]);
     setErrors({});
     setSubmitError(null);
+    loadSubmissions();
   };
 
   /* ================================================================ */
@@ -381,6 +632,20 @@ export default function SubmitScreen() {
           contentContainerClassName="pb-40"
           keyboardShouldPersistTaps="handled"
         >
+          {/* ---------- President status strip ---------- */}
+          <PresidentStrip
+            status={profile?.president_status ?? null}
+            onRequest={handleRequestVerification}
+            requesting={requesting}
+          />
+
+          {/* ---------- My submissions ---------- */}
+          <SubmissionsList
+            submissions={submissions}
+            loading={subsLoading}
+            error={subsError}
+          />
+
           {/* ---------- 1. Club Info ---------- */}
           <Section
             eyebrow="01 · CLUB INFO"
@@ -667,10 +932,24 @@ export default function SubmitScreen() {
           />
 
           <Text className="mt-3 text-center text-xs text-light-muted dark:text-dark-muted leading-4">
-            By submitting, you confirm the information is accurate and an advisor has agreed to sponsor this club.
+            Clubs are not public until a special admin approves them. Approval also verifies you as president. By submitting, you confirm the information is accurate and an advisor has agreed to sponsor this club.
           </Text>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+/* ================================================================== */
+/*  SubmitScreen — top-level export, wraps inner form in SignInGate   */
+/* ================================================================== */
+export default function SubmitScreen() {
+  return (
+    <SignInGate
+      title="Sign in to submit a club"
+      subtitle="Use your @lwsd.org account to register a club for review."
+    >
+      <SubmitForm />
+    </SignInGate>
   );
 }

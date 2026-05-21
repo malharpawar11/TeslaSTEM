@@ -30,8 +30,11 @@ const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   policies: { on: 'document-text', off: 'document-text-outline', label: 'Policies' },
 };
 
-const INDICATOR_HEIGHT = 36;
+// The active pill is inset from the bar edges by these amounts. Its height is
+// derived from the measured bar height (below) so it always frames the full
+// icon + label stack — a fixed height left the label hanging outside the pill.
 const INDICATOR_INSET_X = 10;
+const INDICATOR_INSET_Y = 6;
 
 // Animated icon wrapper — does a tiny scale bump on focus.
 function AnimatedTabIcon({
@@ -75,8 +78,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   const tabWidth = barSize.width > 0 ? barSize.width / numTabs : 0;
   const indicatorWidth = Math.max(tabWidth - INDICATOR_INSET_X * 2, 0);
-  // Vertically center the indicator inside the actual bar interior.
-  const indicatorTop = Math.max((barSize.height - INDICATOR_HEIGHT) / 2, 8);
+  // Height frames the whole tab interior (icon + label), not just the icon.
+  const indicatorHeight = Math.max(barSize.height - INDICATOR_INSET_Y * 2, 0);
 
   // Hide the indicator when the raised Submit CTA is focused — the raised
   // button is its own focal point and the pill behind it would look noisy.
@@ -104,12 +107,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       {numTabs > 0 && barSize.height > 0 && (
         <Animated.View
           pointerEvents="none"
-          className="absolute rounded-2xl bg-python-green/15 dark:bg-python-green/20"
+          className="absolute rounded-2xl border border-python-green/20 bg-python-green/15 dark:border-python-green/25 dark:bg-python-green/20"
           style={[
             {
               left: 0,
-              top: indicatorTop,
-              height: INDICATOR_HEIGHT,
+              top: INDICATOR_INSET_Y,
+              height: indicatorHeight,
             },
             indicatorStyle,
           ]}
@@ -180,7 +183,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityRole="button"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={meta.label}
-            className="flex-1 items-center justify-center"
+            // Web hover: a faint highlight on non-active tabs only, so it
+            // never fights the green active pill.
+            className={`flex-1 items-center justify-center rounded-2xl ${
+              focused ? '' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
+            }`}
             style={{ minHeight: 52 }}
           >
             <AnimatedTabIcon

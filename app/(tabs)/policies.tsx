@@ -17,33 +17,78 @@ type Section = {
 
 const SECTIONS: Section[] = [
   {
-    icon: 'lock-closed-outline',
-    title: 'Privacy Policy',
-    eyebrow: 'PRIVACY POLICY',
+    icon: 'school-outline',
+    title: 'Who Can Use This App',
+    eyebrow: 'ACCESS',
     tone: 'green',
     body: [
-      'Tesla STEM Pythons Club Directory stores only the data needed to run the directory: the clubs you follow and your theme preference, kept locally on your device.',
+      'Access is limited to Lake Washington School District accounts. You sign in with a one-time code sent to your @lwsd.org school email — no password required.',
+      'Non-LWSD accounts are blocked at sign-in. Every subsequent request is verified server-side, so there is no way to bypass this restriction from the app.',
+    ],
+  },
+  {
+    icon: 'shield-checkmark-outline',
+    title: 'Roles & Permissions',
+    eyebrow: 'ROLES',
+    tone: 'blue',
+    body: [
+      'The app uses four roles. Each one is assigned — never self-selected — and enforced by the server on every action.',
+      'Special Admin — one school-wide administrator who approves clubs, verifies presidents, and assigns club admins. This role cannot be self-assigned.',
+      'Verified President — a student verified by the special admin to run a club. They manage their own club page and post its announcements.',
+      'Club Admin — assigned by the special admin to help manage announcements for a specific club.',
+      'Student — any signed-in LWSD user. Students can browse the directory and follow clubs.',
+    ],
+  },
+  {
+    icon: 'checkmark-circle-outline',
+    title: 'Club Approval Workflow',
+    eyebrow: 'CLUB APPROVAL',
+    tone: 'green',
+    body: [
+      'Any signed-in student can submit a new club. Submitted clubs are not visible to other users until reviewed by the special admin.',
+      'Clubs move through one of three states: pending (under review), approved (live in the directory), or rejected (returned with a reason). When a club is approved, its submitter is automatically verified as president.',
+      'The admin may request changes before approving, or reject a submission that does not meet school guidelines.',
+    ],
+  },
+  {
+    icon: 'person-circle-outline',
+    title: 'President Verification',
+    eyebrow: 'VERIFICATION',
+    tone: 'blue',
+    body: [
+      'A club only goes live once its president has been verified by the special admin. Verification happens automatically when the admin approves a club submission.',
+      'Students can also request verification separately — for example, if leadership changes after a club is already listed. Verification requests are reviewed manually.',
+    ],
+  },
+  {
+    icon: 'megaphone-outline',
+    title: 'Announcements',
+    eyebrow: 'ANNOUNCEMENTS',
+    tone: 'green',
+    body: [
+      'Only three roles may post announcements: the special admin (any club), a verified president (their own club only), and an approved club admin (their assigned club only).',
+      'These restrictions are enforced by the server on every post — the UI will hide controls you cannot use, but access is ultimately decided by the database, not the client.',
+    ],
+  },
+  {
+    icon: 'lock-closed-outline',
+    title: 'Privacy & Security',
+    eyebrow: 'PRIVACY · SECURITY',
+    tone: 'blue',
+    body: [
+      'The app stores the minimum data needed to run the directory: your school email (for authentication), the clubs you follow, and your theme preference. Follows and preferences are kept locally on your device.',
       'We do not sell, share, or transmit personal information to third parties. No tracking or advertising SDKs are used.',
+      'Security is enforced in the database using Row-Level Security (RLS). Your role and any approval checks are evaluated by the server on every request — the client is never trusted to decide what you can access.',
     ],
   },
   {
     icon: 'document-text-outline',
     title: 'Terms of Use',
     eyebrow: 'TERMS OF USE',
-    tone: 'blue',
-    body: [
-      'This app is provided for Tesla STEM students and staff to discover and follow school clubs.',
-      'Club submissions are reviewed by the admin team before appearing in the directory. Misuse of submission or admin tools may result in access being revoked.',
-    ],
-  },
-  {
-    icon: 'trash-outline',
-    title: 'Data Deletion',
-    eyebrow: 'DATA DELETION',
     tone: 'green',
     body: [
-      'Because your follows and preferences are stored only on your device, clearing the app data or uninstalling removes everything.',
-      'For directory data corrections, contact the admin team and changes will be reviewed promptly.',
+      'This app is provided for Tesla STEM High School students and staff to discover and follow school clubs.',
+      'Misuse of club submission, admin, or announcement tools — including submitting false information or attempting to circumvent role restrictions — may result in access being revoked.',
     ],
   },
   {
@@ -57,12 +102,12 @@ const SECTIONS: Section[] = [
   },
 ];
 
-const TOC_LABELS = ['Privacy', 'Terms', 'Data Deletion', 'Contact'];
+const TOC_LABELS = ['Access', 'Roles', 'Club Approval', 'Verification', 'Announcements', 'Privacy', 'Terms', 'Contact'];
 
 export default function PoliciesScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
-  const sectionYs = useRef<number[]>([0, 0, 0, 0]);
+  const sectionYs = useRef<number[]>([0, 0, 0, 0, 0, 0, 0, 0]);
 
   const jumpTo = (i: number) => {
     const y = sectionYs.current[i] ?? 0;
@@ -94,9 +139,9 @@ export default function PoliciesScreen() {
         </View>
 
         <Text className="mt-5 text-base leading-7 text-light-secondary dark:text-dark-secondary">
-          Tesla STEM Pythons collects the minimum data needed to run the club directory and never
-          shares it with third parties. The details are below — short, plain, and current as of
-          May 20, 2026.
+          Tesla STEM Pythons Club Directory is built on a role-based, approval-driven system so the
+          right people manage the right clubs — and everyone else can browse safely. The details are
+          below — plain, current, and as of May 20, 2026.
         </Text>
 
         <Text className="mt-5 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
