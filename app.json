@@ -5,10 +5,10 @@
     "scheme": "teslastemclubs",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./logo.png",
+    "icon": "./teslastemlogo.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./logo.png",
+      "image": "./teslastemlogo.png",
       "resizeMode": "contain",
       "backgroundColor": "#050807"
     },
@@ -25,7 +25,7 @@
     "android": {
       "package": "org.teslastem.clubs",
       "adaptiveIcon": {
-        "foregroundImage": "./logo.png",
+        "foregroundImage": "./teslastemlogo.png",
         "backgroundColor": "#050807"
       },
       "permissions": [
@@ -33,13 +33,17 @@
       ]
     },
     "web": {
-      "favicon": "./logo.png",
+      "favicon": "./teslastemlogo.png",
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "name": "Tesla STEM Clubs",
+      "shortName": "ClubHub",
+      "description": "School club directory for Tesla STEM High School — browse clubs, follow updates, submit new clubs.",
+      "themeColor": "#1565C0",
+      "backgroundColor": "#050807",
+      "lang": "en"
     },
     "extra": {
-      "supabaseUrl": "",
-      "supabaseAnonKey": "",
       "eas": {
         "projectId": "replace-with-eas-project-id"
       }
