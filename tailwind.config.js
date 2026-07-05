@@ -49,7 +49,7 @@ module.exports = {
           'border-strong': '#D1D5DB',
           hairline: '#EEF0F3',
           text: '#0B0D10',
-          secondary: '#3A414B',
+          secondary: '#111318',
           muted: '#6B7280',
           subtle: '#9CA3AF',
         },

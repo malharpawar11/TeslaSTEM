@@ -32,11 +32,11 @@ const SECTIONS: Section[] = [
     eyebrow: 'ROLES',
     tone: 'blue',
     body: [
-      'The app uses four roles. Each one is assigned — never self-selected — and enforced by the server on every action.',
-      'Special Admin — one school-wide administrator who approves clubs, verifies presidents, and assigns club admins. This role cannot be self-assigned.',
-      'Verified President — a student verified by the special admin to run a club. They manage their own club page and post its announcements.',
-      'Club Admin — assigned by the special admin to help manage announcements for a specific club.',
-      'Student — any signed-in LWSD user. Students can browse the directory and follow clubs.',
+      'The app has four roles. Each one is assigned by the system, never chosen by the user, and enforced by the server on every request.',
+      'The Special Admin is a single school-wide administrator who approves clubs, verifies presidents, and assigns club admins. This role is granted by the system only and cannot be self-assigned.',
+      'A Verified President is a student who has been approved by the special admin to run a club. They can update their club page and post announcements for it.',
+      'A Club Admin is assigned by the special admin to help manage announcements for one specific club.',
+      'Any signed-in LWSD user is a Student. Students can browse the full directory and follow any clubs they choose.',
     ],
   },
   {
@@ -140,8 +140,8 @@ export default function PoliciesScreen() {
 
         <Text className="mt-5 text-base leading-7 text-light-secondary dark:text-dark-secondary">
           Tesla STEM Pythons Club Directory is built on a role-based, approval-driven system so the
-          right people manage the right clubs — and everyone else can browse safely. The details are
-          below — plain, current, and as of May 20, 2026.
+          right people manage the right clubs while everyone else can browse safely. The details
+          below are plain and current as of May 20, 2026.
         </Text>
 
         <Text className="mt-5 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">

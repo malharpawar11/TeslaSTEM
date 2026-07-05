@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Club, ClubCategory, CATEGORIES, ApprovalStatus } from '@/types/domain';
+import { Club, ClubCategory, CATEGORIES } from '@/types/domain';
 import {
   clubs as mockClubs,
   makeOfficers,
@@ -80,95 +80,6 @@ export async function fetchClubs(): Promise<{ clubs: Club[]; source: ClubsSource
     .order('name');
   if (error || !data) return { clubs: mockClubs, source: 'mock' };
   return { clubs: (data as DbClub[]).map(fromDb), source: 'backend' };
-}
-
-export interface ClubSubmission {
-  name: string;
-  category: ClubCategory;
-  description: string;
-  day: string;
-  time: string;
-  location: string;
-  advisor: string;
-  contactEmail: string;
-}
-
-export type SubmitResult =
-  | { ok: true; remote: boolean }
-  | { ok: false; error: string };
-
-/**
- * Inserts a club for review (`status = 'pending'`; a special admin gates it).
- * Requires a signed-in @lwsd.org user — RLS ties the row to created_by and
- * only permits inserting a pending, self-owned club. When the backend isn't
- * configured the caller keeps its local demo flow.
- */
-export async function submitClub(input: ClubSubmission): Promise<SubmitResult> {
-  if (!supabase) return { ok: true, remote: false };
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) return { ok: false, error: 'Sign in with your @lwsd.org email to submit a club.' };
-
-  const { error } = await supabase.from('clubs').insert({
-    name: input.name,
-    category: input.category,
-    description: input.description,
-    meeting_day: input.day,
-    meeting_time: input.time,
-    location: input.location,
-    advisor: input.advisor,
-    contact_email: input.contactEmail,
-    status: 'pending',
-    created_by: uid,
-    // The submitter is the club's president by default; verifying their
-    // president status happens when a special admin approves the club.
-    president_id: uid,
-    president_email: auth.user?.email ?? input.contactEmail,
-  });
-  if (error) return { ok: false, error: error.message };
-
-  await supabase.rpc('log_audit', {
-    p_action: 'submit_club',
-    p_entity: 'club',
-    p_metadata: { name: input.name },
-  });
-  return { ok: true, remote: true };
-}
-
-/** A club the signed-in user submitted — used by the Submit tab to show status. */
-export interface MySubmission {
-  id: string;
-  name: string;
-  category: string;
-  status: ApprovalStatus;
-  rejectionReason: string | null;
-  createdAt: string | null;
-}
-
-/**
- * The signed-in user's own club submissions, any status. RLS already scopes
- * `clubs` rows to `created_by = auth.uid()` for non-approved clubs, so this
- * returns exactly the caller's submissions.
- */
-export async function fetchMySubmissions(): Promise<MySubmission[]> {
-  if (!supabase) return [];
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) return [];
-  const { data, error } = await supabase
-    .from('clubs')
-    .select('id,name,category,status,rejection_reason,created_at')
-    .eq('created_by', uid)
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return data.map((r) => ({
-    id: r.id as string,
-    name: r.name as string,
-    category: r.category as string,
-    status: r.status as ApprovalStatus,
-    rejectionReason: (r.rejection_reason as string | null) ?? null,
-    createdAt: (r.created_at as string | null) ?? null,
-  }));
 }
 
 export { isSupabaseConfigured };

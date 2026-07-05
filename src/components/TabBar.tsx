@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,12 +8,11 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
 import { PressableScale } from './ui/Pressable';
 import { brand } from '@/theme/tokens';
-import { spring, timing } from '@/theme/motion';
+import { spring } from '@/theme/motion';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 
 cssInterop(BlurView, { className: 'style' });
@@ -25,16 +24,9 @@ type IconName = keyof typeof Ionicons.glyphMap;
 const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   index: { on: 'home', off: 'home-outline', label: 'Home' },
   browse: { on: 'search', off: 'search-outline', label: 'Browse' },
-  submit: { on: 'add', off: 'add', label: 'Submit' },
   admin: { on: 'shield-checkmark', off: 'shield-checkmark-outline', label: 'Admin' },
   policies: { on: 'document-text', off: 'document-text-outline', label: 'Policies' },
 };
-
-// The active pill is inset from the bar edges by these amounts. Its height is
-// derived from the measured bar height (below) so it always frames the full
-// icon + label stack — a fixed height left the label hanging outside the pill.
-const INDICATOR_INSET_X = 10;
-const INDICATOR_INSET_Y = 6;
 
 // Animated icon wrapper — does a tiny scale bump on focus.
 function AnimatedTabIcon({
@@ -68,57 +60,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const { isDark } = useTheme();
 
   const visibleRoutes = state.routes.filter((r) => ICONS[r.name]);
-  const numTabs = visibleRoutes.length;
-  const focusedRouteName = state.routes[state.index]?.name;
-  const focusedVisibleIndex = visibleRoutes.findIndex((r) => r.name === focusedRouteName);
-
-  const [barSize, setBarSize] = useState({ width: 0, height: 0 });
-  const indicatorX = useSharedValue(0);
-  const indicatorOpacity = useSharedValue(0);
-
-  const tabWidth = barSize.width > 0 ? barSize.width / numTabs : 0;
-  const indicatorWidth = Math.max(tabWidth - INDICATOR_INSET_X * 2, 0);
-  // Height frames the whole tab interior (icon + label), not just the icon.
-  const indicatorHeight = Math.max(barSize.height - INDICATOR_INSET_Y * 2, 0);
-
-  // Hide the indicator when the raised Submit CTA is focused — the raised
-  // button is its own focal point and the pill behind it would look noisy.
-  const submitFocused = focusedRouteName === 'submit';
-
-  useEffect(() => {
-    if (barSize.width === 0 || focusedVisibleIndex < 0) return;
-    const targetX = focusedVisibleIndex * tabWidth + INDICATOR_INSET_X;
-    indicatorX.value = withSpring(targetX, spring.pop);
-    indicatorOpacity.value = withTiming(submitFocused ? 0 : 1, timing.smooth);
-  }, [focusedVisibleIndex, tabWidth, barSize.width, submitFocused, indicatorX, indicatorOpacity]);
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indicatorX.value }],
-    opacity: indicatorOpacity.value,
-    width: indicatorWidth,
-  }));
 
   const activeIconColor = brand.green;
-  const inactiveIconColor = isDark ? '#8A8F99' : '#6B7280';
+  const inactiveIconColor = isDark ? '#FFFFFF' : '#6B7280';
 
   const tabContent = (
     <>
-      {/* Animated active pill indicator */}
-      {numTabs > 0 && barSize.height > 0 && (
-        <Animated.View
-          pointerEvents="none"
-          className="absolute rounded-2xl border border-python-green/20 bg-python-green/15 dark:border-python-green/25 dark:bg-python-green/20"
-          style={[
-            {
-              left: 0,
-              top: INDICATOR_INSET_Y,
-              height: indicatorHeight,
-            },
-            indicatorStyle,
-          ]}
-        />
-      )}
-
       {visibleRoutes.map((route) => {
         const realIndex = state.routes.findIndex((r) => r.key === route.key);
         const meta = ICONS[route.name];
@@ -132,48 +79,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           });
           if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
         };
-
-        // Special raised CTA for the Submit tab
-        if (route.name === 'submit') {
-          return (
-            <PressableScale
-              key={route.key}
-              onPress={onPress}
-              scaleTo={0.9}
-              accessibilityRole="button"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel="Submit a club"
-              className="flex-1 items-center justify-center"
-            >
-              <View
-                className="items-center justify-center rounded-full bg-python-green"
-                style={{
-                  width: 48,
-                  height: 48,
-                  marginTop: IS_WEB ? 0 : -22,
-                  shadowColor: brand.green,
-                  shadowOpacity: 0.55,
-                  shadowRadius: 14,
-                  shadowOffset: { width: 0, height: 6 },
-                  elevation: 12,
-                  borderWidth: 2,
-                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
-                }}
-              >
-                <Ionicons name="add" size={26} color="#FFFFFF" />
-              </View>
-              <Text
-                className={`mt-0.5 text-2xs font-bold uppercase tracking-wider ${
-                  focused
-                    ? 'text-python-green-dark dark:text-python-green-light'
-                    : 'text-light-muted dark:text-dark-muted'
-                }`}
-              >
-                Submit
-              </Text>
-            </PressableScale>
-          );
-        }
 
         return (
           <PressableScale
@@ -200,7 +105,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               className={`text-2xs font-bold uppercase tracking-wider ${
                 focused
                   ? 'text-python-green-dark dark:text-python-green-light'
-                  : 'text-light-muted dark:text-dark-muted'
+                  : 'text-light-muted dark:text-white'
               }`}
             >
               {meta.label}
@@ -229,15 +134,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         }
       >
         <View
-          onLayout={(e) =>
-            setBarSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
-          }
-          className="flex-row rounded-3xl overflow-hidden border border-light-hairline dark:border-dark-border bg-light-surface dark:bg-dark-surface pt-2.5 pb-2.5"
+          className="flex-row rounded-3xl overflow-hidden border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface pt-2.5 pb-2.5"
           style={{
             // @ts-ignore — web only
             boxShadow: isDark
               ? '0 8px 32px rgba(0,0,0,0.45)'
-              : '0 8px 24px rgba(0,0,0,0.12)',
+              : '0 8px 28px rgba(0,0,0,0.18)',
           }}
         >
           {tabContent}
@@ -260,15 +162,12 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       <BlurView
         intensity={isDark ? 40 : 60}
         tint={isDark ? 'dark' : 'light'}
-        onLayout={(e) =>
-          setBarSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
-        }
-        className="flex-row rounded-3xl overflow-hidden border border-white/30 dark:border-white/10 bg-light-surface/85 dark:bg-dark-surface/80 pt-2.5 pb-2.5"
+        className="flex-row rounded-3xl overflow-hidden border border-black/[0.09] dark:border-white/10 bg-light-surface/95 dark:bg-dark-surface/80 pt-2.5 pb-2.5"
         style={{
           shadowColor: '#000',
-          shadowOpacity: isDark ? 0.45 : 0.15,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: isDark ? 0.45 : 0.28,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 8 },
           elevation: 20,
         }}
       >

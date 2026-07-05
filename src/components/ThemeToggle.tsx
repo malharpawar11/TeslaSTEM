@@ -73,15 +73,19 @@ export function ThemeToggle({ variant = 'surface' }: Props) {
         scaleTo={0.92}
         className={`h-11 w-11 items-center justify-center rounded-full border ${container}`}
       >
-        <View className="relative h-5 w-5 items-center justify-center">
-          <Animated.View style={[sunStyle, { position: 'absolute' }]}>
+        <View className="relative h-5 w-5" style={{ marginLeft: -1 }}>
+          <Animated.View
+            style={[sunStyle, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }]}
+          >
             <Ionicons
               name="sunny"
               size={19}
               color={variant === 'translucent' ? '#FFFFFF' : brand.blue}
             />
           </Animated.View>
-          <Animated.View style={[moonStyle, { position: 'absolute' }]}>
+          <Animated.View
+            style={[moonStyle, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }]}
+          >
             <Ionicons
               name="moon"
               size={17}

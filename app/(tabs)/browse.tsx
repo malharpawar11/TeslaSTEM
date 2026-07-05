@@ -14,12 +14,13 @@ import { Club, ClubCategory } from '@/types/domain';
 import { useClubs } from '@/context/ClubsContext';
 import { useFollows } from '@/context/FollowContext';
 import { useTheme } from '@/context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterChips } from '@/components/FilterChips';
 import { ClubCard } from '@/components/ClubCard';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { EmptyState, SkeletonRow, Chip } from '@/components/ui';
-import { surface } from '@/theme/tokens';
+import { EmptyState, SkeletonRow, PressableScale } from '@/components/ui';
+import { surface, brand } from '@/theme/tokens';
 
 const FILTERS = [
   'All',
@@ -55,11 +56,6 @@ export default function BrowseScreen() {
     }
     return m;
   }, [clubs]);
-
-  const followingCount = useMemo(
-    () => clubs.reduce((n, club) => (follows.has(club.id) ? n + 1 : n), 0),
-    [clubs, follows],
-  );
 
   const data = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -107,12 +103,6 @@ export default function BrowseScreen() {
       [1, 0.58],
       Extrapolation.CLAMP,
     );
-    const translateX = interpolate(
-      scrollY.value,
-      [0, HEADER_COLLAPSE_DISTANCE],
-      [0, -28],
-      Extrapolation.CLAMP,
-    );
     const translateY = interpolate(
       scrollY.value,
       [0, HEADER_COLLAPSE_DISTANCE],
@@ -120,7 +110,7 @@ export default function BrowseScreen() {
       Extrapolation.CLAMP,
     );
     return {
-      transform: [{ translateX }, { translateY }, { scale }],
+      transform: [{ translateY }, { scale }],
     };
   });
 
@@ -257,34 +247,36 @@ export default function BrowseScreen() {
           </View>
         </View>
 
-        {/* Filter chips row */}
-        <View className="mt-2">
-          <FilterChips
-            options={FILTERS}
-            selected={filter}
-            onSelect={setFilter}
-            counts={counts}
-          />
-        </View>
-
-        {/* Following-only mini toggle row */}
-        <View className="flex-row items-center gap-2 px-5 pb-3 pt-1.5">
-          <Chip
-            label="All clubs"
-            active={!followingOnly}
-            onPress={() => setFollowingOnly(false)}
-            size="sm"
-            tone="brand"
-          />
-          <Chip
-            label="Following"
-            active={followingOnly}
-            onPress={() => setFollowingOnly(true)}
-            size="sm"
-            tone="brand"
-            icon="heart"
-            count={followingCount}
-          />
+        {/* Filter chips + Following heart toggle — single merged row */}
+        <View className="mt-2 flex-row items-center pb-2">
+          <View style={{ flex: 1, overflow: 'hidden' }}>
+            <FilterChips
+              options={FILTERS}
+              selected={filter}
+              onSelect={setFilter}
+              counts={counts}
+            />
+          </View>
+          <View className="pr-4 pl-1">
+            <PressableScale
+              onPress={() => setFollowingOnly((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={followingOnly ? 'Show all clubs' : 'Show following only'}
+              scaleTo={0.88}
+              pressedOpacity={0.8}
+              className={`h-9 w-9 items-center justify-center rounded-full ${
+                followingOnly
+                  ? 'bg-python-green'
+                  : 'border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2'
+              }`}
+            >
+              <Ionicons
+                name={followingOnly ? 'heart' : 'heart-outline'}
+                size={17}
+                color={followingOnly ? '#FFFFFF' : isDark ? '#8A8F99' : '#9CA3AF'}
+              />
+            </PressableScale>
+          </View>
         </View>
 
         {/* Hairline that fades in when collapsed */}
@@ -354,26 +346,6 @@ export default function BrowseScreen() {
         />
       )}
 
-      {/* Subtle scroll-fade gradient at top of list (under sticky header) */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: headerHeight,
-          left: 0,
-          right: 0,
-          height: 18,
-          zIndex: 9,
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: c.bg,
-            opacity: 0.85,
-          }}
-        />
-      </View>
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, LayoutChangeEvent, Share, Platform } from 'react-native';
+import { View, Text, LayoutChangeEvent, Share, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -33,6 +33,19 @@ import { spring } from '@/theme/motion';
 
 type Tab = 'About' | 'Announcements' | 'Officers';
 const TABS: Tab[] = ['About', 'Announcements', 'Officers'];
+
+function formatAnnouncementDate(date: string | null | undefined): string {
+  if (!date) return 'No date';
+  // Slice to YYYY-MM-DD so ISO timestamps work too, then parse components
+  // manually via the new Date(y, m, d) constructor — avoids Hermes/platform
+  // inconsistencies with date string formats entirely.
+  const parts = date.slice(0, 10).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return 'No date';
+  const [year, month, day] = parts;
+  const d = new Date(year, month - 1, day);
+  if (isNaN(d.getTime())) return 'No date';
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 function avatarInitials(name: string): string {
   const words = name.trim().split(/\s+/);
@@ -243,15 +256,17 @@ export default function ClubProfileScreen() {
                 {club.description}
               </Text>
 
+              {/* Meeting Info group — schedule + identity */}
               <View className="mt-6">
                 <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
-                  Club details
+                  Meeting info
                 </Text>
                 <Card elevation="ambient" className="px-4">
                   <MetaRow
                     icon="calendar-outline"
                     label="Meeting"
                     value={`${club.day} · ${club.time}`}
+                    iconTone="brand"
                   />
                   <MetaRow
                     icon="location-outline"
@@ -259,24 +274,52 @@ export default function ClubProfileScreen() {
                     value={club.location}
                     iconTone="info"
                   />
-                  <MetaRow icon="person-outline" label="Advisor" value={club.advisor} />
+                  <MetaRow
+                    icon="person-outline"
+                    label="Advisor"
+                    value={club.advisor}
+                    iconTone="brand"
+                  />
                   <MetaRow
                     icon="people-outline"
                     label="Members"
                     value={`${club.memberCount} active members`}
                     iconTone="info"
+                    divider={false}
                   />
-                  <MetaRow icon="mail-outline" label="Contact" value={club.contactEmail} />
+                </Card>
+              </View>
+
+              {/* Connect group — contact + founding */}
+              <View className="mt-4">
+                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                  Connect
+                </Text>
+                <Card elevation="ambient" className="px-4">
+                  <MetaRow
+                    icon="mail-outline"
+                    label="Contact"
+                    value={club.contactEmail}
+                    iconTone="info"
+                    onPress={() => Linking.openURL(`mailto:${club.contactEmail}`)}
+                  />
                   <MetaRow
                     icon="logo-instagram"
                     label="Instagram"
                     value={club.instagram}
                     iconTone="info"
+                    onPress={() => {
+                      const handle = club.instagram.startsWith('@')
+                        ? club.instagram.slice(1)
+                        : club.instagram;
+                      Linking.openURL(`https://instagram.com/${handle}`);
+                    }}
                   />
                   <MetaRow
                     icon="flag-outline"
                     label="Founded"
                     value={String(club.foundingYear)}
+                    iconTone="brand"
                     divider={false}
                   />
                 </Card>
@@ -370,7 +413,7 @@ export default function ClubProfileScreen() {
                   {/* Continuous timeline rail */}
                   <View
                     pointerEvents="none"
-                    className="absolute left-2 top-2 bottom-2 w-px bg-light-border dark:bg-dark-border"
+                    className="absolute left-1.5 top-2 bottom-2 w-px bg-light-border dark:bg-dark-border"
                   />
                   {club.announcements.map((a, i) => (
                     <Animated.View
@@ -385,7 +428,7 @@ export default function ClubProfileScreen() {
                       />
                       <Card elevation="ambient" className="p-4">
                         <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
-                          {a.date}
+                          {formatAnnouncementDate(a.date)}
                         </Text>
                         <Text className="mt-1 text-base font-bold tracking-tight text-light-text dark:text-dark-text">
                           {a.title}
