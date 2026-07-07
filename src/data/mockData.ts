@@ -8,18 +8,20 @@ interface RawClub {
   time: string;
   category: ClubCategory;
   description: string;
+  /** Real handle override. Omit to fall back to the synthesized `@teslastem.*` handle. */
+  instagram?: string;
 }
 
 const RAW: RawClub[] = [
-  { name: 'AI Innovation', advisor: 'Nguyen', location: 'RM 121', day: 'Wednesday', time: 'At Lunch', category: 'STEM', description: 'A place where Tesla STEM students can explore the world of Artificial Intelligence (AI) and Machine Learning (ML).' },
-  { name: 'Applied Programming Club', advisor: 'Christensen', location: 'RM 227', day: 'Tuesday', time: 'After School', category: 'STEM', description: 'Bridges the gap between theoretical programming taught in classes and real-world programming.' },
-  { name: 'Architecture Club', advisor: 'Ostlie', location: 'RM 211', day: 'Tuesday', time: 'After School', category: 'STEM', description: 'Explore architecture through drawing, modeling, CAD, and more.' },
-  { name: 'Biology Club', advisor: 'Komorous', location: 'RM 212', day: 'Tuesday', time: 'After School', category: 'STEM', description: 'Labs, lectures, and competitions including USABO and Brain Bee covering microscope handling, anatomy, physiology, and biology concepts.' },
-  { name: 'Biomedical Engineering Club', advisor: 'Komorous', location: 'RM 212', day: 'Thursday', time: 'After School', category: 'STEM', description: 'Research-based club combining biological science, medical tools, and engineering processes.' },
+  { name: 'AI Innovation', advisor: 'Nguyen', location: 'RM 121', day: 'Wednesday', time: 'At Lunch', category: 'STEM', description: 'A place where Tesla STEM students can explore the world of Artificial Intelligence (AI) and Machine Learning (ML).', instagram: '@stem.ainnovation' },
+  { name: 'Applied Programming Club', advisor: 'Christensen', location: 'RM 227', day: 'Tuesday', time: 'After School', category: 'STEM', description: 'Bridges the gap between theoretical programming taught in classes and real-world programming.', instagram: '@teslastemapc' },
+  { name: 'Architecture Club', advisor: 'Ostlie', location: 'RM 211', day: 'Tuesday', time: 'After School', category: 'STEM', description: 'Explore architecture through drawing, modeling, CAD, and more.', instagram: '@teslastem_architecture' },
+  { name: 'Biology Club', advisor: 'Komorous', location: 'RM 212', day: 'Tuesday', time: 'After School', category: 'STEM', description: 'Labs, lectures, and competitions including USABO and Brain Bee covering microscope handling, anatomy, physiology, and biology concepts.', instagram: '@tshs.biology_club' },
+  { name: 'Biomedical Engineering Club', advisor: 'Komorous', location: 'RM 212', day: 'Thursday', time: 'After School', category: 'STEM', description: 'Research-based club combining biological science, medical tools, and engineering processes.', instagram: '@tshs.biomede' },
   { name: 'Chemistry Club', advisor: 'Herzog', location: 'TBD', day: 'Friday', time: 'After School', category: 'STEM', description: 'Watch and participate in labs, talk to chemistry professionals, and prepare for USNCO.' },
   { name: 'Chess Club', advisor: 'Kittay', location: 'RM 110', day: 'Wednesday', time: 'At Lunch', category: 'Academic', description: 'Casual and competitive chess for all skill levels.' },
   { name: 'Competitive Programming Club', advisor: 'C. Scheffel', location: 'TBD', day: 'Monday', time: 'After School', category: 'STEM', description: 'Tackle problems from USACO, Codeforces, and LeetCode covering sorting, graph algorithms, dynamic programming, and more.' },
-  { name: 'Dance Club', advisor: 'Zebrack', location: 'RM 127', day: 'Tuesday', time: 'After School', category: 'Arts', description: 'All dance styles welcome. No experience needed — just good music, great people, and the love of dance.' },
+  { name: 'Dance Club', advisor: 'Zebrack', location: 'RM 127', day: 'Tuesday', time: 'After School', category: 'Arts', description: 'All dance styles welcome. No experience needed — just good music, great people, and the love of dance.', instagram: '@stemdanceclub' },
   { name: 'Economics Club', advisor: 'R. Schafer', location: 'RM 127', day: 'Wednesday', time: 'At Lunch', category: 'Academic', description: 'Prepare for AP Micro and Macroeconomics through weekly lessons and resources.' },
   { name: 'Engineering Club', advisor: 'Wrenchey', location: 'Presentation Hall (RM 117)', day: 'Tuesday & Wednesday', time: 'Lunch / Before School', category: 'STEM', description: 'For those who love building, creating, and working on projects.' },
   { name: 'Environmental Club', advisor: 'S. Bonomo', location: 'RM 215', day: 'Thursday', time: 'After School', category: 'Service', description: 'For students passionate about sustainability — projects to make Tesla STEM more environmentally friendly plus outdoor activities.' },
@@ -124,7 +126,7 @@ export const clubs: Club[] = RAW.map((r) => {
     memberCount,
     followersCount,
     contactEmail: `${slugify(r.name).replace(/-/g, '')}@lwsd.org`,
-    instagram: `@teslastem.${slugify(r.name).replace(/-/g, '')}`.slice(0, 30),
+    instagram: r.instagram ?? `@teslastem.${slugify(r.name).replace(/-/g, '')}`.slice(0, 30),
     website: '',
     officers: makeOfficers(r.name),
     announcements: makeAnnouncements(r.name),
