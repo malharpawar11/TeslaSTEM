@@ -8,10 +8,10 @@ export type ClubCategory =
   | 'Business'
   | 'Wellness';
 
-/** Lifecycle shared by club approval and president verification (see 003 migration). */
+/** Lifecycle shared by club approval and president verification. */
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
-/** The four roles defined in supabase/migrations/003. Mirrors the DB enum. */
+/** The four roles defined in the InsForge schema migration. Mirrors the DB enum. */
 export type AppRole = 'special_admin' | 'verified_president' | 'club_admin' | 'student';
 
 export interface Announcement {

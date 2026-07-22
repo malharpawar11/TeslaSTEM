@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 
 export type RpcResult = { ok: true } | { ok: false; error: string };
 
@@ -10,8 +10,8 @@ export type RpcResult = { ok: true } | { ok: false; error: string };
  * assigned club admin).
  */
 export async function canManageClub(clubId: string): Promise<boolean> {
-  if (!supabase) return false;
-  const { data, error } = await supabase.rpc('can_admin_club', { c: clubId });
+  if (!insforge) return false;
+  const { data, error } = await insforge.database.rpc('can_admin_club', { c: clubId });
   if (error) return false;
   return data === true;
 }
@@ -27,20 +27,22 @@ export async function createAnnouncement(
   title: string,
   body: string,
 ): Promise<RpcResult> {
-  if (!supabase) return { ok: false, error: 'Backend not configured.' };
-  const { data: auth } = await supabase.auth.getUser();
+  if (!insforge) return { ok: false, error: 'Backend not configured.' };
+  const { data: auth } = await insforge.auth.getCurrentUser();
   const uid = auth.user?.id;
   if (!uid) return { ok: false, error: 'Sign in to post an announcement.' };
 
-  const { error } = await supabase.from('announcements').insert({
-    club_id: clubId,
-    title: title.trim(),
-    body: body.trim(),
-    created_by: uid,
-  });
+  const { error } = await insforge.database.from('announcements').insert([
+    {
+      club_id: clubId,
+      title: title.trim(),
+      body: body.trim(),
+      created_by: uid,
+    },
+  ]);
   if (error) return { ok: false, error: error.message };
 
-  await supabase.rpc('log_audit', {
+  await insforge.database.rpc('log_audit', {
     p_action: 'create_announcement',
     p_entity: 'announcement',
     p_metadata: { club_id: clubId, title: title.trim() },

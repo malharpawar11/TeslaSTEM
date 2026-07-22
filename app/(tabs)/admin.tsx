@@ -778,13 +778,13 @@ function NotConfiguredNotice() {
         Backend not configured
       </Text>
       <Text className="mt-2 max-w-xs text-center text-sm leading-6 text-light-muted dark:text-dark-muted">
-        Admin tools require a live Supabase backend. Set{' '}
+        Admin tools require a live InsForge backend. Set{' '}
         <Text className="font-bold text-light-secondary dark:text-dark-secondary">
-          EXPO_PUBLIC_SUPABASE_URL
+          EXPO_PUBLIC_INSFORGE_URL
         </Text>{' '}
         and{' '}
         <Text className="font-bold text-light-secondary dark:text-dark-secondary">
-          EXPO_PUBLIC_SUPABASE_ANON_KEY
+          EXPO_PUBLIC_INSFORGE_ANON_KEY
         </Text>{' '}
         in your environment, then reload.
       </Text>

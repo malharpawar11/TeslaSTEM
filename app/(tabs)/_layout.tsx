@@ -20,6 +20,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="browse" options={{ title: 'Browse' }} />
       <Tabs.Screen name="admin" options={{ title: 'Admin' }} />
       <Tabs.Screen name="policies" options={{ title: 'Policies' }} />
+      <Tabs.Screen name="account" options={{ title: 'Account' }} />
     </Tabs>
   );
 }

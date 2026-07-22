@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 import { useAuth } from '@/context/AuthContext';
 
 const STORAGE_KEY = 'tsp.follows';
@@ -29,9 +29,9 @@ export function FollowProvider({ children }: { children: ReactNode }) {
   // When signed in against a real backend, server follows are the source of
   // truth — load them and keep the local cache as an offline mirror.
   useEffect(() => {
-    if (!supabase || !userId) return;
+    if (!insforge || !userId) return;
     let active = true;
-    supabase
+    insforge.database
       .from('club_followers')
       .select('club_id')
       .eq('user_id', userId)
@@ -60,10 +60,10 @@ export function FollowProvider({ children }: { children: ReactNode }) {
 
         // Write through to the backend when signed in; failures are
         // swallowed so the optimistic local toggle still stands.
-        if (supabase && userId) {
+        if (insforge && userId) {
           const op = nowFollowing
-            ? supabase.from('club_followers').upsert({ club_id: id, user_id: userId })
-            : supabase
+            ? insforge.database.from('club_followers').upsert([{ club_id: id, user_id: userId }])
+            : insforge.database
                 .from('club_followers')
                 .delete()
                 .eq('club_id', id)

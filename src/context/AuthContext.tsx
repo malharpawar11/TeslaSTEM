@@ -1,15 +1,24 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { insforge, isInsforgeConfigured } from '@/lib/insforge';
 import type { AppRole, ApprovalStatus } from '@/types/domain';
 
 export type { AppRole } from '@/types/domain';
 
+const REFRESH_TOKEN_KEY = 'tsc.insforge.refreshToken';
+const LWSD_RE = /@lwsd\.org$/i;
+
+/** Minimal session shape — enough for the rest of the app to check "signed in". */
+export interface AppSession {
+  user: { id: string; email: string };
+}
+
 /**
  * The signed-in user's profile row. `role` and `president_status` are read
  * straight from `public.profiles` and are only ever set by the database
- * (RLS + the SECURITY DEFINER RPCs in migration 003). The client treats
- * them as display hints — every privileged action is re-checked server-side.
+ * (RLS + the SECURITY DEFINER RPCs in the schema migration). The client
+ * treats them as display hints — every privileged action is re-checked
+ * server-side.
  */
 export interface Profile {
   id: string;
@@ -20,10 +29,12 @@ export interface Profile {
   president_status: ApprovalStatus | null;
 }
 
+export type VerificationStep = { email: string } | null;
+
 interface AuthContextValue {
   configured: boolean;
   loading: boolean;
-  session: Session | null;
+  session: AppSession | null;
   profile: Profile | null;
   /** Convenience role flags — UI gating only; the DB remains the source of truth. */
   isSpecialAdmin: boolean;
@@ -31,39 +42,56 @@ interface AuthContextValue {
   isClubAdmin: boolean;
   /** Re-reads the profile row, e.g. after a role/verification change. */
   refreshProfile: () => Promise<void>;
-  /** Sends a 6-digit code to an @lwsd.org address. In-app, no browser/deep-link. */
-  requestOtp: (email: string) => Promise<{ error: string | null }>;
-  /** Exchanges the emailed code for a session. */
-  verifyOtp: (email: string, token: string) => Promise<{ error: string | null }>;
+  /** Creates an @lwsd.org account. Returns whether a 6-digit code was sent. */
+  signUp: (email: string, password: string) => Promise<{ error: string | null; requiresCode: boolean }>;
+  /** Exchanges the emailed code for a session, completing sign-up. */
+  verifyCode: (email: string, code: string) => Promise<{ error: string | null }>;
+  /** Signs in an already-verified @lwsd.org account. */
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
-// Frontend gate. The backend repeats this check: the profiles.email CHECK
-// constraint and the handle_new_user() trigger both reject non-LWSD emails,
-// so a tampered client still cannot create a non-LWSD account.
-const LWSD_RE = /@lwsd\.org$/i;
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AppSession | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(isInsforgeConfigured);
 
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-    });
-    return () => sub.subscription.unsubscribe();
+  const applySession = useCallback((user: { id: string; email: string } | null, refreshToken?: string | null) => {
+    setSession(user ? { user } : null);
+    if (refreshToken) {
+      AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken).catch(() => {});
+    } else if (refreshToken === null) {
+      AsyncStorage.removeItem(REFRESH_TOKEN_KEY).catch(() => {});
+    }
   }, []);
 
+  // Cold start: restore the session from the persisted refresh token.
+  useEffect(() => {
+    if (!insforge) return;
+    let active = true;
+    (async () => {
+      const storedToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      if (storedToken) {
+        const { data, error } = await insforge.auth.refreshSession({ refreshToken: storedToken });
+        if (!active) return;
+        if (!error && data) {
+          applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? storedToken);
+        } else {
+          applySession(null, null);
+        }
+      }
+      if (active) setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [applySession]);
+
   const loadProfile = useCallback(async (userId: string) => {
-    if (!supabase) return;
-    const { data } = await supabase
+    if (!insforge) return;
+    const { data } = await insforge.database
       .from('profiles')
       .select('id, email, display_name, role, president_status')
       .eq('id', userId)
@@ -72,66 +100,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!supabase || !session?.user) {
+    if (!session?.user) {
       setProfile(null);
       return;
     }
     let active = true;
-    supabase
-      .from('profiles')
-      .select('id, email, display_name, role, president_status')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => {
-        if (active) setProfile((data as Profile) ?? null);
-      });
+    void loadProfile(session.user.id).then(() => {
+      if (!active) return;
+    });
     return () => {
       active = false;
     };
-  }, [session]);
+  }, [session, loadProfile]);
 
   const refreshProfile = useCallback(async () => {
     if (session?.user) await loadProfile(session.user.id);
   }, [session, loadProfile]);
 
-  const requestOtp = useCallback(async (email: string) => {
+  const signUp = useCallback(async (email: string, password: string) => {
+    const e = email.trim().toLowerCase();
+    if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.', requiresCode: false };
+    if (!insforge) return { error: 'Backend not configured.', requiresCode: false };
+    const { data, error } = await insforge.auth.signUp({ email: e, password });
+    if (error) return { error: error.message, requiresCode: false };
+    if (data?.requireEmailVerification) {
+      return { error: null, requiresCode: true };
+    }
+    if (data?.accessToken && data.user) {
+      applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
+    }
+    return { error: null, requiresCode: false };
+  }, [applySession]);
+
+  const verifyCode = useCallback(async (email: string, code: string) => {
+    if (!insforge) return { error: 'Backend not configured.' };
+    const { data, error } = await insforge.auth.verifyEmail({
+      email: email.trim().toLowerCase(),
+      otp: code.trim(),
+    });
+    if (error) return { error: error.message };
+    if (data) applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
+    return { error: null };
+  }, [applySession]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
     const e = email.trim().toLowerCase();
     if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.' };
-    if (!supabase) return { error: 'Backend not configured.' };
-    // Use the current origin on web so the magic link in the email points to
-    // the right host (production or local dev). Fall back to the production URL
-    // on native where window is unavailable.
-    const emailRedirectTo =
-      typeof window !== 'undefined'
-        ? window.location.origin
-        : 'https://tesla-stem-clubs.vercel.app';
-    const { error } = await supabase.auth.signInWithOtp({
-      email: e,
-      options: { emailRedirectTo },
-    });
-    return { error: error?.message ?? null };
-  }, []);
-
-  const verifyOtp = useCallback(async (email: string, token: string) => {
-    if (!supabase) return { error: 'Backend not configured.' };
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'email',
-    });
-    return { error: error?.message ?? null };
-  }, []);
+    if (!insforge) return { error: 'Backend not configured.' };
+    const { data, error } = await insforge.auth.signInWithPassword({ email: e, password });
+    if (error) return { error: error.message };
+    if (data) applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
+    return { error: null };
+  }, [applySession]);
 
   const signOut = useCallback(async () => {
-    await supabase?.auth.signOut();
-    setSession(null);
+    await insforge?.auth.signOut();
+    applySession(null, null);
     setProfile(null);
-  }, []);
+  }, [applySession]);
 
   return (
     <AuthContext.Provider
       value={{
-        configured: isSupabaseConfigured,
+        configured: isInsforgeConfigured,
         loading,
         session,
         profile,
@@ -139,8 +170,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isVerifiedPresident: profile?.role === 'verified_president',
         isClubAdmin: profile?.role === 'club_admin',
         refreshProfile,
-        requestOtp,
-        verifyOtp,
+        signUp,
+        verifyCode,
+        signIn,
         signOut,
       }}
     >

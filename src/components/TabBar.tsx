@@ -26,6 +26,7 @@ const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   browse: { on: 'search', off: 'search-outline', label: 'Browse' },
   admin: { on: 'shield-checkmark', off: 'shield-checkmark-outline', label: 'Admin' },
   policies: { on: 'document-text', off: 'document-text-outline', label: 'Policies' },
+  account: { on: 'person-circle', off: 'person-circle-outline', label: 'Account' },
 };
 
 // Animated icon wrapper — does a tiny scale bump on focus.

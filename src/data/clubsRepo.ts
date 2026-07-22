@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { insforge, isInsforgeConfigured } from '@/lib/insforge';
 import { Club, ClubCategory, CATEGORIES } from '@/types/domain';
 import {
   clubs as mockClubs,
@@ -65,13 +65,13 @@ function fromDb(row: DbClub): Club {
 }
 
 /**
- * Approved clubs from Supabase, or the mock set when unconfigured/offline.
+ * Approved clubs from InsForge, or the mock set when unconfigured/offline.
  * Only `status = 'approved'` rows are requested; RLS enforces the same rule
  * server-side, so a tampered client still cannot read pending/rejected clubs.
  */
 export async function fetchClubs(): Promise<{ clubs: Club[]; source: ClubsSource }> {
-  if (!supabase) return { clubs: mockClubs, source: 'mock' };
-  const { data, error } = await supabase
+  if (!insforge) return { clubs: mockClubs, source: 'mock' };
+  const { data, error } = await insforge.database
     .from('clubs')
     .select(
       'id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,created_at,announcements(id,title,body,created_at)',
@@ -82,4 +82,4 @@ export async function fetchClubs(): Promise<{ clubs: Club[]; source: ClubsSource
   return { clubs: (data as DbClub[]).map(fromDb), source: 'backend' };
 }
 
-export { isSupabaseConfigured };
+export { isInsforgeConfigured };

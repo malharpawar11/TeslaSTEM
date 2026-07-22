@@ -1,11 +1,11 @@
-import { supabase } from '@/lib/supabase';
+import { insforge } from '@/lib/insforge';
 import type { ApprovalStatus } from '@/types/domain';
 
 /**
- * Typed wrappers around the workflow RPCs and review queries from
- * supabase/migrations/003. Every privileged RPC re-checks the caller's role
- * inside the database (SECURITY DEFINER), so these wrappers are thin: they
- * never decide permission, they only surface the server's answer.
+ * Typed wrappers around the workflow RPCs and review queries from the
+ * InsForge schema migration. Every privileged RPC re-checks the caller's
+ * role inside the database (SECURITY DEFINER), so these wrappers are thin:
+ * they never decide permission, they only surface the server's answer.
  */
 
 export type RpcResult = { ok: true } | { ok: false; error: string };
@@ -14,8 +14,8 @@ const NOT_CONFIGURED = 'Backend not configured.';
 
 /** Shared helper: invoke an RPC and normalise the result. */
 async function callRpc(fn: string, args?: Record<string, unknown>): Promise<RpcResult> {
-  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await supabase.rpc(fn, args ?? {});
+  if (!insforge) return { ok: false, error: NOT_CONFIGURED };
+  const { error } = await insforge.database.rpc(fn, args ?? {});
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
@@ -56,8 +56,8 @@ export interface ClubAdminRow {
 
 /** Clubs awaiting review, oldest first. */
 export async function fetchPendingClubs(): Promise<PendingClub[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!insforge) return [];
+  const { data, error } = await insforge.database
     .from('clubs')
     .select(
       'id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,president_email,status,rejection_reason,created_at',
@@ -84,8 +84,8 @@ export async function fetchPendingClubs(): Promise<PendingClub[]> {
 
 /** Users awaiting president verification, oldest request first. */
 export async function fetchPendingPresidents(): Promise<PendingPresident[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!insforge) return [];
+  const { data, error } = await insforge.database
     .from('profiles')
     .select('id,email,display_name,president_status,president_requested_at')
     .eq('president_status', 'pending')
@@ -102,8 +102,8 @@ export async function fetchPendingPresidents(): Promise<PendingPresident[]> {
 
 /** The admin roster of a club, via the list_club_admins RPC. */
 export async function fetchClubAdmins(clubId: string): Promise<ClubAdminRow[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase.rpc('list_club_admins', { p_club_id: clubId });
+  if (!insforge) return [];
+  const { data, error } = await insforge.database.rpc('list_club_admins', { p_club_id: clubId });
   if (error || !data) return [];
   return (data as { user_id: string; email: string; display_name: string | null }[]).map((r) => ({
     userId: r.user_id,
@@ -113,7 +113,8 @@ export async function fetchClubAdmins(clubId: string): Promise<ClubAdminRow[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Workflow actions — each maps 1:1 to a SECURITY DEFINER RPC in migration 003.
+// Workflow actions — each maps 1:1 to a SECURITY DEFINER RPC in the schema
+// migration.
 // ---------------------------------------------------------------------------
 
 /** Student-initiated: ask the special admin to verify you as a president. */
