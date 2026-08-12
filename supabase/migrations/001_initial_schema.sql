@@ -1,3 +1,8 @@
+-- HISTORICAL BASELINE — do not treat this file as the current schema.
+-- The `super_admin` role, the `clubs.approved` boolean and several policies below
+-- were replaced by 20260707053810_roles_and_approval_workflow.sql. Apply the whole
+-- migrations directory in filename order (or `supabase db push`); never this file
+-- on its own against a live project.
 create type public.app_role as enum ('super_admin','club_admin','student');
 create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, email text not null unique check (right(lower(email),9)='@lwsd.org'), display_name text, role app_role not null default 'student', created_at timestamptz default now());
 create table public.clubs (id uuid primary key default gen_random_uuid(), name text not null, category text not null, description text not null, meeting_day text, meeting_time text, location text, advisor text, contact_email text, approved boolean not null default false, created_by uuid references public.profiles(id), created_at timestamptz default now(), updated_at timestamptz default now());

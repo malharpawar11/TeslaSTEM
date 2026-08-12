@@ -1,1 +1,43 @@
-{"expo":{"name":"Tesla STEM Clubs","slug":"tesla-stem-clubs","scheme":"teslastemclubs","version":"1.0.0","orientation":"portrait","icon":"./teslastemlogo.png","userInterfaceStyle":"dark","splash":{"image":"./teslastemlogo.png","resizeMode":"contain","backgroundColor":"#050807"},"assetBundlePatterns":["**/*"],"ios":{"supportsTablet":true,"bundleIdentifier":"org.teslastem.clubs","infoPlist":{"NSUserNotificationsUsageDescription":"Club notifications are sent only for clubs you follow."}},"android":{"package":"org.teslastem.clubs","adaptiveIcon":{"foregroundImage":"./teslastemlogo.png","backgroundColor":"#050807"},"permissions":["POST_NOTIFICATIONS"]},"web":{"favicon":"./teslastemlogo.png"},"extra":{"supabaseUrl":"","supabaseAnonKey":"","eas":{"projectId":"replace-with-eas-project-id"}}}}
+{
+  "expo": {
+    "name": "Tesla STEM Clubs",
+    "slug": "tesla-stem-clubs",
+    "scheme": "teslastemclubs",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./teslastemlogo.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./teslastemlogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050807"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.teslastem.clubs",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Club notifications are sent only for clubs you follow."
+      }
+    },
+    "android": {
+      "package": "org.teslastem.clubs",
+      "adaptiveIcon": {
+        "foregroundImage": "./teslastemlogo.png",
+        "backgroundColor": "#050807"
+      },
+      "permissions": ["POST_NOTIFICATIONS"]
+    },
+    "web": {
+      "favicon": "./teslastemlogo.png"
+    },
+    "extra": {
+      "supabaseUrl": "https://oudyqcyppdgaawitadlr.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91ZHlxY3lwcGRnYWF3aXRhZGxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODUwNjQsImV4cCI6MjA5NDg2MTA2NH0.kLpdfXonqJqsDh7OXJypMm2LOtn9JwvSre1BNXLNe2E",
+      "allowedEmailDomain": "@lwsd.org",
+      "eas": {
+        "projectId": "replace-with-eas-project-id"
+      }
+    }
+  }
+}
