@@ -280,13 +280,15 @@ export default function ClubProfileScreen() {
                     value={club.advisor}
                     iconTone="brand"
                   />
-                  <MetaRow
-                    icon="people-outline"
-                    label="Members"
-                    value={`${club.memberCount} active members`}
-                    iconTone="info"
-                    divider={false}
-                  />
+                  {club.memberCount !== undefined && (
+                    <MetaRow
+                      icon="people-outline"
+                      label="Members"
+                      value={`${club.memberCount} active members`}
+                      iconTone="info"
+                      divider={false}
+                    />
+                  )}
                 </Card>
               </View>
 
@@ -296,32 +298,40 @@ export default function ClubProfileScreen() {
                   Connect
                 </Text>
                 <Card elevation="ambient" className="px-4">
-                  <MetaRow
-                    icon="mail-outline"
-                    label="Contact"
-                    value={club.contactEmail}
-                    iconTone="info"
-                    onPress={() => Linking.openURL(`mailto:${club.contactEmail}`)}
-                  />
-                  <MetaRow
-                    icon="logo-instagram"
-                    label="Instagram"
-                    value={club.instagram}
-                    iconTone="info"
-                    onPress={() => {
-                      const handle = club.instagram.startsWith('@')
-                        ? club.instagram.slice(1)
-                        : club.instagram;
-                      Linking.openURL(`https://instagram.com/${handle}`);
-                    }}
-                  />
-                  <MetaRow
-                    icon="flag-outline"
-                    label="Founded"
-                    value={String(club.foundingYear)}
-                    iconTone="brand"
-                    divider={false}
-                  />
+                  {club.contactEmail ? (
+                    <MetaRow
+                      icon="mail-outline"
+                      label="Contact"
+                      value={club.contactEmail}
+                      iconTone="info"
+                      divider={club.instagram !== undefined || club.foundingYear !== undefined}
+                      onPress={() => Linking.openURL(`mailto:${club.contactEmail}`)}
+                    />
+                  ) : null}
+                  {club.instagram ? (
+                    <MetaRow
+                      icon="logo-instagram"
+                      label="Instagram"
+                      value={club.instagram}
+                      iconTone="info"
+                      divider={club.foundingYear !== undefined}
+                      onPress={() => {
+                        const handle = club.instagram!.startsWith('@')
+                          ? club.instagram!.slice(1)
+                          : club.instagram!;
+                        Linking.openURL(`https://instagram.com/${handle}`);
+                      }}
+                    />
+                  ) : null}
+                  {club.foundingYear !== undefined && (
+                    <MetaRow
+                      icon="flag-outline"
+                      label="Founded"
+                      value={String(club.foundingYear)}
+                      iconTone="brand"
+                      divider={false}
+                    />
+                  )}
                 </Card>
               </View>
             </Animated.View>
