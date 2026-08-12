@@ -26,6 +26,11 @@ export interface Officer {
   name: string;
 }
 
+/**
+ * Optional fields are the ones the backend has no column for yet. They are
+ * omitted rather than invented — the UI hides the corresponding row instead of
+ * showing a made-up member count, founding year, or Instagram handle.
+ */
 export interface Club {
   id: string;
   name: string;
@@ -35,12 +40,12 @@ export interface Club {
   time: string;
   category: ClubCategory;
   description: string;
-  foundingYear: number;
-  memberCount: number;
-  followersCount: number;
+  foundingYear?: number;
+  memberCount?: number;
+  followersCount?: number;
   contactEmail: string;
-  instagram: string;
-  website: string;
+  instagram?: string;
+  website?: string;
   officers: Officer[];
   announcements: Announcement[];
 }

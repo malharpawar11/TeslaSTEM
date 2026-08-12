@@ -1,14 +1,9 @@
 import { insforge, isInsforgeConfigured } from '@/lib/insforge';
 import { Club, ClubCategory, CATEGORIES } from '@/types/domain';
-import {
-  clubs as mockClubs,
-  makeOfficers,
-  makeAnnouncements,
-  slugify,
-  seed,
-} from '@/data/mockData';
 
-export type ClubsSource = 'backend' | 'mock';
+export type ClubsResult =
+  | { clubs: Club[]; error: null }
+  | { clubs: []; error: string };
 
 interface DbClub {
   id: string;
@@ -29,13 +24,13 @@ function toCategory(value: string): ClubCategory {
 }
 
 /**
- * Maps a DB row to the UI's richer `Club` shape. The schema (clubs +
- * announcements) doesn't carry officers/socials/counts yet, so those are
- * synthesized deterministically from the name — identical to how mock clubs
- * are built, keeping the UI stable until real tables back them.
+ * Maps a DB row to the UI's `Club` shape using only values the row actually
+ * carries. Officers, member counts, founding years, and Instagram handles have
+ * no columns yet, so they are left undefined and the UI hides those rows —
+ * previously they were synthesized from the club name, which meant every real
+ * club displayed invented officer names and a fictional member count.
  */
 function fromDb(row: DbClub): Club {
-  const memberCount = 8 + Math.floor(seed(row.name + 'mem') * 38);
   const announcements = (row.announcements ?? [])
     .map((a) => ({
       id: a.id,
@@ -44,6 +39,7 @@ function fromDb(row: DbClub): Club {
       date: (a.created_at ?? '').slice(0, 10),
     }))
     .sort((x, y) => y.date.localeCompare(x.date));
+
   return {
     id: row.id,
     name: row.name,
@@ -53,24 +49,22 @@ function fromDb(row: DbClub): Club {
     time: row.meeting_time ?? 'TBD',
     category: toCategory(row.category),
     description: row.description,
-    foundingYear: 2014 + Math.floor(seed(row.name + 'yr') * 11),
-    memberCount,
-    followersCount: memberCount + Math.floor(seed(row.name + 'fol') * memberCount * 2),
-    contactEmail: row.contact_email ?? `${slugify(row.name).replace(/-/g, '')}@lwsd.org`,
-    instagram: `@teslastem.${slugify(row.name).replace(/-/g, '')}`.slice(0, 30),
-    website: '',
-    officers: makeOfficers(row.name),
-    announcements: announcements.length ? announcements : makeAnnouncements(row.name),
+    contactEmail: row.contact_email ?? '',
+    officers: [],
+    announcements,
   };
 }
 
 /**
- * Approved clubs from InsForge, or the mock set when unconfigured/offline.
- * Only `status = 'approved'` rows are requested; RLS enforces the same rule
- * server-side, so a tampered client still cannot read pending/rejected clubs.
+ * Approved clubs from InsForge. On failure this reports the error instead of
+ * falling back to a placeholder directory: showing students a fabricated club
+ * list during an outage is worse than showing them that something is wrong.
+ * RLS enforces the `approved` filter server-side too.
  */
-export async function fetchClubs(): Promise<{ clubs: Club[]; source: ClubsSource }> {
-  if (!insforge) return { clubs: mockClubs, source: 'mock' };
+export async function fetchClubs(): Promise<ClubsResult> {
+  if (!insforge) {
+    return { clubs: [], error: 'Backend not configured. Set EXPO_PUBLIC_INSFORGE_URL and EXPO_PUBLIC_INSFORGE_ANON_KEY.' };
+  }
   const { data, error } = await insforge.database
     .from('clubs')
     .select(
@@ -78,8 +72,10 @@ export async function fetchClubs(): Promise<{ clubs: Club[]; source: ClubsSource
     )
     .eq('status', 'approved')
     .order('name');
-  if (error || !data) return { clubs: mockClubs, source: 'mock' };
-  return { clubs: (data as DbClub[]).map(fromDb), source: 'backend' };
+  if (error || !data) {
+    return { clubs: [], error: error?.message ?? 'Could not load clubs. Pull to retry.' };
+  }
+  return { clubs: (data as DbClub[]).map(fromDb), error: null };
 }
 
 export { isInsforgeConfigured };

@@ -91,11 +91,16 @@ function ClubCardBase({ club, followed, onPress, onToggleFollow }: Props) {
                 numberOfLines={1}
               >
                 {club.time}
-                <Text className="text-light-subtle dark:text-dark-subtle">  ·  </Text>
-                <Text className="font-semibold text-light-secondary dark:text-dark-secondary">
-                  {club.memberCount}
-                </Text>
-                {' members'}
+                {/* Only shown when the backend actually has a count. */}
+                {club.memberCount !== undefined ? (
+                  <>
+                    <Text className="text-light-subtle dark:text-dark-subtle">  ·  </Text>
+                    <Text className="font-semibold text-light-secondary dark:text-dark-secondary">
+                      {club.memberCount}
+                    </Text>
+                    {' members'}
+                  </>
+                ) : null}
               </Text>
             </View>
 

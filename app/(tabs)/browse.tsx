@@ -43,7 +43,7 @@ export default function BrowseScreen() {
   const { isDark } = useTheme();
   const c = surface(isDark);
   const { isFollowing, toggleFollow, follows } = useFollows();
-  const { clubs, loading } = useClubs();
+  const { clubs, loading, error, refresh } = useClubs();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<string>('All');
   const [followingOnly, setFollowingOnly] = useState(false);
@@ -303,6 +303,18 @@ export default function BrowseScreen() {
         >
           <SkeletonRow count={4} />
         </View>
+      ) : error ? (
+        // A failed load is reported as a failure — never as an empty directory,
+        // and never by falling back to placeholder clubs.
+        <View style={{ paddingTop: headerHeight + 8, paddingBottom: 120, flex: 1 }}>
+          <EmptyState
+            icon="cloud-offline"
+            title="Couldn't load clubs"
+            description={error}
+            actionLabel="Retry"
+            onAction={refresh}
+          />
+        </View>
       ) : data.length === 0 ? (
         // Empty state when no clubs match filters/search
         <View
@@ -313,9 +325,13 @@ export default function BrowseScreen() {
           }}
         >
           <EmptyState
-            icon="search"
-            title="No clubs match those filters"
-            description="Try clearing filters or your search."
+            icon={clubs.length === 0 ? 'people-outline' : 'search'}
+            title={clubs.length === 0 ? 'No clubs yet' : 'No clubs match those filters'}
+            description={
+              clubs.length === 0
+                ? 'Approved clubs appear here once an admin publishes them.'
+                : 'Try clearing filters or your search.'
+            }
             actionLabel={filtersActive ? 'Clear filters' : undefined}
             onAction={filtersActive ? clearFilters : undefined}
           />
