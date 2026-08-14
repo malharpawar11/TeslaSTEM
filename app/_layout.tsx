@@ -7,7 +7,9 @@ import { cssInterop } from 'nativewind';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ClubsProvider } from '@/context/ClubsContext';
-import { FollowProvider } from '@/context/FollowContext';
+import { MembershipProvider } from '@/context/MembershipContext';
+import { NotificationsProvider } from '@/context/NotificationsContext';
+import { ToastProvider } from '@/context/ToastContext';
 
 cssInterop(GestureHandlerRootView, { className: 'style' });
 
@@ -18,7 +20,12 @@ function RootStack() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="club/[id]" />
+        <Stack.Screen name="club/[id]/index" />
+        <Stack.Screen name="club/[id]/manage" />
+        <Stack.Screen name="club/new" />
+        <Stack.Screen name="search" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="policies" />
       </Stack>
     </>
   );
@@ -31,9 +38,13 @@ export default function RootLayout() {
         <ThemeProvider>
           <AuthProvider>
             <ClubsProvider>
-              <FollowProvider>
-                <RootStack />
-              </FollowProvider>
+              <MembershipProvider>
+                <NotificationsProvider>
+                  <ToastProvider>
+                    <RootStack />
+                  </ToastProvider>
+                </NotificationsProvider>
+              </MembershipProvider>
             </ClubsProvider>
           </AuthProvider>
         </ThemeProvider>

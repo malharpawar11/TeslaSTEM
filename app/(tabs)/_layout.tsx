@@ -17,10 +17,10 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="browse" options={{ title: 'Browse' }} />
-      <Tabs.Screen name="admin" options={{ title: 'Admin' }} />
-      <Tabs.Screen name="policies" options={{ title: 'Policies' }} />
-      <Tabs.Screen name="account" options={{ title: 'Account' }} />
+      <Tabs.Screen name="browse" options={{ title: 'Clubs' }} />
+      <Tabs.Screen name="calendar" options={{ title: 'Calendar' }} />
+      <Tabs.Screen name="notifications" options={{ title: 'Alerts' }} />
+      <Tabs.Screen name="account" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }

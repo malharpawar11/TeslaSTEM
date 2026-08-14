@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
+import { useNotifications } from '@/context/NotificationsContext';
 import { PressableScale } from './ui/Pressable';
 import { brand } from '@/theme/tokens';
 import { spring } from '@/theme/motion';
@@ -23,10 +24,10 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   index: { on: 'home', off: 'home-outline', label: 'Home' },
-  browse: { on: 'search', off: 'search-outline', label: 'Browse' },
-  admin: { on: 'shield-checkmark', off: 'shield-checkmark-outline', label: 'Admin' },
-  policies: { on: 'document-text', off: 'document-text-outline', label: 'Policies' },
-  account: { on: 'person-circle', off: 'person-circle-outline', label: 'Account' },
+  browse: { on: 'compass', off: 'compass-outline', label: 'Clubs' },
+  calendar: { on: 'calendar', off: 'calendar-outline', label: 'Calendar' },
+  notifications: { on: 'notifications', off: 'notifications-outline', label: 'Alerts' },
+  account: { on: 'person-circle', off: 'person-circle-outline', label: 'Profile' },
 };
 
 // Animated icon wrapper — does a tiny scale bump on focus.
@@ -59,6 +60,7 @@ function AnimatedTabIcon({
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const { unreadCount } = useNotifications();
 
   const visibleRoutes = state.routes.filter((r) => ICONS[r.name]);
 
@@ -96,11 +98,25 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             }`}
             style={{ minHeight: 52 }}
           >
-            <AnimatedTabIcon
-              focused={focused}
-              name={focused ? meta.on : meta.off}
-              color={focused ? activeIconColor : inactiveIconColor}
-            />
+            <View>
+              <AnimatedTabIcon
+                focused={focused}
+                name={focused ? meta.on : meta.off}
+                color={focused ? activeIconColor : inactiveIconColor}
+              />
+              {/* Unread badge — only the Alerts tab carries one. */}
+              {route.name === 'notifications' && unreadCount > 0 ? (
+                <View
+                  pointerEvents="none"
+                  style={{ position: 'absolute', top: -4, right: -8 }}
+                  className="h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1"
+                >
+                  <Text className="text-[9px] font-bold text-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             <Text
               style={{ marginTop: 2 }}
               className={`text-2xs font-bold uppercase tracking-wider ${

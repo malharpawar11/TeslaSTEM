@@ -1,131 +1,37 @@
-import { useEffect, useMemo } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, Image, ScrollView, RefreshControl } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  FadeInDown,
-  FadeIn,
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withDelay,
-  withSequence,
-  Easing,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Gradient, BRAND_COLORS_RICH } from '@/components/Gradient';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Button, PressableScale, categoryTone } from '@/components/ui';
-import { useFollows } from '@/context/FollowContext';
+import {
+  Button,
+  Card,
+  EmptyState,
+  PressableScale,
+  SectionHeader,
+  SkeletonRow,
+  Tag,
+} from '@/components/ui';
+import { AnnouncementCard, EventCard, FileRow, RoleBadge } from '@/components/ClubContentCards';
+import { useAuth } from '@/context/AuthContext';
 import { useClubs } from '@/context/ClubsContext';
+import { useMemberships } from '@/context/MembershipContext';
+import { useNotifications } from '@/context/NotificationsContext';
+import { fetchDashboard, EMPTY_DASHBOARD, type Dashboard } from '@/data/feedRepo';
 import { clubInitials } from '@/types/domain';
-import { duration, easing } from '@/theme/motion';
+import { duration } from '@/theme/motion';
 import { brand } from '@/theme/tokens';
 
 /* ----------------------------------------------------------------------------
- * Ambient orbs — three slow-orbiting low-alpha rings that drift on a long loop.
+ * Signed-out hero — the public front door of the directory.
  * -------------------------------------------------------------------------- */
-function Orb({
-  size,
-  topPct,
-  leftPct,
-  drift,
-  delayMs,
-  durationMs,
-  className,
-}: {
-  size: number;
-  topPct: number;
-  leftPct: number;
-  drift: number;
-  delayMs: number;
-  durationMs: number;
-  className: string;
-}) {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withDelay(
-      delayMs,
-      withRepeat(
-        withTiming(1, { duration: durationMs, easing: Easing.inOut(Easing.cubic) }),
-        -1,
-        true,
-      ),
-    );
-  }, [t, delayMs, durationMs]);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: drift * (t.value - 0.5) },
-      { translateY: -drift * 0.6 * (t.value - 0.5) },
-      { scale: 1 + 0.03 * t.value },
-    ],
-    opacity: 0.55 + 0.25 * t.value,
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: 'absolute',
-          width: size,
-          height: size,
-          top: `${topPct}%`,
-          left: `${leftPct}%`,
-          marginLeft: -size / 2,
-          marginTop: -size / 2,
-          borderRadius: size / 2,
-        },
-        style,
-      ]}
-      className={className}
-    />
-  );
-}
-
-/* ----------------------------------------------------------------------------
- * Animated proof dot — a tiny pulse next to the live club count.
- * -------------------------------------------------------------------------- */
-function PulseDot() {
-  const p = useSharedValue(0);
-  useEffect(() => {
-    p.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 900, easing: easing.smooth }),
-        withTiming(0, { duration: 1200, easing: easing.smooth }),
-      ),
-      -1,
-      false,
-    );
-  }, [p]);
-  const ring = useAnimatedStyle(() => ({
-    opacity: 0.5 * (1 - p.value),
-    transform: [{ scale: 1 + 1.8 * p.value }],
-  }));
-  return (
-    <View className="relative h-1.5 w-1.5 items-center justify-center">
-      <Animated.View
-        pointerEvents="none"
-        style={ring}
-        className="absolute h-1.5 w-1.5 rounded-full bg-python-green-100"
-      />
-      <View className="h-1.5 w-1.5 rounded-full bg-python-green-100" />
-    </View>
-  );
-}
-
-export default function HomeScreen() {
+function Hero() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { follows } = useFollows();
-  const { clubs } = useClubs();
-
-  const followedClubs = useMemo(
-    () => clubs.filter((c) => follows.has(c.id)),
-    [clubs, follows],
-  );
+  const { clubs, loading } = useClubs();
 
   return (
     <Gradient
@@ -135,47 +41,19 @@ export default function HomeScreen() {
       locations={[0, 0.5, 1] as unknown as readonly [number, number, ...number[]]}
       className="flex-1"
     >
-      {/* Deep vignette overlay */}
       <View
         pointerEvents="none"
         className="absolute inset-0 bg-python-blue-900/20 dark:bg-black/35"
       />
 
-      {/* Ambient orbs */}
-      <Orb
-        size={520}
-        topPct={18}
-        leftPct={82}
-        drift={36}
-        delayMs={0}
-        durationMs={9200}
-        className="bg-white/[0.05]"
-      />
-      <Orb
-        size={360}
-        topPct={78}
-        leftPct={12}
-        drift={28}
-        delayMs={900}
-        durationMs={10800}
-        className="bg-python-green-300/12"
-      />
-      <Orb
-        size={220}
-        topPct={62}
-        leftPct={88}
-        drift={22}
-        delayMs={1700}
-        durationMs={8400}
-        className="bg-python-blue-300/12"
-      />
-
-      {/* Top bar — logo icon + brand label on left, theme toggle on right */}
       <View
         className="flex-row items-center justify-between px-6"
         style={{ paddingTop: insets.top + 2 }}
       >
-        <Animated.View entering={FadeIn.duration(duration.lg)} className="flex-row items-center gap-2">
+        <Animated.View
+          entering={FadeIn.duration(duration.lg)}
+          className="flex-row items-center gap-2"
+        >
           <Image
             source={require('../../assets/teslastemlogo.png')}
             style={{ width: 20, height: 20 }}
@@ -189,53 +67,35 @@ export default function HomeScreen() {
         <ThemeToggle variant="translucent" />
       </View>
 
-      {/* ----------------------------------------------------------------
-          Hero — left-aligned typographic lockup with tight vertical rhythm.
-          ---------------------------------------------------------------- */}
       <View className="flex-1 justify-center px-7" style={{ paddingBottom: insets.bottom + 24 }}>
         <View className="max-w-[520px]">
+          {/* Live proof — the real club count, or nothing while it loads. */}
+          {!loading && clubs.length > 0 ? (
+            <Animated.Text
+              entering={FadeInDown.duration(duration.lg)}
+              className="text-2xs font-bold uppercase tracking-widest text-white/70"
+            >
+              {clubs.length} clubs · one hub
+            </Animated.Text>
+          ) : null}
 
-          {/* Live proof tile */}
-          <Animated.View
-            entering={FadeInDown.duration(duration.lg)}
-          >
-            <View className="flex-row items-center gap-2">
-              <PulseDot />
-              <Text className="text-2xs font-semibold uppercase tracking-widest text-white/70">
-                Live directory
-              </Text>
-            </View>
-            <Text className="mt-1.5 text-sm font-medium text-white/85">
-              <Text className="font-bold text-white">47 clubs</Text>
-              <Text className="text-white/60">  ·  </Text>
-              <Text className="font-bold text-white">1,000+</Text>
-              <Text className="text-white/85"> Pythons</Text>
-            </Text>
-          </Animated.View>
-
-          {/* Display headline — tighter gap from the stats pill */}
           <Animated.Text
             entering={FadeInDown.delay(120).duration(duration.xl)}
-            className="mt-6 text-5xl font-extrabold tracking-tightest text-white"
+            className="mt-4 text-5xl font-extrabold tracking-tightest text-white"
           >
             Every club.{'\n'}
-            <Text className="text-white/70">One directory.</Text>
+            <Text className="text-white/70">One place.</Text>
           </Animated.Text>
 
-          {/* Supporting subtitle — tighter gap from headline */}
           <Animated.Text
             entering={FadeInDown.delay(220).duration(duration.xl)}
             className="mt-3 max-w-[420px] text-base leading-6 text-white/75"
           >
-            The official home for student clubs at Tesla STEM High. Discover what's
-            running, follow the rooms you care about, and stay close to the work.
+            Join clubs, get their announcements, files, and events, and keep every meeting on one
+            calendar — instead of five group chats.
           </Animated.Text>
 
-          {/* CTAs — primary button + plain text link */}
-          <Animated.View
-            entering={FadeInDown.delay(340).duration(duration.xl)}
-            className="mt-7 gap-0"
-          >
+          <Animated.View entering={FadeInDown.delay(340).duration(duration.xl)} className="mt-7">
             <Button
               label="Explore the directory"
               onPress={() => router.push('/browse')}
@@ -249,78 +109,276 @@ export default function HomeScreen() {
               </Text>
               <Ionicons name="arrow-forward" size={22} color="#0F4C92" />
             </Button>
-
-            {/* Admin entry — plain text link, visually subordinate */}
-            <TouchableOpacity
-              onPress={() => router.push('/admin')}
-              accessibilityRole="button"
-              activeOpacity={0.6}
-              className="mt-4 items-center"
+            <Button
+              label="Sign in with your @lwsd.org account"
+              onPress={() => router.push('/account')}
+              variant="ghost"
+              size="lg"
+              fullWidth
+              className="mt-3"
             >
-              <Text className="text-sm font-medium text-white">
-                I'm a club admin
+              <Text className="text-center text-sm font-semibold text-white">
+                Sign in with your @lwsd.org account
               </Text>
-            </TouchableOpacity>
+            </Button>
           </Animated.View>
+        </View>
+      </View>
+    </Gradient>
+  );
+}
 
-          {/* Your clubs — only shown when the user follows at least one */}
-          {followedClubs.length > 0 ? (
-            <Animated.View
-              entering={FadeInDown.delay(460).duration(duration.xl)}
-              className="mt-8"
-            >
-              <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-white/70">
-                Your clubs
+/* ----------------------------------------------------------------------------
+ * Signed-in dashboard — everything from every club the student joined.
+ * -------------------------------------------------------------------------- */
+function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
+  const router = useRouter();
+  if (dashboard.clubs.length === 0) {
+    return (
+      <EmptyState
+        icon="people-outline"
+        title="You haven't joined any clubs yet"
+        description="Browse the directory and join a club to see its announcements, files, and events here."
+        actionLabel="Browse clubs"
+        onAction={() => router.push('/browse')}
+        tone="brand"
+      />
+    );
+  }
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 10 }}
+    >
+      {dashboard.clubs.map((club) => (
+        <PressableScale
+          key={club.id}
+          onPress={() => router.push(`/club/${club.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${club.name}`}
+          scaleTo={0.96}
+          className="w-[196px] rounded-3xl border border-light-border bg-light-surface p-3.5 dark:border-dark-border dark:bg-dark-surface"
+        >
+          <View className="flex-row items-center gap-2.5">
+            <View className="h-9 w-9 items-center justify-center rounded-2xl bg-python-green/14">
+              <Text className="text-2xs font-extrabold text-python-green-dark dark:text-python-green-light">
+                {clubInitials(club.name)}
               </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8 }}
-              >
-                {followedClubs.map((club) => {
-                  const tone = categoryTone(club.category);
-                  const dotColor = tone === 'brand' ? brand.green : brand.blue;
-                  return (
-                    <PressableScale
-                      key={club.id}
-                      onPress={() => router.push(`/club/${club.id}`)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${club.name}`}
-                      scaleTo={0.94}
-                      pressedOpacity={0.8}
-                      className="flex-row items-center gap-2 rounded-2xl border border-white/20 bg-white/[0.12] px-3.5 py-2.5"
-                    >
-                      {/* Initials badge */}
-                      <View
-                        style={{ width: 24, height: 24, backgroundColor: dotColor + '33', borderRadius: 8 }}
-                        className="items-center justify-center"
-                      >
-                        <Text style={{ fontSize: 9, fontWeight: '800', color: '#FFFFFF' }}>
-                          {clubInitials(club.name)}
-                        </Text>
-                      </View>
-                      <Text
-                        className="text-sm font-semibold text-white"
-                        numberOfLines={1}
-                        style={{ maxWidth: 130 }}
-                      >
-                        {club.name}
-                      </Text>
-                    </PressableScale>
-                  );
-                })}
-              </ScrollView>
-            </Animated.View>
-          ) : null}
+            </View>
+            <Text
+              className="flex-1 text-sm font-bold text-light-text dark:text-dark-text"
+              numberOfLines={2}
+            >
+              {club.name}
+            </Text>
+          </View>
+          <View className="mt-2.5 flex-row items-center gap-1.5">
+            {club.status === 'pending' ? (
+              <Tag label="Pending approval" tone="warn" />
+            ) : (
+              <RoleBadge role={club.role} position={club.position} />
+            )}
+          </View>
+          <Text className="mt-1.5 text-2xs text-light-muted dark:text-dark-muted">
+            {club.memberCount} member{club.memberCount === 1 ? '' : 's'}
+          </Text>
+        </PressableScale>
+      ))}
+    </ScrollView>
+  );
+}
 
+function DashboardScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { profile } = useAuth();
+  const { refresh: refreshMemberships } = useMemberships();
+  const { unreadCount, refresh: refreshNotifications } = useNotifications();
+  const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    const data = await fetchDashboard(8);
+    setDashboard(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Returning to Home after joining a club should show the change without a
+  // manual pull — one request, only when the screen is actually visible.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([load(), refreshMemberships(), refreshNotifications()]);
+    setRefreshing(false);
+  }, [load, refreshMemberships, refreshNotifications]);
+
+  const firstName = useMemo(() => {
+    const name = profile?.display_name ?? profile?.email?.split('@')[0] ?? 'there';
+    return name.split(/[\s.]/)[0];
+  }, [profile]);
+
+  const nothingNew =
+    dashboard.clubs.length > 0 &&
+    dashboard.events.length === 0 &&
+    dashboard.announcements.length === 0 &&
+    dashboard.files.length === 0;
+
+  return (
+    <ScrollView
+      className="flex-1"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.green} />
+      }
+    >
+      <View
+        className="flex-row items-start justify-between px-5"
+        style={{ paddingTop: insets.top + 8 }}
+      >
+        <View className="flex-1 pr-3">
+          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+            Dashboard
+          </Text>
+          <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
+            Hey {firstName}
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2 pt-1">
+          <PressableScale
+            onPress={() => router.push('/search')}
+            accessibilityRole="button"
+            accessibilityLabel="Search clubs, announcements, files, and events"
+            scaleTo={0.92}
+            className="h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+          >
+            <Ionicons name="search" size={17} color={brand.green} />
+          </PressableScale>
+          <ThemeToggle />
         </View>
       </View>
 
-      {/* Bottom hairline rule */}
-      <View
-        pointerEvents="none"
-        className="absolute bottom-0 left-0 right-0 h-px bg-white/10"
-      />
-    </Gradient>
+      {loading ? (
+        <View className="px-5 pt-6">
+          <SkeletonRow count={3} />
+        </View>
+      ) : (
+        <>
+          <View className="px-5 pt-5">
+            <SectionHeader eyebrow="MY CLUBS" title="Your clubs" size="sm" />
+            <View className="mt-3">
+              <MyClubsRow dashboard={dashboard} />
+            </View>
+          </View>
+
+          {unreadCount > 0 ? (
+            <Animated.View entering={FadeInDown.duration(300)} className="px-5 pt-5">
+              <PressableScale
+                onPress={() => router.push('/notifications')}
+                accessibilityRole="button"
+                accessibilityLabel={`${unreadCount} unread notifications`}
+                scaleTo={0.98}
+              >
+                <Card elevation="ambient" className="flex-row items-center gap-3 p-4">
+                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-danger/12">
+                    <Ionicons name="notifications" size={18} color="#E11D48" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                      {unreadCount} new update{unreadCount === 1 ? '' : 's'}
+                    </Text>
+                    <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted">
+                      Tap to open your notifications
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                </Card>
+              </PressableScale>
+            </Animated.View>
+          ) : null}
+
+          {dashboard.events.length > 0 ? (
+            <View className="px-5 pt-6">
+              <SectionHeader
+                eyebrow="UPCOMING"
+                title="Next up"
+                size="sm"
+                trailing={
+                  <Button
+                    label="Calendar"
+                    variant="ghost"
+                    size="sm"
+                    iconRight="chevron-forward"
+                    onPress={() => router.push('/calendar')}
+                  />
+                }
+              />
+              <View className="mt-3 gap-3">
+                {dashboard.events.slice(0, 4).map((event) => (
+                  <EventCard key={event.id} event={event} showClub />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {dashboard.announcements.length > 0 ? (
+            <View className="px-5 pt-6">
+              <SectionHeader eyebrow="ANNOUNCEMENTS" title="Recent posts" size="sm" />
+              <View className="mt-3 gap-3">
+                {dashboard.announcements.slice(0, 4).map((announcement) => (
+                  <AnnouncementCard key={announcement.id} announcement={announcement} showClub />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {dashboard.files.length > 0 ? (
+            <View className="px-5 pt-6">
+              <SectionHeader eyebrow="RESOURCES" title="New files" size="sm" />
+              <View className="mt-3 gap-2.5">
+                {dashboard.files.slice(0, 4).map((file) => (
+                  <FileRow key={file.id} file={file} showClub />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {nothingNew ? (
+            <View className="px-5 pt-8">
+              <EmptyState
+                icon="sparkles-outline"
+                title="All caught up"
+                description="Nothing new from your clubs yet. Announcements, files, and events land here as soon as they're posted."
+                tone="neutral"
+              />
+            </View>
+          ) : null}
+        </>
+      )}
+    </ScrollView>
+  );
+}
+
+export default function HomeScreen() {
+  const { session, configured } = useAuth();
+
+  if (!configured || !session) {
+    return <Hero />;
+  }
+  return (
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+      <DashboardScreen />
+    </View>
   );
 }
