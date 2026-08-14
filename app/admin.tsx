@@ -12,11 +12,13 @@ import {
   EmptyState,
   Input,
   SectionHeader,
+  PressableScale,
   Skeleton,
   StatTile,
 } from '@/components/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SignInGate } from '@/components/SignInGate';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { surface } from '@/theme/tokens';
@@ -36,6 +38,11 @@ import {
   type ClubAdminRow,
 } from '@/data/adminRepo';
 import { fetchClubs } from '@/data/clubsRepo';
+import {
+  ClubClaimSection,
+  SchoolAnnouncementSection,
+  ClubLifecycleSection,
+} from '@/components/SchoolAdminSections';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -819,6 +826,7 @@ function RestrictedNotice() {
 
 function AdminDashboard() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { profile } = useAuth();
 
   // --- Pending clubs ---
@@ -887,15 +895,24 @@ function AdminDashboard() {
         className="flex-row items-start justify-between pb-1"
         style={{ paddingTop: insets.top + 8 }}
       >
+        <PressableScale
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          scaleTo={0.9}
+          className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+        >
+          <Ionicons name="chevron-back" size={18} color="#4CAF50" />
+        </PressableScale>
         <View className="flex-1 pr-3">
           <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
-            SPECIAL ADMIN
+            SCHOOL ADMIN
           </Text>
           <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
             Admin Dashboard
           </Text>
           <Text className="mt-1.5 text-base leading-6 text-light-muted dark:text-dark-muted">
-            Review clubs, verify presidents, and manage club admins.
+            Approve clubs, verify presidents, transfer ownership, and post school-wide.
           </Text>
         </View>
         <ThemeToggle />
@@ -977,6 +994,15 @@ function AdminDashboard() {
         approvedClubs={approvedClubs}
         clubsLoading={approvedClubsLoading}
       />
+
+      {/* Section 4: Presidents claiming clubs that already exist */}
+      <ClubClaimSection />
+
+      {/* Section 5: School-wide announcements */}
+      <SchoolAnnouncementSection />
+
+      {/* Section 6: Ownership transfer and archiving */}
+      <ClubLifecycleSection clubs={approvedClubs} />
     </ScrollView>
   );
 }

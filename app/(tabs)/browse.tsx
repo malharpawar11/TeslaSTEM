@@ -12,7 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Club, ClubCategory } from '@/types/domain';
 import { useClubs } from '@/context/ClubsContext';
-import { useFollows } from '@/context/FollowContext';
+import { useMemberships } from '@/context/MembershipContext';
+import { useToast } from '@/context/ToastContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { SearchBar } from '@/components/SearchBar';
@@ -42,11 +43,12 @@ export default function BrowseScreen() {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const c = surface(isDark);
-  const { isFollowing, toggleFollow, follows } = useFollows();
+  const { isMember, membershipFor, memberships, join, leave } = useMemberships();
+  const { toast } = useToast();
   const { clubs, loading, error, refresh } = useClubs();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<string>('All');
-  const [followingOnly, setFollowingOnly] = useState(false);
+  const [joinedOnly, setJoinedOnly] = useState(false);
 
   // Per-category counts, including 'All'. Computed once per clubs change.
   const counts = useMemo<Record<string, number>>(() => {
@@ -60,7 +62,7 @@ export default function BrowseScreen() {
   const data = useMemo(() => {
     const q = query.trim().toLowerCase();
     return clubs.filter((club) => {
-      if (followingOnly && !follows.has(club.id)) return false;
+      if (joinedOnly && !memberships.has(club.id)) return false;
       if (filter !== 'All' && club.category !== (filter as ClubCategory)) return false;
       if (!q) return true;
       return [
@@ -76,12 +78,12 @@ export default function BrowseScreen() {
         .toLowerCase()
         .includes(q);
     });
-  }, [clubs, query, filter, followingOnly, follows]);
+  }, [clubs, query, filter, joinedOnly, memberships]);
 
   const clearFilters = useCallback(() => {
     setQuery('');
     setFilter('All');
-    setFollowingOnly(false);
+    setJoinedOnly(false);
   }, []);
 
   // Measured height of the absolute sticky header — drives list paddingTop so
@@ -156,6 +158,29 @@ export default function BrowseScreen() {
     return { opacity };
   });
 
+  // Joining is a server action, so the card reports what actually happened —
+  // including the "waiting for approval" case at clubs that vet their members.
+  const toggleJoin = useCallback(
+    async (club: Club) => {
+      if (isMember(club.id)) {
+        const res = await leave(club.id);
+        toast(res.ok ? `Left ${club.name}` : res.error ?? 'Could not leave the club.', res.ok ? 'info' : 'error');
+        return;
+      }
+      const res = await join(club.id);
+      if (!res.ok) {
+        toast(res.error, 'error');
+        return;
+      }
+      toast(
+        res.status === 'pending'
+          ? `Requested to join ${club.name} — a club leader will review it.`
+          : `Joined ${club.name}`,
+      );
+    },
+    [isMember, join, leave, toast],
+  );
+
   const renderItem = useCallback(
     ({ item, index }: { item: Club; index: number }) => (
       <Animated.View
@@ -163,17 +188,17 @@ export default function BrowseScreen() {
       >
         <ClubCard
           club={item}
-          followed={isFollowing(item.id)}
+          joined={isMember(item.id)}
+          pending={membershipFor(item.id)?.status === 'pending'}
           onPress={() => router.push(`/club/${item.id}`)}
-          onToggleFollow={() => toggleFollow(item.id)}
+          onToggleJoin={() => void toggleJoin(item)}
         />
       </Animated.View>
     ),
-    [isFollowing, toggleFollow, router],
+    [isMember, membershipFor, toggleJoin, router],
   );
 
-  const filtersActive =
-    !!query.trim() || filter !== 'All' || followingOnly;
+  const filtersActive = !!query.trim() || filter !== 'All' || joinedOnly;
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
@@ -232,7 +257,16 @@ export default function BrowseScreen() {
                 </Text>
               </Animated.View>
             </View>
-            <View className="pt-1">
+            <View className="flex-row items-center gap-2 pt-1">
+              <PressableScale
+                onPress={() => router.push('/search')}
+                accessibilityRole="button"
+                accessibilityLabel="Search announcements, files, notes, and events"
+                scaleTo={0.92}
+                className="h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+              >
+                <Ionicons name="options-outline" size={17} color={brand.green} />
+              </PressableScale>
               <ThemeToggle />
             </View>
           </View>
@@ -259,21 +293,21 @@ export default function BrowseScreen() {
           </View>
           <View className="pr-4 pl-1">
             <PressableScale
-              onPress={() => setFollowingOnly((v) => !v)}
+              onPress={() => setJoinedOnly((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel={followingOnly ? 'Show all clubs' : 'Show following only'}
+              accessibilityLabel={joinedOnly ? 'Show all clubs' : 'Show my clubs only'}
               scaleTo={0.88}
               pressedOpacity={0.8}
               className={`h-9 w-9 items-center justify-center rounded-full ${
-                followingOnly
+                joinedOnly
                   ? 'bg-python-green'
                   : 'border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2'
               }`}
             >
               <Ionicons
-                name={followingOnly ? 'heart' : 'heart-outline'}
+                name={joinedOnly ? 'checkmark-circle' : 'checkmark-circle-outline'}
                 size={17}
-                color={followingOnly ? '#FFFFFF' : isDark ? '#8A8F99' : '#9CA3AF'}
+                color={joinedOnly ? '#FFFFFF' : isDark ? '#8A8F99' : '#9CA3AF'}
               />
             </PressableScale>
           </View>
@@ -332,8 +366,8 @@ export default function BrowseScreen() {
                 ? 'Approved clubs appear here once an admin publishes them.'
                 : 'Try clearing filters or your search.'
             }
-            actionLabel={filtersActive ? 'Clear filters' : undefined}
-            onAction={filtersActive ? clearFilters : undefined}
+            actionLabel={filtersActive ? 'Clear filters' : 'Submit a club'}
+            onAction={filtersActive ? clearFilters : () => router.push('/club/new')}
           />
         </View>
       ) : (

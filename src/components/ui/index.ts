@@ -12,3 +12,4 @@ export { Divider } from './Divider';
 export { StatTile } from './StatTile';
 export { Badge } from './Badge';
 export { MetaRow } from './MetaRow';
+export { ConfirmDialog } from './ConfirmDialog';

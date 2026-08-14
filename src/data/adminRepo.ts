@@ -151,3 +151,61 @@ export function assignClubAdmin(clubId: string, email: string): Promise<RpcResul
 export function removeClubAdmin(clubId: string, userId: string): Promise<RpcResult> {
   return callRpc('remove_club_admin', { p_club_id: clubId, p_user_id: userId });
 }
+
+// ---------------------------------------------------------------------------
+// Club claims — a president asking for control of a club that already exists.
+// ---------------------------------------------------------------------------
+
+export interface ClubClaim {
+  id: string;
+  clubId: string;
+  clubName: string;
+  userId: string;
+  email: string;
+  displayName: string | null;
+  position: string;
+  message: string | null;
+  createdAt: string | null;
+}
+
+/** Pending claims awaiting school-admin review. */
+export async function fetchClubClaims(): Promise<ClubClaim[]> {
+  if (!insforge) return [];
+  const { data, error } = await insforge.database.rpc('list_club_claims', {});
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    id: r.id as string,
+    clubId: r.club_id as string,
+    clubName: r.club_name as string,
+    userId: r.user_id as string,
+    email: r.email as string,
+    displayName: (r.display_name as string | null) ?? null,
+    // `member_position`, not `position` — see list_club_members for why.
+    position: (r.member_position as string | null) ?? 'President',
+    message: (r.message as string | null) ?? null,
+    createdAt: (r.created_at as string | null) ?? null,
+  }));
+}
+
+/** Special-admin only: grant or decline a claim on an existing club. */
+export function reviewClubClaim(
+  claimId: string,
+  approve: boolean,
+  reason?: string,
+): Promise<RpcResult> {
+  return callRpc('review_club_claim', {
+    p_claim_id: claimId,
+    p_approve: approve,
+    p_reason: reason ?? null,
+  });
+}
+
+/** Special-admin only: hand a club to a different president. */
+export function transferClubOwnership(clubId: string, email: string): Promise<RpcResult> {
+  return callRpc('transfer_club_ownership', { p_club_id: clubId, p_email: email });
+}
+
+/** Special-admin only: archive an inactive club (or bring it back). */
+export function setClubActive(clubId: string, active: boolean): Promise<RpcResult> {
+  return callRpc('set_club_active', { p_club_id: clubId, p_active: active });
+}

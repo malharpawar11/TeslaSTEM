@@ -13,9 +13,12 @@ import { brand } from '@/theme/tokens';
 
 interface Props {
   club: Club;
-  followed: boolean;
+  /** True once the student is an active member of this club. */
+  joined: boolean;
+  /** Pending approval at a club that vets joins. */
+  pending?: boolean;
   onPress: () => void;
-  onToggleFollow: () => void;
+  onToggleJoin: () => void;
 }
 
 const DAY_ABBR: Record<string, string> = {
@@ -27,7 +30,7 @@ function dayAbbr(day: string): string {
   return DAY_ABBR[day] ?? day.slice(0, 3);
 }
 
-function ClubCardBase({ club, followed, onPress, onToggleFollow }: Props) {
+function ClubCardBase({ club, joined, pending = false, onPress, onToggleJoin }: Props) {
   const tone = categoryTone(club.category);
   const isBlue = tone !== 'brand';
   const iconColor = isBlue ? brand.blue : brand.green;
@@ -59,22 +62,24 @@ function ClubCardBase({ club, followed, onPress, onToggleFollow }: Props) {
               </Text>
               <Tag label={club.category} tone={tone} size="sm" />
               <PressableScale
-                onPress={onToggleFollow}
+                onPress={onToggleJoin}
                 accessibilityRole="button"
-                accessibilityState={{ selected: followed }}
-                accessibilityLabel={followed ? `Unfollow ${club.name}` : `Follow ${club.name}`}
+                accessibilityState={{ selected: joined }}
+                accessibilityLabel={joined ? `Leave ${club.name}` : `Join ${club.name}`}
                 scaleTo={0.88}
                 pressedOpacity={0.75}
                 className={`h-[26px] w-[26px] items-center justify-center rounded-full ${
-                  followed
+                  joined
                     ? 'bg-python-green'
-                    : 'border border-python-green/40 bg-transparent'
+                    : pending
+                      ? 'bg-warn/20 border border-warn/50'
+                      : 'border border-python-green/40 bg-transparent'
                 }`}
               >
                 <Ionicons
-                  name={followed ? 'checkmark' : 'add'}
+                  name={joined ? 'checkmark' : pending ? 'hourglass-outline' : 'add'}
                   size={13}
-                  color={followed ? '#FFFFFF' : brand.green}
+                  color={joined ? '#FFFFFF' : pending ? '#D97706' : brand.green}
                 />
               </PressableScale>
             </View>
@@ -91,8 +96,7 @@ function ClubCardBase({ club, followed, onPress, onToggleFollow }: Props) {
                 numberOfLines={1}
               >
                 {club.time}
-                {/* Only shown when the backend actually has a count. */}
-                {club.memberCount !== undefined ? (
+                {club.memberCount > 0 ? (
                   <>
                     <Text className="text-light-subtle dark:text-dark-subtle">  ·  </Text>
                     <Text className="font-semibold text-light-secondary dark:text-dark-secondary">
