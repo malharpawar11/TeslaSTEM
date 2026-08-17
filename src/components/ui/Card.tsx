@@ -18,7 +18,7 @@ const ELEV: Record<Elevation, string> = {
 };
 
 const BASE =
-  'rounded-3xl border border-light-hairline bg-light-surface dark:border-dark-border dark:bg-dark-surface';
+  'rounded-xl border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface';
 
 export function Card({ children, className, elevation = 'flat', ...rest }: BaseProps & ViewProps) {
   return (
@@ -49,8 +49,8 @@ export function PressableCard({
       asSurface={containsInteractive}
       accessibilityRole={containsInteractive ? undefined : 'button'}
       accessibilityLabel={accessibilityLabel}
-      scaleTo={0.985}
-      pressedOpacity={0.96}
+      scaleTo={0.995}
+      pressedOpacity={0.94}
       className={[BASE, ELEV[elevation], className ?? ''].filter(Boolean).join(' ')}
     >
       {children}

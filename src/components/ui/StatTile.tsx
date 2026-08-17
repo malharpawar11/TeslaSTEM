@@ -1,6 +1,6 @@
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/tokens';
+import { brand, surfaces } from '@/theme/tokens';
 
 interface Props {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -10,26 +10,26 @@ interface Props {
   hint?: string;
 }
 
-export function StatTile({ icon, value, label, tone = 'brand', hint }: Props) {
-  const iconColor = tone === 'info' ? brand.blue : tone === 'neutral' ? '#9CA3AF' : brand.green;
+export function StatTile({ icon, value, label, tone = 'info', hint }: Props) {
+  const iconColor = tone === 'brand' ? brand.green : tone === 'neutral' ? surfaces.light.subtle : brand.blue;
   const iconBg =
-    tone === 'info'
-      ? 'bg-python-blue/12'
+    tone === 'brand'
+      ? 'bg-python-green/10 dark:bg-python-green/20'
       : tone === 'neutral'
         ? 'bg-light-surface-2 dark:bg-dark-surface-2'
-        : 'bg-python-green/12';
+        : 'bg-python-blue/10 dark:bg-python-blue/20';
 
   return (
-    <View className="flex-1 rounded-2xl border border-light-hairline bg-light-surface p-4 dark:border-dark-border dark:bg-dark-surface">
+    <View className="flex-1 rounded-xl border border-light-border bg-light-surface p-4 dark:border-dark-border dark:bg-dark-surface">
       {icon ? (
-        <View className={`mb-3 h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
-          <Ionicons name={icon} size={18} color={iconColor} />
+        <View className={`mb-2.5 h-8 w-8 items-center justify-center rounded-md ${iconBg}`}>
+          <Ionicons name={icon} size={16} color={iconColor} />
         </View>
       ) : null}
-      <Text className="text-3xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+      <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
         {value}
       </Text>
-      <Text className="mt-0.5 text-xs font-semibold text-light-muted dark:text-dark-muted">
+      <Text className="mt-0.5 text-xs font-medium text-light-muted dark:text-dark-muted">
         {label}
       </Text>
       {hint ? (

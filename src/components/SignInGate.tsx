@@ -1,12 +1,12 @@
 import { ReactNode, useState } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Input, PressableScale } from '@/components/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
-import { brand } from '@/theme/tokens';
+import { brand, semantic } from '@/theme/tokens';
 
 // Client-side LWSD gate. The database enforces the same rule independently —
 // a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses — so this
@@ -110,19 +110,19 @@ export function SignInGate({
       </View>
 
       <View className="flex-1 justify-center">
-        <Animated.View entering={FadeInDown.duration(420)} className="items-center">
-          <View className="h-16 w-16 items-center justify-center rounded-3xl bg-python-green/14">
-            <Ionicons name="shield-checkmark" size={30} color={brand.green} />
+        <Animated.View entering={FadeIn.duration(180)} className="items-center">
+          <View className="h-14 w-14 items-center justify-center rounded-xl bg-python-blue/10 dark:bg-python-blue/20">
+            <Ionicons name="shield-checkmark-outline" size={26} color={brand.blue} />
           </View>
-          <Text className="mt-5 text-center text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+          <Text className="mt-5 text-center text-xl font-semibold tracking-tight text-light-text dark:text-dark-text">
             {title}
           </Text>
-          <Text className="mt-2 max-w-xs text-center text-sm leading-6 text-light-muted dark:text-dark-muted">
+          <Text className="mt-2 max-w-xs text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
             {subtitle}
           </Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(120).duration(420)} className="mt-7">
+        <Animated.View entering={FadeIn.duration(180)} className="mt-7">
           <Card elevation="ambient" className="p-5">
             {step === 'form' ? (
               <View className="gap-4">
@@ -140,13 +140,13 @@ export function SignInGate({
                     accessibilityLabel="Sign in"
                   >
                     <Text
-                      className={`text-sm font-bold ${
+                      className={`text-sm font-semibold ${
                         mode === 'signIn'
-                          ? 'text-python-green-dark dark:text-python-green-light'
+                          ? 'text-python-blue-dark dark:text-python-blue-light'
                           : 'text-light-muted dark:text-dark-muted'
                       }`}
                     >
-                      Sign In
+                      Sign in
                     </Text>
                   </PressableScale>
                   <PressableScale
@@ -161,13 +161,13 @@ export function SignInGate({
                     accessibilityLabel="Sign up"
                   >
                     <Text
-                      className={`text-sm font-bold ${
+                      className={`text-sm font-semibold ${
                         mode === 'signUp'
-                          ? 'text-python-green-dark dark:text-python-green-light'
+                          ? 'text-python-blue-dark dark:text-python-blue-light'
                           : 'text-light-muted dark:text-dark-muted'
                       }`}
                     >
-                      Sign Up
+                      Sign up
                     </Text>
                   </PressableScale>
                 </View>
@@ -206,7 +206,7 @@ export function SignInGate({
             ) : (
               <View className="gap-4">
                 <View className="flex-row items-center gap-2 rounded-xl bg-light-surface-2 px-3 py-2.5 dark:bg-dark-surface-2">
-                  <Ionicons name="mail" size={15} color={brand.green} />
+                  <Ionicons name="mail-outline" size={15} color={brand.blue} />
                   <Text
                     className="flex-1 text-sm font-semibold text-light-secondary dark:text-dark-secondary"
                     numberOfLines={1}
@@ -222,7 +222,7 @@ export function SignInGate({
                     accessibilityRole="button"
                     accessibilityLabel="Change email"
                   >
-                    <Text className="text-xs font-bold uppercase tracking-wide text-python-green-dark dark:text-python-green-light">
+                    <Text className="text-xs font-semibold text-python-blue-dark dark:text-python-blue-light">
                       Change
                     </Text>
                   </PressableScale>
@@ -254,9 +254,9 @@ export function SignInGate({
             {error ? (
               <Animated.View
                 entering={FadeIn.duration(180)}
-                className="mt-4 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/14 p-3"
+                className="mt-4 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/10 dark:bg-danger/20 p-3"
               >
-                <Ionicons name="alert-circle" size={16} color="#E11D48" />
+                <Ionicons name="alert-circle" size={16} color={semantic.danger} />
                 <Text className="flex-1 text-xs font-semibold leading-5 text-danger">
                   {error}
                 </Text>

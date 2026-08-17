@@ -35,24 +35,26 @@ export function ConfirmDialog({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View className="flex-1 items-center justify-center bg-black/50 px-6">
-        <View className="w-full max-w-[420px] rounded-3xl bg-light-surface p-5 shadow-floating dark:bg-dark-surface">
+        <View className="w-full max-w-[420px] rounded-xl border border-light-border bg-light-surface p-5 shadow-floating dark:border-dark-border dark:bg-dark-surface">
           <View className="flex-row items-center gap-2.5">
             <View
-              className={`h-9 w-9 items-center justify-center rounded-full ${
-                destructive ? 'bg-danger/14' : 'bg-python-blue/12'
+              className={`h-9 w-9 items-center justify-center rounded-lg ${
+                destructive
+                  ? 'bg-danger/10 dark:bg-danger/20'
+                  : 'bg-python-blue/10 dark:bg-python-blue/20'
               }`}
             >
               <Ionicons
                 name={destructive ? 'warning-outline' : 'help-circle-outline'}
                 size={18}
-                color={destructive ? '#E11D48' : '#1565C0'}
+                color={destructive ? '#B42318' : '#0E5AA8'}
               />
             </View>
-            <Text className="flex-1 text-base font-bold text-light-text dark:text-dark-text">
+            <Text className="flex-1 text-base font-semibold text-light-text dark:text-dark-text">
               {title}
             </Text>
           </View>
-          <Text className="mt-3 text-sm leading-6 text-light-muted dark:text-dark-muted">
+          <Text className="mt-3 text-sm leading-5 text-light-muted dark:text-dark-muted">
             {message}
           </Text>
           <View className="mt-5 flex-row gap-2.5">

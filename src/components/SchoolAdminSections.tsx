@@ -103,7 +103,7 @@ export function ClubClaimSection() {
                     initials={(claim.displayName ?? claim.email).slice(0, 2).toUpperCase()}
                   />
                   <View className="flex-1">
-                    <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                    <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                       {claim.displayName ?? claim.email}
                     </Text>
                     <Text className="text-2xs text-light-muted dark:text-dark-muted">
@@ -325,7 +325,7 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
       />
 
       <Card elevation="ambient" className="mt-4 p-4">
-        <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+        <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
           Club
         </Text>
         <View className="mt-2 flex-row flex-wrap gap-2">
@@ -338,12 +338,12 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
               scaleTo={0.96}
               className={`h-8 items-center justify-center rounded-full px-3 ${
                 selectedId === club.id
-                  ? 'bg-python-green'
-                  : 'border border-light-border dark:border-dark-border'
+                  ? 'bg-python-blue'
+                  : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
               }`}
             >
               <Text
-                className={`text-2xs font-bold ${
+                className={`text-2xs font-semibold ${
                   selectedId === club.id
                     ? 'text-white'
                     : 'text-light-secondary dark:text-dark-secondary'

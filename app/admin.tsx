@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Avatar,
@@ -21,7 +21,7 @@ import { SignInGate } from '@/components/SignInGate';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { surface } from '@/theme/tokens';
+import { brand, semantic, surface, surfaces } from '@/theme/tokens';
 import type { Club } from '@/types/domain';
 import {
   fetchPendingClubs,
@@ -60,8 +60,8 @@ function formatDate(iso: string | null): string {
 
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss?: () => void }) {
   return (
-    <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/14 p-3">
-      <Ionicons name="alert-circle" size={15} color="#E11D48" />
+    <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/10 dark:bg-danger/20 p-3">
+      <Ionicons name="alert-circle" size={15} color={semantic.danger} />
       <Text className="flex-1 text-xs font-semibold leading-5 text-danger">{message}</Text>
       {onDismiss ? (
         <Button
@@ -127,7 +127,7 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
   };
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 60).duration(340)}>
+    <Animated.View entering={FadeIn.duration(180)}>
       <Card
         elevation="ambient"
         className="mb-3 p-4"
@@ -137,14 +137,14 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
           <Avatar size="md" tone="brand" initials={club.name.slice(0, 2).toUpperCase()} />
           <View className="flex-1">
             <Text
-              className="text-base font-bold text-light-text dark:text-dark-text"
+              className="text-base font-semibold text-light-text dark:text-dark-text"
               numberOfLines={1}
             >
               {club.name}
             </Text>
             <View className="mt-0.5 flex-row flex-wrap items-center gap-1.5">
-              <View className="rounded-full bg-python-green/14 px-2 py-0.5">
-                <Text className="text-2xs font-bold uppercase tracking-wide text-python-green-dark dark:text-python-green-light">
+              <View className="rounded-md bg-python-blue/10 px-2 py-0.5 dark:bg-python-blue/20">
+                <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
                   {club.category}
                 </Text>
               </View>
@@ -380,13 +380,13 @@ function PresidentQueueRow({ president, onRefresh, index }: PresidentRowProps) {
     : president.email.slice(0, 2).toUpperCase();
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 60).duration(340)}>
+    <Animated.View entering={FadeIn.duration(180)}>
       <View className="py-3">
         <View className="flex-row items-center gap-3">
           <Avatar size="md" tone="neutral" initials={initials} />
           <View className="flex-1">
             {president.displayName ? (
-              <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+              <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                 {president.displayName}
               </Text>
             ) : null}
@@ -623,7 +623,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
             className="flex-row items-center justify-between rounded-2xl border border-light-border bg-light-surface px-3.5 py-3 dark:border-dark-border dark:bg-dark-surface-2"
           >
             {clubsLoading ? (
-              <ActivityIndicator size="small" color="#4CAF50" />
+              <ActivityIndicator size="small" color={brand.blue} />
             ) : (
               <>
                 <Text
@@ -639,7 +639,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
                 <Ionicons
                   name={pickerOpen ? 'chevron-up' : 'chevron-down'}
                   size={16}
-                  color="#6B7280"
+                  color={surfaces.light.muted}
                   onPress={() => setPickerOpen((o) => !o)}
                 />
               </>
@@ -702,7 +702,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
         {selectedClubId ? (
           <View className="mt-5">
             <Divider variant="hairline" className="mb-4" />
-            <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+            <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
               Current admins for {selectedClub?.name ?? '…'}
             </Text>
             {adminsLoading ? (
@@ -714,7 +714,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
               <ErrorBanner message={adminsError} onDismiss={() => setAdminsError(null)} />
             ) : admins.length === 0 ? (
               <View className="items-center py-6">
-                <Ionicons name="people-outline" size={28} color="#9CA3AF" />
+                <Ionicons name="people-outline" size={28} color={surfaces.light.subtle} />
                 <Text className="mt-2 text-sm text-light-muted dark:text-dark-muted">
                   No admins assigned yet.
                 </Text>
@@ -778,13 +778,13 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
 function NotConfiguredNotice() {
   return (
     <View className="flex-1 items-center justify-center px-8 py-20">
-      <View className="h-20 w-20 items-center justify-center rounded-3xl bg-warn/14">
-        <Ionicons name="cloud-offline-outline" size={32} color="#F59E0B" />
+      <View className="h-14 w-14 items-center justify-center rounded-xl bg-warn/10 dark:bg-warn/20">
+        <Ionicons name="cloud-offline-outline" size={32} color={semantic.warn} />
       </View>
-      <Text className="mt-5 text-center text-xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+      <Text className="mt-5 text-center text-lg font-semibold text-light-text dark:text-dark-text">
         Backend not configured
       </Text>
-      <Text className="mt-2 max-w-xs text-center text-sm leading-6 text-light-muted dark:text-dark-muted">
+      <Text className="mt-2 max-w-xs text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
         Admin tools require a live InsForge backend. Set{' '}
         <Text className="font-bold text-light-secondary dark:text-dark-secondary">
           EXPO_PUBLIC_INSFORGE_URL
@@ -806,13 +806,13 @@ function NotConfiguredNotice() {
 function RestrictedNotice() {
   return (
     <View className="flex-1 items-center justify-center px-8 py-20">
-      <View className="h-20 w-20 items-center justify-center rounded-3xl bg-danger/14">
-        <Ionicons name="lock-closed" size={32} color="#E11D48" />
+      <View className="h-14 w-14 items-center justify-center rounded-xl bg-danger/10 dark:bg-danger/20">
+        <Ionicons name="lock-closed" size={32} color={semantic.danger} />
       </View>
-      <Text className="mt-5 text-center text-xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+      <Text className="mt-5 text-center text-lg font-semibold text-light-text dark:text-dark-text">
         Restricted
       </Text>
-      <Text className="mt-2 max-w-xs text-center text-sm leading-6 text-light-muted dark:text-dark-muted">
+      <Text className="mt-2 max-w-xs text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
         This dashboard is only accessible to the school's special admin. If you believe this is a
         mistake, contact your system administrator.
       </Text>
@@ -888,7 +888,7 @@ function AdminDashboard() {
     <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
-      contentContainerClassName="px-5 pb-36"
+      contentContainerClassName="px-5 pb-8"
     >
       {/* Header */}
       <View
@@ -900,18 +900,15 @@ function AdminDashboard() {
           accessibilityRole="button"
           accessibilityLabel="Back"
           scaleTo={0.9}
-          className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+          className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
         >
-          <Ionicons name="chevron-back" size={18} color="#4CAF50" />
+          <Ionicons name="chevron-back" size={18} color={brand.blue} />
         </PressableScale>
         <View className="flex-1 pr-3">
-          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
-            SCHOOL ADMIN
+          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+            Admin dashboard
           </Text>
-          <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
-            Admin Dashboard
-          </Text>
-          <Text className="mt-1.5 text-base leading-6 text-light-muted dark:text-dark-muted">
+          <Text className="mt-1 text-sm leading-5 text-light-muted dark:text-dark-muted">
             Approve clubs, verify presidents, transfer ownership, and post school-wide.
           </Text>
         </View>
@@ -926,16 +923,16 @@ function AdminDashboard() {
           initials={displayName.slice(0, 2).toUpperCase()}
         />
         <View className="flex-1">
-          <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+          <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
             Signed in as
           </Text>
-          <Text className="mt-0.5 text-sm font-bold text-light-text dark:text-dark-text" numberOfLines={1}>
+          <Text className="mt-0.5 text-sm font-semibold text-light-text dark:text-dark-text" numberOfLines={1}>
             {displayName}
           </Text>
         </View>
-        <View className="flex-row items-center gap-2 rounded-full bg-success/14 px-2.5 py-1">
+        <View className="flex-row items-center gap-2 rounded-full bg-success/10 dark:bg-success/20 px-2.5 py-1">
           <View className="h-2 w-2 rounded-full bg-python-green" />
-          <Text className="text-2xs font-bold uppercase tracking-wider text-python-green-dark dark:text-python-green-light">
+          <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
             Active
           </Text>
         </View>
@@ -965,8 +962,8 @@ function AdminDashboard() {
 
       {/* Overall alert banner when there are items to review */}
       {totalPending > 0 && !clubsLoading && !presidentsLoading ? (
-        <View className="mt-4 flex-row items-center gap-2 rounded-xl bg-warn/14 px-3 py-2.5">
-          <Ionicons name="alert-circle" size={15} color="#F59E0B" />
+        <View className="mt-4 flex-row items-center gap-2 rounded-xl bg-warn/10 dark:bg-warn/20 px-3 py-2.5">
+          <Ionicons name="alert-circle" size={15} color={semantic.warn} />
           <Text className="flex-1 text-xs font-semibold text-warn">
             {totalPending} item{totalPending === 1 ? '' : 's'} need your attention.
           </Text>
@@ -1023,7 +1020,7 @@ export default function AdminScreen() {
         {/* Brief loading flash while session resolves */}
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#4CAF50" />
+            <ActivityIndicator size="large" color={brand.blue} />
           </View>
         ) : !configured ? (
           <NotConfiguredNotice />

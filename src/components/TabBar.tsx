@@ -1,22 +1,12 @@
-import { useEffect } from 'react';
 import { View, Text, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { cssInterop } from 'nativewind';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationsContext';
 import { PressableScale } from './ui/Pressable';
-import { brand } from '@/theme/tokens';
-import { spring } from '@/theme/motion';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-
-cssInterop(BlurView, { className: 'style' });
+import { brand, surface } from '@/theme/tokens';
+import { APP_MAX_WIDTH } from '@/theme/layout';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -30,49 +20,45 @@ const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   account: { on: 'person-circle', off: 'person-circle-outline', label: 'Profile' },
 };
 
-// Animated icon wrapper — does a tiny scale bump on focus.
-function AnimatedTabIcon({
-  focused,
-  name,
-  color,
-}: {
-  focused: boolean;
-  name: IconName;
-  color: string;
-}) {
-  const scale = useSharedValue(focused ? 1 : 0.92);
-
-  useEffect(() => {
-    scale.value = withSpring(focused ? 1 : 0.92, spring.pop);
-  }, [focused, scale]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <Ionicons name={name} size={22} color={color} />
-    </Animated.View>
-  );
-}
-
+/**
+ * Docked bottom navigation. This used to be a floating blurred pill; a docked
+ * bar with a hairline is what every OS ships, it never crops content behind
+ * it, and it keeps the eye on the content instead of the chrome.
+ */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const c = surface(isDark);
   const { unreadCount } = useNotifications();
 
   const visibleRoutes = state.routes.filter((r) => ICONS[r.name]);
 
-  const activeIconColor = brand.green;
-  const inactiveIconColor = isDark ? '#FFFFFF' : '#6B7280';
+  const activeColor = brand.blue;
+  const activeColorDark = '#6BA1D8';
+  const inactiveColor = c.muted;
 
-  const tabContent = (
-    <>
+  return (
+    <View
+      style={[
+        {
+          borderTopWidth: 1,
+          borderTopColor: c.border,
+          backgroundColor: c.surface,
+          paddingBottom: IS_WEB ? 8 : insets.bottom > 0 ? insets.bottom : 8,
+        },
+        IS_WEB ? ({ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50 } as never) : null,
+      ]}
+      className="pt-1.5"
+    >
+      <View
+        className="flex-row"
+        style={IS_WEB ? { width: '100%', maxWidth: APP_MAX_WIDTH, alignSelf: 'center' } : undefined}
+      >
       {visibleRoutes.map((route) => {
         const realIndex = state.routes.findIndex((r) => r.key === route.key);
         const meta = ICONS[route.name];
         const focused = state.index === realIndex;
+        const color = focused ? (isDark ? activeColorDark : activeColor) : inactiveColor;
 
         const onPress = () => {
           const event = navigation.emit({
@@ -87,109 +73,39 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           <PressableScale
             key={route.key}
             onPress={onPress}
-            scaleTo={0.92}
+            scaleTo={1}
+            pressedOpacity={0.6}
             accessibilityRole="button"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={meta.label}
-            // Web hover: a faint highlight on non-active tabs only, so it
-            // never fights the green active pill.
-            className={`flex-1 items-center justify-center rounded-2xl ${
-              focused ? '' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
-            }`}
-            style={{ minHeight: 52 }}
+            className="flex-1 items-center justify-center gap-0.5 pb-1 pt-1"
+            style={{ minHeight: 48 }}
           >
             <View>
-              <AnimatedTabIcon
-                focused={focused}
-                name={focused ? meta.on : meta.off}
-                color={focused ? activeIconColor : inactiveIconColor}
-              />
+              <Ionicons name={focused ? meta.on : meta.off} size={22} color={color} />
               {/* Unread badge — only the Alerts tab carries one. */}
               {route.name === 'notifications' && unreadCount > 0 ? (
                 <View
                   pointerEvents="none"
-                  style={{ position: 'absolute', top: -4, right: -8 }}
+                  style={{ position: 'absolute', top: -3, right: -7 }}
                   className="h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1"
                 >
-                  <Text className="text-[9px] font-bold text-white">
+                  <Text className="text-[9px] font-semibold text-white">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Text>
                 </View>
               ) : null}
             </View>
             <Text
-              style={{ marginTop: 2 }}
-              className={`text-2xs font-bold uppercase tracking-wider ${
-                focused
-                  ? 'text-python-green-dark dark:text-python-green-light'
-                  : 'text-light-muted dark:text-white'
-              }`}
+              style={{ color }}
+              className={`text-2xs ${focused ? 'font-semibold' : 'font-normal'}`}
             >
               {meta.label}
             </Text>
           </PressableScale>
         );
       })}
-    </>
-  );
-
-  // On web: fixed positioning so the pill overlays content (no white gap behind it)
-  if (IS_WEB) {
-    return (
-      <View
-        style={
-          // Cast needed: 'fixed' is valid CSS but not in RN's ViewStyle enum.
-          // This branch only runs on web.
-          {
-            position: 'fixed',
-            left: 16,
-            right: 16,
-            bottom: 12,
-            zIndex: 999,
-            backgroundColor: 'transparent',
-          } as any
-        }
-      >
-        <View
-          className="flex-row rounded-3xl overflow-hidden border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface pt-2.5 pb-2.5"
-          style={{
-            // @ts-ignore — web only
-            boxShadow: isDark
-              ? '0 8px 32px rgba(0,0,0,0.45)'
-              : '0 8px 28px rgba(0,0,0,0.18)',
-          }}
-        >
-          {tabContent}
-        </View>
       </View>
-    );
-  }
-
-  // On native: floating pill with BlurView
-  return (
-    <View
-      pointerEvents="box-none"
-      style={{
-        position: 'absolute',
-        left: 16,
-        right: 16,
-        bottom: insets.bottom + 12,
-      }}
-    >
-      <BlurView
-        intensity={isDark ? 40 : 60}
-        tint={isDark ? 'dark' : 'light'}
-        className="flex-row rounded-3xl overflow-hidden border border-black/[0.09] dark:border-white/10 bg-light-surface/95 dark:bg-dark-surface/80 pt-2.5 pb-2.5"
-        style={{
-          shadowColor: '#000',
-          shadowOpacity: isDark ? 0.45 : 0.28,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 20,
-        }}
-      >
-        {tabContent}
-      </BlurView>
     </View>
   );
 }

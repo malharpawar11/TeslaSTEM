@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Input, PressableScale } from '@/components/ui';
 import { SignInGate } from '@/components/SignInGate';
@@ -62,13 +62,13 @@ function NewClubForm() {
   if (submitted) {
     return (
       <View className="flex-1 items-center justify-center px-8">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-python-green/14">
-          <Ionicons name="checkmark-circle" size={32} color={brand.green} />
+        <View className="h-14 w-14 items-center justify-center rounded-full bg-python-green/10 dark:bg-python-green/20">
+          <Ionicons name="checkmark-circle" size={32} color={brand.blue} />
         </View>
-        <Text className="mt-4 text-center text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+        <Text className="mt-4 text-center text-xl font-semibold tracking-tight text-light-text dark:text-dark-text">
           Club submitted
         </Text>
-        <Text className="mt-2 text-center text-sm leading-6 text-light-muted dark:text-dark-muted">
+        <Text className="mt-2 text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
           A school administrator reviews new clubs before they appear in the directory. You'll be
           notified when it's approved, and you'll become its president.
         </Text>
@@ -95,25 +95,22 @@ function NewClubForm() {
           accessibilityRole="button"
           accessibilityLabel="Back"
           scaleTo={0.9}
-          className="mt-1 h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+          className="mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
         >
-          <Ionicons name="chevron-back" size={18} color={brand.green} />
+          <Ionicons name="chevron-back" size={18} color={brand.blue} />
         </PressableScale>
         <View className="flex-1">
-          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
-            New club
-          </Text>
-          <Text className="mt-1 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
+          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
             Start a club
           </Text>
         </View>
       </View>
 
-      <Animated.View entering={FadeInDown.duration(320)} className="mt-5 gap-3">
+      <Animated.View entering={FadeIn.duration(180)} className="mt-5 gap-3">
         <Input label="Club name" value={name} onChangeText={setName} placeholder="Rocketry Club" />
 
         <View>
-          <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+          <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
             Category
           </Text>
           <View className="flex-row flex-wrap gap-2">
@@ -126,12 +123,12 @@ function NewClubForm() {
                 scaleTo={0.96}
                 className={`h-8 items-center justify-center rounded-full px-3 ${
                   category === c
-                    ? 'bg-python-green'
-                    : 'border border-light-border dark:border-dark-border'
+                    ? 'bg-python-blue'
+                    : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
                 }`}
               >
                 <Text
-                  className={`text-2xs font-bold ${
+                  className={`text-2xs font-semibold ${
                     category === c ? 'text-white' : 'text-light-secondary dark:text-dark-secondary'
                   }`}
                 >
@@ -173,7 +170,7 @@ function NewClubForm() {
         />
 
         <Card elevation="ambient" className="p-4">
-          <Text className="text-sm font-bold text-light-text dark:text-dark-text">Who can join</Text>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">Who can join</Text>
           <View className="mt-3 flex-row gap-2">
             {(['open', 'approval'] as const).map((policy) => (
               <PressableScale
@@ -184,12 +181,12 @@ function NewClubForm() {
                 scaleTo={0.97}
                 className={`h-9 flex-1 items-center justify-center rounded-full ${
                   joinPolicy === policy
-                    ? 'bg-python-green'
-                    : 'border border-light-border dark:border-dark-border'
+                    ? 'bg-python-blue'
+                    : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
                 }`}
               >
                 <Text
-                  className={`text-xs font-bold ${
+                  className={`text-xs font-semibold ${
                     joinPolicy === policy
                       ? 'text-white'
                       : 'text-light-secondary dark:text-dark-secondary'

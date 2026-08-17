@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import {
@@ -66,7 +66,7 @@ import {
   type ClubNote,
   type ClubPermission,
 } from '@/types/domain';
-import { brand } from '@/theme/tokens';
+import { brand, semantic, surfaces } from '@/theme/tokens';
 
 /**
  * The club admin dashboard.
@@ -140,8 +140,8 @@ function SectionTabs({
             scaleTo={0.97}
             className={`h-9 items-center justify-center rounded-full px-4 ${
               active
-                ? 'bg-python-green'
-                : 'border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2'
+                ? 'bg-python-blue'
+                : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
             }`}
           >
             <Text
@@ -184,10 +184,10 @@ function PermissionPicker({
             <Ionicons
               name={on ? 'checkmark-circle' : 'ellipse-outline'}
               size={13}
-              color={on ? '#FFFFFF' : '#9CA3AF'}
+              color={on ? '#FFFFFF' : surfaces.light.subtle}
             />
             <Text
-              className={`text-2xs font-bold ${
+              className={`text-2xs font-semibold ${
                 on ? 'text-white' : 'text-light-secondary dark:text-dark-secondary'
               }`}
             >
@@ -534,7 +534,7 @@ function ManageClubScreen() {
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         <View className="flex-row items-start gap-3 px-5" style={{ paddingTop: insets.top + 8 }}>
           <PressableScale
@@ -542,16 +542,16 @@ function ManageClubScreen() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             scaleTo={0.9}
-            className="mt-1 h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+            className="mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
           >
-            <Ionicons name="chevron-back" size={18} color={brand.green} />
+            <Ionicons name="chevron-back" size={18} color={brand.blue} />
           </PressableScale>
           <View className="flex-1">
-            <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+            <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
               Manage club
             </Text>
             <Text
-              className="mt-1 text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text"
+              className="mt-1 text-xl font-semibold tracking-tight text-light-text dark:text-dark-text"
               numberOfLines={2}
             >
               {club.name}
@@ -610,7 +610,7 @@ function ManageClubScreen() {
               </View>
 
               <Card elevation="ambient" className="mt-2 p-4">
-                <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                   What you can do here
                 </Text>
                 <Text className="mt-1.5 text-xs leading-5 text-light-muted dark:text-dark-muted">
@@ -631,7 +631,7 @@ function ManageClubScreen() {
             <Animated.View entering={FadeIn.duration(240)}>
               {annOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
-                  <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                  <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
                     {annId ? 'Edit announcement' : 'New announcement'}
                   </Text>
                   <View className="gap-3">
@@ -730,7 +730,7 @@ function ManageClubScreen() {
             <Animated.View entering={FadeIn.duration(240)}>
               {eventOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
-                  <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                  <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
                     {eventId ? 'Edit event' : 'New event'}
                   </Text>
                   <View className="gap-3">
@@ -741,7 +741,7 @@ function ManageClubScreen() {
                       placeholder="Weekly meeting"
                     />
                     <View>
-                      <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                      <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
                         Type
                       </Text>
                       <View className="flex-row flex-wrap gap-2">
@@ -754,12 +754,12 @@ function ManageClubScreen() {
                             scaleTo={0.96}
                             className={`h-8 items-center justify-center rounded-full px-3 ${
                               eventForm.eventType === type
-                                ? 'bg-python-green'
-                                : 'border border-light-border dark:border-dark-border'
+                                ? 'bg-python-blue'
+                                : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
                             }`}
                           >
                             <Text
-                              className={`text-2xs font-bold ${
+                              className={`text-2xs font-semibold ${
                                 eventForm.eventType === type
                                   ? 'text-white'
                                   : 'text-light-secondary dark:text-dark-secondary'
@@ -921,7 +921,7 @@ function ManageClubScreen() {
             <Animated.View entering={FadeIn.duration(240)}>
               {pendingJoins.length > 0 ? (
                 <View className="mb-5">
-                  <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-warn">
+                  <Text className="mb-2 text-xs font-semibold text-warn">
                     Join requests ({pendingJoins.length})
                   </Text>
                   <View className="gap-2.5">
@@ -934,7 +934,7 @@ function ManageClubScreen() {
                             initials={(member.displayName ?? member.email).slice(0, 2).toUpperCase()}
                           />
                           <View className="flex-1">
-                            <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                               {member.displayName ?? member.email}
                             </Text>
                             <Text className="text-2xs text-light-muted dark:text-dark-muted">
@@ -993,7 +993,7 @@ function ManageClubScreen() {
                         />
                         <View className="flex-1">
                           <Text
-                            className="text-sm font-bold text-light-text dark:text-dark-text"
+                            className="text-sm font-semibold text-light-text dark:text-dark-text"
                             numberOfLines={1}
                           >
                             {member.displayName ?? member.email}
@@ -1039,9 +1039,9 @@ function ManageClubScreen() {
                             accessibilityRole="button"
                             accessibilityLabel={`Remove ${member.displayName ?? member.email}`}
                             scaleTo={0.9}
-                            className="h-8 w-8 items-center justify-center rounded-full bg-danger/12"
+                            className="h-8 w-8 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
                           >
-                            <Ionicons name="person-remove-outline" size={14} color="#E11D48" />
+                            <Ionicons name="person-remove-outline" size={14} color={semantic.danger} />
                           </PressableScale>
                         ) : null}
                       </Card>
@@ -1056,7 +1056,7 @@ function ManageClubScreen() {
             <Animated.View entering={FadeIn.duration(240)}>
               {boardRequests.length > 0 ? (
                 <View className="mb-5">
-                  <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-warn">
+                  <Text className="mb-2 text-xs font-semibold text-warn">
                     Board requests ({boardRequests.length})
                   </Text>
                   <View className="gap-2.5">
@@ -1069,7 +1069,7 @@ function ManageClubScreen() {
                             initials={(member.displayName ?? member.email).slice(0, 2).toUpperCase()}
                           />
                           <View className="flex-1">
-                            <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                            <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                               {member.displayName ?? member.email}
                             </Text>
                             <Text className="text-2xs text-light-muted dark:text-dark-muted">
@@ -1116,7 +1116,7 @@ function ManageClubScreen() {
 
               {editingMember ? (
                 <Card elevation="ambient" className="mb-4 p-4">
-                  <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                  <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                     {editingMember.displayName ?? editingMember.email}
                   </Text>
                   <Text className="mt-1 text-2xs text-light-muted dark:text-dark-muted">
@@ -1137,7 +1137,7 @@ function ManageClubScreen() {
                         scaleTo={0.96}
                         className="h-8 items-center justify-center rounded-full border border-light-border px-3 dark:border-dark-border"
                       >
-                        <Text className="text-2xs font-bold text-light-secondary dark:text-dark-secondary">
+                        <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
                           {position}
                         </Text>
                       </PressableScale>
@@ -1196,7 +1196,7 @@ function ManageClubScreen() {
                         />
                         <View className="flex-1">
                           <Text
-                            className="text-sm font-bold text-light-text dark:text-dark-text"
+                            className="text-sm font-semibold text-light-text dark:text-dark-text"
                             numberOfLines={1}
                           >
                             {member.displayName ?? member.email}
@@ -1240,7 +1240,7 @@ function ManageClubScreen() {
           {section === 'Files' ? (
             <Animated.View entering={FadeIn.duration(240)}>
               <Card elevation="ambient" className="mb-4 p-4">
-                <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
                   Upload a file
                 </Text>
                 <View className="gap-3">
@@ -1308,7 +1308,7 @@ function ManageClubScreen() {
             <Animated.View entering={FadeIn.duration(240)}>
               {noteOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
-                  <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+                  <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
                     {noteId ? 'Edit note' : 'New note'}
                   </Text>
                   <View className="gap-3">
@@ -1342,7 +1342,7 @@ function ManageClubScreen() {
                       <Ionicons
                         name={noteForm.pinned ? 'checkbox' : 'square-outline'}
                         size={18}
-                        color={brand.green}
+                        color={brand.blue}
                       />
                       <Text className="text-sm text-light-text dark:text-dark-text">
                         Pin to the top
@@ -1487,7 +1487,7 @@ function ManageClubScreen() {
               />
 
               <Card elevation="ambient" className="p-4">
-                <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                   Who can join
                 </Text>
                 <View className="mt-3 flex-row gap-2">
@@ -1500,12 +1500,12 @@ function ManageClubScreen() {
                       scaleTo={0.97}
                       className={`h-9 flex-1 items-center justify-center rounded-full ${
                         settings.joinPolicy === policy
-                          ? 'bg-python-green'
-                          : 'border border-light-border dark:border-dark-border'
+                          ? 'bg-python-blue'
+                          : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
                       }`}
                     >
                       <Text
-                        className={`text-xs font-bold ${
+                        className={`text-xs font-semibold ${
                           settings.joinPolicy === policy
                             ? 'text-white'
                             : 'text-light-secondary dark:text-dark-secondary'

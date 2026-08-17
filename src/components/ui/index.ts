@@ -2,7 +2,7 @@ export { PressableScale } from './Pressable';
 export { Button } from './Button';
 export { Card, PressableCard } from './Card';
 export { Chip } from './Chip';
-export { Tag, categoryTone } from './Tag';
+export { Tag, categoryTone, categoryAccent } from './Tag';
 export { Avatar } from './Avatar';
 export { Skeleton, SkeletonRow } from './Skeleton';
 export { EmptyState } from './EmptyState';

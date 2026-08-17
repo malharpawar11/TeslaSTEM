@@ -13,7 +13,7 @@ const TONE: Record<NonNullable<Props['tone']>, string> = {
   neutral: 'bg-light-secondary dark:bg-dark-secondary',
 };
 
-export function Badge({ count, tone = 'brand', size = 'sm' }: Props) {
+export function Badge({ count, tone = 'info', size = 'sm' }: Props) {
   if (count <= 0) return null;
   const display = count > 99 ? '99+' : String(count);
   const sizeCls = size === 'sm' ? 'h-5 min-w-5 px-1.5' : 'h-6 min-w-6 px-2';
@@ -21,7 +21,7 @@ export function Badge({ count, tone = 'brand', size = 'sm' }: Props) {
 
   return (
     <View className={`${sizeCls} items-center justify-center rounded-full ${TONE[tone]}`}>
-      <Text className={`${textCls} font-extrabold text-white`}>{display}</Text>
+      <Text className={`${textCls} font-semibold text-white`}>{display}</Text>
     </View>
   );
 }

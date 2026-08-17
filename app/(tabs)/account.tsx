@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Button, Card, Divider, PressableScale, Tag } from '@/components/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -15,7 +15,7 @@ import { useToast } from '@/context/ToastContext';
 import { requestPresidentVerification } from '@/data/adminRepo';
 import { registerForPush } from '@/lib/push';
 import { roleLabel, type NotificationPrefs } from '@/types/domain';
-import { brand } from '@/theme/tokens';
+import { brand, surfaces } from '@/theme/tokens';
 
 const ROLE_LABEL: Record<string, string> = {
   special_admin: 'School Admin',
@@ -60,7 +60,7 @@ function ToggleRow({
         last ? '' : 'border-b border-light-hairline dark:border-dark-border'
       }`}
     >
-      <Ionicons name={icon} size={16} color={brand.green} />
+      <Ionicons name={icon} size={16} color={brand.blue} />
       <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">{label}</Text>
       <View
         className={`h-6 w-10 justify-center rounded-full px-0.5 ${
@@ -145,29 +145,26 @@ function AccountDashboard() {
     <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
-      contentContainerClassName="px-5 pb-36"
+      contentContainerClassName="px-5 pb-8"
     >
       <View
         className="flex-row items-start justify-between pb-1"
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-1 pr-3">
-          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
-            PROFILE
-          </Text>
-          <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
+          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
             My account
           </Text>
         </View>
         <ThemeToggle />
       </View>
 
-      <Animated.View entering={FadeInDown.duration(340)}>
+      <Animated.View entering={FadeIn.duration(180)}>
         <Card elevation="ambient" className="mt-5 flex-row items-center gap-3 rounded-2xl p-4">
           <Avatar size="lg" tone="brand" initials={initials} />
           <View className="flex-1">
             <Text
-              className="text-base font-bold text-light-text dark:text-dark-text"
+              className="text-base font-semibold text-light-text dark:text-dark-text"
               numberOfLines={1}
             >
               {displayName}
@@ -189,8 +186,8 @@ function AccountDashboard() {
       </Animated.View>
 
       {/* My clubs */}
-      <Animated.View entering={FadeInDown.delay(60).duration(340)}>
-        <Text className="mb-2 mt-6 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+      <Animated.View entering={FadeIn.duration(180)}>
+        <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
           My clubs ({myClubs.length})
         </Text>
         {myClubs.length === 0 ? (
@@ -219,7 +216,7 @@ function AccountDashboard() {
                 <Card elevation="ambient" className="flex-row items-center gap-3 p-3.5">
                   <View className="flex-1">
                     <Text
-                      className="text-sm font-bold text-light-text dark:text-dark-text"
+                      className="text-sm font-semibold text-light-text dark:text-dark-text"
                       numberOfLines={1}
                     >
                       {club!.name}
@@ -230,7 +227,7 @@ function AccountDashboard() {
                         : roleLabel(membership.role, membership.position)}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                  <Ionicons name="chevron-forward" size={16} color={surfaces.light.subtle} />
                 </Card>
               </PressableScale>
             ))}
@@ -240,8 +237,8 @@ function AccountDashboard() {
 
       {/* Notification preferences — the account-wide defaults. Each club can
           override these from its own page. */}
-      <Animated.View entering={FadeInDown.delay(120).duration(340)}>
-        <Text className="mb-2 mt-6 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+      <Animated.View entering={FadeIn.duration(180)}>
+        <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
           Notifications
         </Text>
         <Card elevation="ambient" className="px-4 py-1">
@@ -275,11 +272,11 @@ function AccountDashboard() {
 
       {/* Leadership */}
       {showPresidentCta ? (
-        <Animated.View entering={FadeInDown.delay(180).duration(340)}>
+        <Animated.View entering={FadeIn.duration(180)}>
           <Card elevation="ambient" className="mt-6 p-4">
             <View className="flex-row items-center gap-2">
-              <Ionicons name="shield-checkmark-outline" size={16} color={brand.green} />
-              <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+              <Ionicons name="shield-checkmark-outline" size={16} color={brand.blue} />
+              <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                 Run a club?
               </Text>
             </View>
@@ -302,8 +299,8 @@ function AccountDashboard() {
       ) : null}
 
       {/* Links */}
-      <Animated.View entering={FadeInDown.delay(240).duration(340)}>
-        <Text className="mb-2 mt-6 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+      <Animated.View entering={FadeIn.duration(180)}>
+        <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
           More
         </Text>
         <Card elevation="ambient" className="px-4 py-1">
@@ -314,11 +311,11 @@ function AccountDashboard() {
             scaleTo={0.99}
             className="flex-row items-center gap-3 border-b border-light-hairline py-3 dark:border-dark-border"
           >
-            <Ionicons name="add-circle-outline" size={16} color={brand.green} />
+            <Ionicons name="add-circle-outline" size={16} color={brand.blue} />
             <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
               Submit a new club
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={16} color={surfaces.light.subtle} />
           </PressableScale>
           {isSpecialAdmin ? (
             <PressableScale
@@ -328,11 +325,11 @@ function AccountDashboard() {
               scaleTo={0.99}
               className="flex-row items-center gap-3 border-b border-light-hairline py-3 dark:border-dark-border"
             >
-              <Ionicons name="shield-checkmark-outline" size={16} color={brand.green} />
+              <Ionicons name="shield-checkmark-outline" size={16} color={brand.blue} />
               <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
                 School admin tools
               </Text>
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+              <Ionicons name="chevron-forward" size={16} color={surfaces.light.subtle} />
             </PressableScale>
           ) : null}
           <PressableScale
@@ -342,16 +339,16 @@ function AccountDashboard() {
             scaleTo={0.99}
             className="flex-row items-center gap-3 py-3"
           >
-            <Ionicons name="document-text-outline" size={16} color={brand.green} />
+            <Ionicons name="document-text-outline" size={16} color={brand.blue} />
             <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
               Privacy & policies
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={16} color={surfaces.light.subtle} />
           </PressableScale>
         </Card>
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(300).duration(340)}>
+      <Animated.View entering={FadeIn.duration(180)}>
         <Divider variant="hairline" className="my-5" />
         <Button
           label="Sign out"

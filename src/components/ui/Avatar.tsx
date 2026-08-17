@@ -15,11 +15,11 @@ interface Props {
 }
 
 const SIZE: Record<Size, { box: string; text: string; icon: number }> = {
-  sm: { box: 'h-8 w-8', text: 'text-xs', icon: 14 },
+  sm: { box: 'h-9 w-9', text: 'text-xs', icon: 15 },
   md: { box: 'h-11 w-11', text: 'text-sm', icon: 18 },
-  lg: { box: 'h-14 w-14', text: 'text-lg', icon: 22 },
-  xl: { box: 'h-20 w-20', text: 'text-2xl', icon: 28 },
-  '2xl': { box: 'h-24 w-24', text: 'text-3xl', icon: 32 },
+  lg: { box: 'h-14 w-14', text: 'text-base', icon: 22 },
+  xl: { box: 'h-18 w-18', text: 'text-xl', icon: 28 },
+  '2xl': { box: 'h-22 w-22', text: 'text-2xl', icon: 32 },
 };
 
 const TONE_BG: Record<Tone, string> = {
@@ -37,19 +37,19 @@ const TONE_TEXT: Record<Tone, string> = {
 const TONE_ICON: Record<Tone, string> = {
   brand: '#FFFFFF',
   info: '#FFFFFF',
-  neutral: brand.green,
+  neutral: brand.blue,
 };
 
 export function Avatar({
   initials,
   source,
   size = 'md',
-  tone = 'brand',
+  tone = 'info',
   icon,
   rounded = 'square',
 }: Props) {
   const s = SIZE[size];
-  const radius = rounded === 'circle' ? 'rounded-full' : 'rounded-2xl';
+  const radius = rounded === 'circle' ? 'rounded-full' : 'rounded-lg';
 
   if (source) {
     return (
@@ -68,7 +68,7 @@ export function Avatar({
       {icon ? (
         <Ionicons name={icon} size={s.icon} color={TONE_ICON[tone]} />
       ) : initials ? (
-        <Text className={`font-extrabold tracking-tight ${s.text} ${TONE_TEXT[tone]}`}>
+        <Text className={`font-semibold ${s.text} ${TONE_TEXT[tone]}`}>
           {initials}
         </Text>
       ) : null}

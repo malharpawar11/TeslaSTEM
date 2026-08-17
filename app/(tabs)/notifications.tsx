@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SignInGate } from '@/components/SignInGate';
@@ -10,7 +10,7 @@ import { Button, Card, Chip, EmptyState, PressableScale, SkeletonRow } from '@/c
 import { relativeDate } from '@/components/ClubContentCards';
 import { useNotifications } from '@/context/NotificationsContext';
 import { useClubs } from '@/context/ClubsContext';
-import { brand } from '@/theme/tokens';
+import { brand, semantic } from '@/theme/tokens';
 import type { AppNotification, NotificationType } from '@/types/domain';
 
 /**
@@ -20,21 +20,21 @@ import type { AppNotification, NotificationType } from '@/types/domain';
  */
 
 const META: Record<NotificationType, { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string }> = {
-  announcement: { icon: 'megaphone-outline', tint: '#4CAF50', bg: 'bg-python-green/12' },
-  school_announcement: { icon: 'school-outline', tint: '#1565C0', bg: 'bg-python-blue/12' },
-  event_created: { icon: 'calendar-outline', tint: '#1565C0', bg: 'bg-python-blue/12' },
-  event_updated: { icon: 'refresh-outline', tint: '#1565C0', bg: 'bg-python-blue/12' },
-  event_cancelled: { icon: 'close-circle-outline', tint: '#E11D48', bg: 'bg-danger/12' },
-  event_reminder: { icon: 'alarm-outline', tint: '#D97706', bg: 'bg-warn/14' },
-  file_uploaded: { icon: 'document-outline', tint: '#1565C0', bg: 'bg-python-blue/12' },
-  note_posted: { icon: 'reader-outline', tint: '#4CAF50', bg: 'bg-python-green/12' },
-  join_request: { icon: 'person-add-outline', tint: '#D97706', bg: 'bg-warn/14' },
-  board_request: { icon: 'ribbon-outline', tint: '#D97706', bg: 'bg-warn/14' },
-  membership_approved: { icon: 'checkmark-circle-outline', tint: '#4CAF50', bg: 'bg-python-green/12' },
-  board_approved: { icon: 'shield-checkmark-outline', tint: '#4CAF50', bg: 'bg-python-green/12' },
-  board_rejected: { icon: 'close-circle-outline', tint: '#E11D48', bg: 'bg-danger/12' },
-  club_approved: { icon: 'trophy-outline', tint: '#4CAF50', bg: 'bg-python-green/12' },
-  club_rejected: { icon: 'alert-circle-outline', tint: '#E11D48', bg: 'bg-danger/12' },
+  announcement: { icon: 'megaphone-outline', tint: brand.green, bg: 'bg-python-green/10 dark:bg-python-green/20' },
+  school_announcement: { icon: 'school-outline', tint: brand.blue, bg: 'bg-python-blue/10 dark:bg-python-blue/20' },
+  event_created: { icon: 'calendar-outline', tint: brand.blue, bg: 'bg-python-blue/10 dark:bg-python-blue/20' },
+  event_updated: { icon: 'refresh-outline', tint: brand.blue, bg: 'bg-python-blue/10 dark:bg-python-blue/20' },
+  event_cancelled: { icon: 'close-circle-outline', tint: semantic.danger, bg: 'bg-danger/10 dark:bg-danger/20' },
+  event_reminder: { icon: 'alarm-outline', tint: semantic.warn, bg: 'bg-warn/10 dark:bg-warn/20' },
+  file_uploaded: { icon: 'document-outline', tint: brand.blue, bg: 'bg-python-blue/10 dark:bg-python-blue/20' },
+  note_posted: { icon: 'reader-outline', tint: brand.green, bg: 'bg-python-green/10 dark:bg-python-green/20' },
+  join_request: { icon: 'person-add-outline', tint: semantic.warn, bg: 'bg-warn/10 dark:bg-warn/20' },
+  board_request: { icon: 'ribbon-outline', tint: semantic.warn, bg: 'bg-warn/10 dark:bg-warn/20' },
+  membership_approved: { icon: 'checkmark-circle-outline', tint: brand.green, bg: 'bg-python-green/10 dark:bg-python-green/20' },
+  board_approved: { icon: 'shield-checkmark-outline', tint: brand.green, bg: 'bg-python-green/10 dark:bg-python-green/20' },
+  board_rejected: { icon: 'close-circle-outline', tint: semantic.danger, bg: 'bg-danger/10 dark:bg-danger/20' },
+  club_approved: { icon: 'trophy-outline', tint: brand.green, bg: 'bg-python-green/10 dark:bg-python-green/20' },
+  club_rejected: { icon: 'alert-circle-outline', tint: semantic.danger, bg: 'bg-danger/10 dark:bg-danger/20' },
 };
 
 /** Requests need the manager's attention; the rest are informational. */
@@ -60,20 +60,20 @@ function NotificationRow({
     >
       <Card
         elevation="ambient"
-        className={`flex-row items-start gap-3 p-4 ${unread ? 'border border-python-green/40' : ''}`}
+        className={`flex-row items-start gap-3 p-3.5 ${unread ? 'border-python-blue/50' : ''}`}
       >
-        <View className={`h-10 w-10 items-center justify-center rounded-2xl ${meta.bg}`}>
-          <Ionicons name={meta.icon} size={18} color={meta.tint} />
+        <View className={`h-9 w-9 items-center justify-center rounded-lg ${meta.bg}`}>
+          <Ionicons name={meta.icon} size={17} color={meta.tint} />
         </View>
         <View className="flex-1">
           <View className="flex-row items-center gap-2">
             <Text
-              className="flex-1 text-sm font-bold text-light-text dark:text-dark-text"
+              className="flex-1 text-sm font-semibold text-light-text dark:text-dark-text"
               numberOfLines={2}
             >
               {notification.title}
             </Text>
-            {unread ? <View className="h-2 w-2 rounded-full bg-python-green" /> : null}
+            {unread ? <View className="h-2 w-2 rounded-full bg-python-blue" /> : null}
           </View>
           {notification.body ? (
             <Text
@@ -83,7 +83,7 @@ function NotificationRow({
               {notification.body}
             </Text>
           ) : null}
-          <Text className="mt-1.5 text-2xs text-light-subtle dark:text-dark-subtle">
+          <Text className="mt-1.5 text-xs text-light-subtle dark:text-dark-subtle">
             {[clubName, relativeDate(notification.createdAt)].filter(Boolean).join(' · ')}
           </Text>
         </View>
@@ -132,9 +132,9 @@ function NotificationsInbox() {
     <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+      contentContainerStyle={{ paddingBottom: 32 }}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.green} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.blue} />
       }
     >
       <View
@@ -142,10 +142,10 @@ function NotificationsInbox() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-1 pr-3">
-          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
             Notifications
           </Text>
-          <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
+          <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </Text>
         </View>
@@ -193,7 +193,7 @@ function NotificationsInbox() {
           {visible.map((n, index) => (
             <Animated.View
               key={n.id}
-              entering={FadeInDown.delay(Math.min(index * 35, 240)).duration(320)}
+              entering={FadeIn.duration(180)}
             >
               <NotificationRow
                 notification={n}

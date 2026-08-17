@@ -1,12 +1,6 @@
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  SharedValue,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
 import { Club, clubInitials } from '@/types/domain';
 import { Gradient, BRAND_COLORS_RICH } from './Gradient';
 import { PressableScale } from './ui/Pressable';
@@ -17,80 +11,41 @@ interface Props {
   club: Club;
   onBack: () => void;
   onShare?: () => void;
-  scrollY: SharedValue<number>;
 }
 
-const AnimatedGradient = Animated.createAnimatedComponent(Gradient);
-const AnimatedView = Animated.View;
-
-export function ClubProfileHeader({ club, onBack, onShare, scrollY }: Props) {
+/**
+ * Club identity banner. Deliberately plain: a brand gradient, the club's
+ * initials, its name, and the three facts a student actually needs. The
+ * decorative rings and scroll parallax that used to live here were doing
+ * nothing except competing with the club's own content.
+ */
+export function ClubProfileHeader({ club, onBack, onShare }: Props) {
   const insets = useSafeAreaInsets();
 
-  // Parallax: when pulling down (scrollY < 0), the gradient stretches and scales.
-  // When scrolling up (scrollY > 0), the header collapses slightly and shrinks.
-  const gradientStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [-200, 0, 200],
-      [-100, 0, -40],
-      Extrapolation.CLAMP,
-    );
-    const scale = interpolate(
-      scrollY.value,
-      [-200, 0, 200],
-      [1.18, 1, 1],
-      Extrapolation.CLAMP,
-    );
-    return { transform: [{ translateY }, { scale }] };
-  });
-
-  const titleStyle = useAnimatedStyle(() => {
-    const scale = interpolate(scrollY.value, [0, 140], [1, 0.92], Extrapolation.CLAMP);
-    const translateY = interpolate(scrollY.value, [0, 140], [0, -6], Extrapolation.CLAMP);
-    return { transform: [{ translateY }, { scale }] };
-  });
-
-  const contentStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(scrollY.value, [0, 120, 200], [1, 0.92, 0.78], Extrapolation.CLAMP);
-    return { opacity };
-  });
-
-  const initials = clubInitials(club.name);
+  const facts: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+    { icon: 'pricetag-outline', label: club.category },
+    { icon: 'people-outline', label: `${club.memberCount} member${club.memberCount === 1 ? '' : 's'}` },
+    { icon: 'calendar-outline', label: club.day },
+  ];
 
   return (
-    <View className="overflow-hidden rounded-b-3xl">
-      <AnimatedGradient
-        colors={BRAND_COLORS_RICH as unknown as string[]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        className="rounded-b-3xl px-5 pb-8"
-        style={gradientStyle}
-      >
-        {/* Decorative rings — editorial, magazine-quality depth. */}
-        <View
-          pointerEvents="none"
-          className="absolute -right-16 -top-12 h-56 w-56 rounded-full border border-white/10 bg-white/5"
-        />
-        <View
-          pointerEvents="none"
-          className="absolute -left-20 top-24 h-72 w-72 rounded-full border border-white/10"
-        />
-        <View
-          pointerEvents="none"
-          className="absolute right-10 bottom-4 h-24 w-24 rounded-full bg-white/5"
-        />
-
-        <View
-          className="flex-row items-center justify-between"
-          style={{ paddingTop: insets.top + 8 }}
-        >
+    <Gradient
+      colors={BRAND_COLORS_RICH as unknown as readonly [string, string]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ paddingTop: insets.top + 8 }}
+    >
+      <View className="px-5 pb-6">
+        <View className="flex-row items-center justify-between">
           <PressableScale
             onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            className="h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/15"
+            scaleTo={0.94}
+            pressedOpacity={0.7}
+            className="h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/10"
           >
-            <Ionicons name="arrow-back" size={22} color={palette.white} />
+            <Ionicons name="arrow-back" size={19} color={palette.white} />
           </PressableScale>
 
           <View className="flex-row items-center gap-2">
@@ -99,60 +54,38 @@ export function ClubProfileHeader({ club, onBack, onShare, scrollY }: Props) {
                 onPress={onShare}
                 accessibilityRole="button"
                 accessibilityLabel="Share club"
-                className="h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/15"
+                scaleTo={0.94}
+                pressedOpacity={0.7}
+                className="h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/10"
               >
-                <Ionicons name="share-outline" size={20} color={palette.white} />
+                <Ionicons name="share-outline" size={18} color={palette.white} />
               </PressableScale>
             ) : null}
             <ThemeToggle variant="translucent" />
           </View>
         </View>
 
-        <AnimatedView style={contentStyle}>
-          <View className="mt-7 flex-row items-end gap-4">
-            <View className="h-22 w-22 items-center justify-center rounded-3xl border-t border-white/25 bg-white/20">
-              <Text className="text-3xl font-extrabold tracking-tight text-white">
-                {initials}
-              </Text>
-            </View>
-            <View className="flex-1 pb-1">
-              <Text className="text-2xs font-bold uppercase tracking-widest text-white/70">
-                Tesla STEM Club
-              </Text>
-              <AnimatedView style={titleStyle} className="mt-1">
-                <Text
-                  className="text-3xl font-extrabold tracking-tight text-white"
-                  style={{ lineHeight: 32 }}
-                  numberOfLines={2}
-                >
-                  {club.name}
-                </Text>
-              </AnimatedView>
-            </View>
+        <View className="mt-6 flex-row items-center gap-3.5">
+          <View className="h-14 w-14 items-center justify-center rounded-xl bg-white/15">
+            <Text className="text-lg font-semibold text-white">{clubInitials(club.name)}</Text>
           </View>
+          <Text
+            className="flex-1 text-2xl font-semibold tracking-tight text-white"
+            numberOfLines={2}
+          >
+            {club.name}
+          </Text>
+        </View>
 
-          <View className="mt-5 flex-row flex-wrap items-center gap-2">
-            <View className="flex-row items-center gap-1.5 rounded-full border border-white/15 bg-white/20 px-3 py-1.5">
-              <Ionicons name="pricetag-outline" size={12} color={palette.white} />
-              <Text className="text-2xs font-bold uppercase tracking-wider text-white">
-                {club.category}
-              </Text>
+        <View className="mt-4 flex-row flex-wrap items-center gap-x-4 gap-y-2">
+          {facts.map((f) => (
+            <View key={f.label} className="flex-row items-center gap-1.5">
+              <Ionicons name={f.icon} size={13} color="rgba(255,255,255,0.75)" />
+              <Text className="text-sm text-white/80">{f.label}</Text>
             </View>
-            <View className="flex-row items-center gap-1.5 rounded-full border border-white/15 bg-white/20 px-3 py-1.5">
-              <Ionicons name="people-outline" size={12} color={palette.white} />
-              <Text className="text-2xs font-bold uppercase tracking-wider text-white">
-                {club.memberCount} members
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1.5 rounded-full border border-white/15 bg-white/20 px-3 py-1.5">
-              <Ionicons name="calendar-outline" size={12} color={palette.white} />
-              <Text className="text-2xs font-bold uppercase tracking-wider text-white">
-                {club.day}
-              </Text>
-            </View>
-          </View>
-        </AnimatedView>
-      </AnimatedGradient>
-    </View>
+          ))}
+        </View>
+      </View>
+    </Gradient>
   );
 }

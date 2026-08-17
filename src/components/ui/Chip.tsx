@@ -24,20 +24,21 @@ export function Chip({
   icon,
   count,
   variant = 'filter',
-  tone = 'brand',
+  tone = 'info',
   size = 'md',
 }: Props) {
-  const h = size === 'sm' ? 'h-8' : 'h-10';
+  const h = size === 'sm' ? 'h-8' : 'h-9';
   const text = size === 'sm' ? 'text-xs' : 'text-sm';
-  const padding = count != null ? 'pl-3.5 pr-2' : 'px-3.5';
+  const padding = count != null ? 'pl-3 pr-1.5' : 'px-3';
   const iconSize = size === 'sm' ? 13 : 15;
 
-  const palette = tone === 'info' ? brand.blue : brand.green;
+  const palette = tone === 'brand' ? brand.green : brand.blue;
 
+  // Selection is blue by default; green is reserved for membership filters.
   const activeContainer =
-    tone === 'info'
-      ? 'border-python-blue bg-python-blue'
-      : 'border-python-green bg-python-green';
+    tone === 'brand'
+      ? 'border-python-green bg-python-green'
+      : 'border-python-blue bg-python-blue';
   const inactiveContainer =
     'border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface';
 

@@ -1,4 +1,16 @@
 /** @type {import('tailwindcss').Config} */
+
+/**
+ * Design tokens for the Tesla STEM club platform.
+ *
+ * Brand: blue is primary (chrome, primary actions, links, focus, selection),
+ * green is the accent reserved for confirmation and membership. The class
+ * names `python-blue` / `python-green` are kept so markup reads the same, but
+ * the ramps below are the deeper, lower-chroma pair the app actually uses.
+ *
+ * Keep this file in sync with src/theme/tokens.ts, which serves the same
+ * colors to the places Tailwind can't reach (icon props, gradient stops).
+ */
 module.exports = {
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
@@ -6,96 +18,84 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'python-green': {
-          DEFAULT: '#4CAF50',
-          50: '#ECF8ED',
-          100: '#D6F0D8',
-          200: '#AFE0B3',
-          300: '#88D08D',
-          400: '#67C26C',
-          500: '#4CAF50',
-          600: '#3D9140',
-          700: '#2E7332',
-          800: '#1F5523',
-          900: '#103714',
-          dark: '#3D9140',
-          light: '#6FBF73',
-          ink: '#0B2A0D',
-        },
         'python-blue': {
-          DEFAULT: '#1565C0',
-          50: '#E5EFFA',
-          100: '#C8DDF4',
-          200: '#92BCE9',
-          300: '#5C9ADE',
-          400: '#3580D3',
-          500: '#1565C0',
-          600: '#0F4C92',
-          700: '#0B396E',
-          800: '#072649',
-          900: '#031325',
-          dark: '#0F4C92',
-          light: '#4285D0',
-          ink: '#03162E',
+          DEFAULT: '#0E5AA8',
+          50: '#EDF3FA',
+          100: '#D3E3F4',
+          200: '#A6C6E8',
+          300: '#6BA1D8',
+          400: '#2E79C4',
+          500: '#0E5AA8',
+          600: '#0C4A8B',
+          700: '#0A3B6F',
+          800: '#082D55',
+          900: '#06203C',
+          // `-dark` reads on light surfaces, `-light` reads on dark surfaces.
+          dark: '#0A3B6F',
+          light: '#6BA1D8',
+          ink: '#06203C',
+        },
+        'python-green': {
+          DEFAULT: '#12805A',
+          50: '#EDF7F2',
+          100: '#D3EDE1',
+          200: '#A5D9C3',
+          300: '#6BBF9D',
+          400: '#2E9E76',
+          500: '#12805A',
+          600: '#0D6141',
+          700: '#0A4A32',
+          800: '#073423',
+          900: '#052117',
+          dark: '#0A4A32',
+          light: '#6BBF9D',
+          ink: '#052117',
         },
 
         light: {
-          bg: '#FAFBFC',
+          bg: '#F6F8FA',
           surface: '#FFFFFF',
           card: '#FFFFFF',
-          'surface-2': '#F4F5F7',
-          'surface-3': '#EDEFF2',
-          border: '#E5E7EB',
-          'border-strong': '#D1D5DB',
-          hairline: '#EEF0F3',
-          text: '#0B0D10',
-          secondary: '#111318',
-          muted: '#6B7280',
-          subtle: '#9CA3AF',
+          'surface-2': '#EEF2F6',
+          'surface-3': '#E4EAF0',
+          border: '#DDE3EA',
+          'border-strong': '#C3CEDA',
+          hairline: '#E8EDF2',
+          text: '#0E1A26',
+          secondary: '#33465A',
+          muted: '#63758A',
+          subtle: '#91A0B0',
         },
         dark: {
-          bg: '#08090B',
-          surface: '#0F1115',
-          card: '#0F1115',
-          'surface-2': '#15171C',
-          'surface-3': '#0B0D11',
-          border: '#1E2128',
-          'border-strong': '#2A2E36',
-          hairline: '#15171C',
-          text: '#F4F6F8',
-          secondary: '#C6CAD2',
-          muted: '#8A8F99',
-          subtle: '#5B6068',
+          bg: '#0B1017',
+          surface: '#111823',
+          card: '#111823',
+          'surface-2': '#172230',
+          'surface-3': '#0E141D',
+          border: '#22303F',
+          'border-strong': '#324357',
+          hairline: '#1A2531',
+          text: '#E9EFF5',
+          secondary: '#B6C4D2',
+          muted: '#8397A9',
+          subtle: '#5E7183',
         },
 
         success: {
-          DEFAULT: '#4CAF50',
-          soft: 'rgba(76,175,80,0.14)',
+          DEFAULT: '#12805A',
+          soft: 'rgba(18,128,90,0.12)',
         },
         info: {
-          DEFAULT: '#1565C0',
-          soft: 'rgba(21,101,192,0.14)',
+          DEFAULT: '#0E5AA8',
+          soft: 'rgba(14,90,168,0.12)',
         },
         warn: {
-          DEFAULT: '#F59E0B',
-          soft: 'rgba(245,158,11,0.14)',
+          DEFAULT: '#B45309',
+          soft: 'rgba(180,83,9,0.12)',
         },
         danger: {
-          DEFAULT: '#E11D48',
-          soft: 'rgba(225,29,72,0.14)',
-        },
-
-        accent: {
-          violet: '#7C3AED',
-          'violet-soft': 'rgba(124,58,237,0.12)',
-          teal: '#0D9488',
-          'teal-soft': 'rgba(13,148,136,0.12)',
-          amber: '#D97706',
-          'amber-soft': 'rgba(217,119,6,0.12)',
-          indigo: '#4F46E5',
-          'indigo-soft': 'rgba(79,70,229,0.12)',
-          rose: '#E11D48',
-          'rose-soft': 'rgba(225,29,72,0.12)',
+          DEFAULT: '#B42318',
+          soft: 'rgba(180,35,24,0.12)',
         },
       },
 
@@ -103,39 +103,44 @@ module.exports = {
         sans: ['System'],
       },
 
+      // Restrained scale: body text sits at 15px, headings top out at 30px.
+      // Nothing here is display type — this is an information app, not a
+      // marketing page.
       fontSize: {
-        '2xs': ['10px', { lineHeight: '14px', letterSpacing: '0.4px' }],
-        xs: ['12px', { lineHeight: '16px', letterSpacing: '0.1px' }],
-        sm: ['13px', { lineHeight: '18px' }],
+        '2xs': ['11px', { lineHeight: '15px', letterSpacing: '0.2px' }],
+        xs: ['12px', { lineHeight: '17px' }],
+        sm: ['13px', { lineHeight: '19px' }],
         base: ['15px', { lineHeight: '22px' }],
         lg: ['17px', { lineHeight: '24px' }],
-        xl: ['19px', { lineHeight: '26px', letterSpacing: '-0.2px' }],
-        '2xl': ['22px', { lineHeight: '28px', letterSpacing: '-0.3px' }],
-        '3xl': ['28px', { lineHeight: '34px', letterSpacing: '-0.5px' }],
-        '4xl': ['34px', { lineHeight: '40px', letterSpacing: '-0.7px' }],
-        '5xl': ['42px', { lineHeight: '48px', letterSpacing: '-1px' }],
-        '6xl': ['52px', { lineHeight: '56px', letterSpacing: '-1.2px' }],
+        xl: ['19px', { lineHeight: '26px', letterSpacing: '-0.1px' }],
+        '2xl': ['22px', { lineHeight: '29px', letterSpacing: '-0.2px' }],
+        '3xl': ['26px', { lineHeight: '33px', letterSpacing: '-0.3px' }],
+        '4xl': ['30px', { lineHeight: '37px', letterSpacing: '-0.4px' }],
+        '5xl': ['36px', { lineHeight: '43px', letterSpacing: '-0.6px' }],
+        '6xl': ['42px', { lineHeight: '49px', letterSpacing: '-0.8px' }],
       },
 
       letterSpacing: {
-        tightest: '-1.2px',
-        tighter: '-0.7px',
-        tight: '-0.3px',
+        tightest: '-0.6px',
+        tighter: '-0.4px',
+        tight: '-0.2px',
         normal: '0',
-        wide: '0.1px',
+        wide: '0.2px',
         wider: '0.4px',
-        widest: '1.2px',
+        widest: '0.8px',
       },
 
+      // Calmer geometry. Cards land at 12–16px instead of 28–32px pills, which
+      // is what separates "software" from "sticker sheet".
       borderRadius: {
-        xs: '6px',
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '20px',
-        '2xl': '24px',
-        '3xl': '32px',
-        '4xl': '40px',
+        xs: '4px',
+        sm: '6px',
+        md: '8px',
+        lg: '10px',
+        xl: '12px',
+        '2xl': '16px',
+        '3xl': '20px',
+        '4xl': '24px',
       },
 
       spacing: {
@@ -149,12 +154,12 @@ module.exports = {
         26: '104px',
       },
 
+      // Depth comes from borders first, shadow second. These are deliberately
+      // faint so cards read as surfaces, not floating chips.
       boxShadow: {
-        ambient: '0 1px 2px rgba(11, 13, 16, 0.04), 0 1px 1px rgba(11, 13, 16, 0.03)',
-        elevated: '0 8px 24px rgba(11, 13, 16, 0.08), 0 1px 2px rgba(11, 13, 16, 0.04)',
-        floating: '0 20px 50px rgba(11, 13, 16, 0.14), 0 4px 12px rgba(11, 13, 16, 0.06)',
-        glow: '0 0 0 4px rgba(76, 175, 80, 0.18)',
-        'glow-blue': '0 0 0 4px rgba(21, 101, 192, 0.18)',
+        ambient: '0 1px 2px rgba(14, 26, 38, 0.05)',
+        elevated: '0 2px 8px rgba(14, 26, 38, 0.07), 0 1px 2px rgba(14, 26, 38, 0.04)',
+        floating: '0 12px 32px rgba(14, 26, 38, 0.12), 0 2px 6px rgba(14, 26, 38, 0.06)',
       },
     },
   },

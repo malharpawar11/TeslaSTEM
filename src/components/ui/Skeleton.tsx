@@ -16,11 +16,11 @@ interface Props {
 }
 
 const RADIUS: Record<NonNullable<Props['radius']>, string> = {
-  sm: 'rounded',
-  md: 'rounded-lg',
-  lg: 'rounded-xl',
-  xl: 'rounded-2xl',
-  '2xl': 'rounded-3xl',
+  sm: 'rounded-xs',
+  md: 'rounded-sm',
+  lg: 'rounded-md',
+  xl: 'rounded-lg',
+  '2xl': 'rounded-xl',
   full: 'rounded-full',
 };
 
@@ -55,19 +55,19 @@ export function SkeletonRow({ count = 1 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <View
           key={i}
-          className="rounded-3xl border border-light-hairline bg-light-surface p-4 dark:border-dark-border dark:bg-dark-surface"
+          className="rounded-xl border border-light-border bg-light-surface p-4 dark:border-dark-border dark:bg-dark-surface"
         >
           <View className="flex-row items-start gap-3">
-            <Skeleton height={56} width={56} radius="xl" />
+            <Skeleton height={40} width={40} radius="lg" />
             <View className="flex-1 gap-2">
               <Skeleton height={16} width="60%" radius="sm" />
               <Skeleton height={12} width="90%" radius="sm" />
               <Skeleton height={12} width="40%" radius="sm" />
             </View>
           </View>
-          <View className="mt-4 flex-row justify-between">
-            <Skeleton height={14} width={120} radius="sm" />
-            <Skeleton height={36} width={110} radius="full" />
+          <View className="mt-3.5 flex-row justify-between">
+            <Skeleton height={12} width={120} radius="sm" />
+            <Skeleton height={28} width={96} radius="md" />
           </View>
         </View>
       ))}

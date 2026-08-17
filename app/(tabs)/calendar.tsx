@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button, Chip, EmptyState, SkeletonRow } from '@/components/ui';
 import { EventCard } from '@/components/ClubContentCards';
@@ -90,9 +90,9 @@ export default function CalendarScreen() {
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.green} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.blue} />
         }
       >
         <View
@@ -100,11 +100,11 @@ export default function CalendarScreen() {
           style={{ paddingTop: insets.top + 8 }}
         >
           <View className="flex-1 pr-3">
-            <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
+            <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
               Calendar
             </Text>
-            <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
-              What's coming up
+            <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
+              Meetings and events from your clubs
             </Text>
           </View>
           <View className="pt-1">
@@ -168,10 +168,10 @@ export default function CalendarScreen() {
           groups.map(([day, dayEvents], groupIndex) => (
             <Animated.View
               key={day}
-              entering={FadeInDown.delay(Math.min(groupIndex * 50, 250)).duration(340)}
+              entering={FadeIn.duration(180)}
               className="px-5 pt-6"
             >
-              <Text className="mb-3 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+              <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
                 {dayLabel(dayEvents[0].startsAt)}
               </Text>
               <View className="gap-3">

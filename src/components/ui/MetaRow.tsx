@@ -1,6 +1,6 @@
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/tokens';
+import { brand, surfaces } from '@/theme/tokens';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -11,41 +11,34 @@ interface Props {
   onPress?: () => void;
 }
 
-export function MetaRow({ icon, label, value, iconTone = 'brand', divider = true, onPress }: Props) {
-  const color = iconTone === 'info' ? brand.blue : iconTone === 'muted' ? '#9CA3AF' : brand.green;
-  const bg =
-    iconTone === 'info'
-      ? 'bg-python-blue/12'
-      : iconTone === 'muted'
-        ? 'bg-light-surface-2 dark:bg-dark-surface-2'
-        : 'bg-python-green/12';
+/**
+ * Label/value row for club details. The icon sits in the gutter without a
+ * coloured tile — a wall of tinted squares reads as decoration, not structure.
+ */
+export function MetaRow({ icon, label, value, iconTone = 'info', divider = true, onPress }: Props) {
+  const color =
+    iconTone === 'brand' ? brand.green : iconTone === 'muted' ? surfaces.light.subtle : brand.blue;
 
   const valueTone = onPress
-    ? iconTone === 'info'
-      ? 'text-python-blue-dark dark:text-python-blue-light'
-      : 'text-python-green-dark dark:text-python-green-light'
+    ? 'text-python-blue-dark dark:text-python-blue-light'
     : 'text-light-text dark:text-dark-text';
 
   const inner = (
     <View
-      className={`flex-row items-center gap-3.5 py-3.5 ${
+      className={`flex-row items-center gap-3 py-3 ${
         divider ? 'border-b border-light-hairline dark:border-dark-border' : ''
       }`}
     >
-      <View className={`h-9 w-9 items-center justify-center rounded-xl ${bg}`}>
+      <View className="w-5 items-center">
         <Ionicons name={icon} size={16} color={color} />
       </View>
       <View className="flex-1">
-        <Text className="text-2xs font-semibold uppercase tracking-widest text-light-muted dark:text-dark-muted">
-          {label}
-        </Text>
+        <Text className="text-xs text-light-muted dark:text-dark-muted">{label}</Text>
         <View className="mt-0.5 flex-row items-center gap-1">
-          <Text className={`flex-1 text-base font-semibold ${valueTone}`} numberOfLines={1}>
+          <Text className={`flex-1 text-base font-medium ${valueTone}`} numberOfLines={1}>
             {value}
           </Text>
-          {onPress ? (
-            <Ionicons name="open-outline" size={12} color={color} style={{ marginTop: 1 }} />
-          ) : null}
+          {onPress ? <Ionicons name="open-outline" size={13} color={color} /> : null}
         </View>
       </View>
     </View>

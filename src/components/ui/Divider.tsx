@@ -22,7 +22,7 @@ export function Divider({ label, className, variant = 'hairline', orientation = 
     return (
       <View className={`flex-row items-center gap-3 ${className ?? ''}`}>
         <View className={`h-px flex-1 ${COLOR[variant]}`} />
-        <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+        <Text className="text-xs font-medium text-light-muted dark:text-dark-muted">
           {label}
         </Text>
         <View className={`h-px flex-1 ${COLOR[variant]}`} />

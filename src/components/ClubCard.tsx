@@ -2,14 +2,8 @@ import { memo } from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Club, clubInitials } from '@/types/domain';
-import {
-  PressableCard,
-  PressableScale,
-  Avatar,
-  Tag,
-  categoryTone,
-} from '@/components/ui';
-import { brand } from '@/theme/tokens';
+import { PressableCard, PressableScale, Avatar, Tag, categoryAccent } from '@/components/ui';
+import { brand, semantic } from '@/theme/tokens';
 
 interface Props {
   club: Club;
@@ -30,91 +24,81 @@ function dayAbbr(day: string): string {
   return DAY_ABBR[day] ?? day.slice(0, 3);
 }
 
+/**
+ * Directory row. The join control is a labelled button rather than a bare
+ * icon — students should not have to guess what a circled plus does, and
+ * "Joined" in green is the one place green earns its keep on this card.
+ */
 function ClubCardBase({ club, joined, pending = false, onPress, onToggleJoin }: Props) {
-  const tone = categoryTone(club.category);
-  const isBlue = tone !== 'brand';
-  const iconColor = isBlue ? brand.blue : brand.green;
-  const chipBg = isBlue ? 'bg-python-blue/12' : 'bg-python-green/12';
-  const chipText = isBlue
-    ? 'text-python-blue-dark dark:text-python-blue-light'
-    : 'text-python-green-dark dark:text-python-green-light';
+  const joinLabel = joined ? 'Joined' : pending ? 'Pending' : 'Join';
+  const joinIcon = joined ? 'checkmark' : pending ? 'time-outline' : 'add';
+  const joinColor = joined ? semantic.success : pending ? semantic.warn : brand.blue;
+  const joinBox = joined
+    ? 'border-python-green/40 bg-python-green/10 dark:bg-python-green/20'
+    : pending
+      ? 'border-warn/40 bg-warn/10 dark:bg-warn/20'
+      : 'border-python-blue/40 bg-transparent';
+  const joinText = joined
+    ? 'text-python-green-dark dark:text-python-green-light'
+    : pending
+      ? 'text-warn'
+      : 'text-python-blue-dark dark:text-python-blue-light';
 
   return (
-    <View className="mb-2.5">
+    <View className="mb-2">
       <PressableCard
         containsInteractive
         onPress={onPress}
         elevation="ambient"
         accessibilityLabel={`${club.name}, ${club.category} club. Open profile.`}
-        className="overflow-hidden rounded-[28px] bg-light-surface p-3.5 dark:bg-dark-surface"
+        className="p-3.5"
       >
         <View className="flex-row items-start gap-3">
-          <Avatar size="sm" tone={tone} initials={clubInitials(club.name)} />
+          <Avatar size="sm" tone={categoryAccent(club.category)} initials={clubInitials(club.name)} />
 
           <View className="flex-1">
-            {/* Row 1: title + tag + follow icon */}
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-start gap-2">
               <Text
-                className="flex-1 text-[15px] font-bold tracking-tight text-light-text dark:text-dark-text"
+                className="flex-1 text-base font-semibold text-light-text dark:text-dark-text"
                 numberOfLines={1}
               >
                 {club.name}
               </Text>
-              <Tag label={club.category} tone={tone} size="sm" />
+
               <PressableScale
                 onPress={onToggleJoin}
                 accessibilityRole="button"
                 accessibilityState={{ selected: joined }}
                 accessibilityLabel={joined ? `Leave ${club.name}` : `Join ${club.name}`}
-                scaleTo={0.88}
-                pressedOpacity={0.75}
-                className={`h-[26px] w-[26px] items-center justify-center rounded-full ${
-                  joined
-                    ? 'bg-python-green'
-                    : pending
-                      ? 'bg-warn/20 border border-warn/50'
-                      : 'border border-python-green/40 bg-transparent'
-                }`}
+                hitSlop={6}
+                scaleTo={0.94}
+                pressedOpacity={0.7}
+                className={`h-7 flex-row items-center gap-1 rounded-md border px-2 ${joinBox}`}
               >
-                <Ionicons
-                  name={joined ? 'checkmark' : pending ? 'hourglass-outline' : 'add'}
-                  size={13}
-                  color={joined ? '#FFFFFF' : pending ? '#D97706' : brand.green}
-                />
+                <Ionicons name={joinIcon} size={12} color={joinColor} />
+                <Text className={`text-2xs font-semibold ${joinText}`}>{joinLabel}</Text>
               </PressableScale>
             </View>
 
-            {/* Row 2: day chip + time · members */}
-            <View className="mt-1.5 flex-row items-center gap-1.5">
-              <View className={`rounded-[5px] px-1.5 py-[2px] ${chipBg}`}>
-                <Text className={`text-[10px] font-bold ${chipText}`}>
-                  {dayAbbr(club.day)}
-                </Text>
-              </View>
-              <Text
-                className="flex-1 text-xs text-light-muted dark:text-dark-muted"
-                numberOfLines={1}
-              >
-                {club.time}
-                {club.memberCount > 0 ? (
-                  <>
-                    <Text className="text-light-subtle dark:text-dark-subtle">  ·  </Text>
-                    <Text className="font-semibold text-light-secondary dark:text-dark-secondary">
-                      {club.memberCount}
-                    </Text>
-                    {' members'}
-                  </>
-                ) : null}
-              </Text>
-            </View>
-
-            {/* Row 3: description (single line) */}
             <Text
-              numberOfLines={1}
-              className="mt-1 text-sm leading-5 text-light-secondary dark:text-dark-secondary"
+              numberOfLines={2}
+              className="mt-1 text-sm leading-5 text-light-muted dark:text-dark-muted"
             >
               {club.description}
             </Text>
+
+            {/* Facts row: category, meeting day/time, size — all one weight. */}
+            <View className="mt-2.5 flex-row flex-wrap items-center gap-x-2 gap-y-1.5">
+              <Tag label={club.category} size="sm" />
+              <Text className="text-xs text-light-muted dark:text-dark-muted">
+                {dayAbbr(club.day)} · {club.time}
+              </Text>
+              {club.memberCount > 0 ? (
+                <Text className="text-xs text-light-muted dark:text-dark-muted">
+                  · {club.memberCount} member{club.memberCount === 1 ? '' : 's'}
+                </Text>
+              ) : null}
+            </View>
           </View>
         </View>
       </PressableCard>

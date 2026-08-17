@@ -78,13 +78,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {current && meta ? (
         <View
           pointerEvents="none"
-          style={{ position: 'absolute', left: 16, right: 16, bottom: insets.bottom + 96 }}
+          style={{ position: 'absolute', left: 16, right: 16, bottom: insets.bottom + 76 }}
         >
           <Animated.View
             key={current.id}
             entering={FadeInDown.duration(220)}
             exiting={FadeOutDown.duration(180)}
-            className={`flex-row items-center gap-2.5 rounded-2xl px-4 py-3 shadow-floating ${meta.bg}`}
+            className={`flex-row items-center gap-2.5 rounded-lg px-4 py-3 shadow-floating ${meta.bg}`}
           >
             <Ionicons name={meta.icon} size={18} color="#FFFFFF" />
             <Text className="flex-1 text-sm font-semibold text-white" numberOfLines={3}>

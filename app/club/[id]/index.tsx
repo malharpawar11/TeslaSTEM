@@ -2,12 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, Share, Platform, Linking, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedScrollHandler,
-} from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import {
@@ -50,7 +45,7 @@ import {
   type NotificationPrefs,
   type Officer,
 } from '@/types/domain';
-import { brand, palette } from '@/theme/tokens';
+import { brand, palette, semantic } from '@/theme/tokens';
 
 /**
  * A club's public profile and — once a student joins — its member area.
@@ -86,15 +81,15 @@ function SegmentedTabs({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             scaleTo={0.97}
-            className={`h-9 items-center justify-center rounded-full px-4 ${
+            className={`h-9 items-center justify-center rounded-full px-3.5 ${
               active
-                ? 'bg-python-green'
-                : 'border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2'
+                ? 'bg-python-blue'
+                : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
             }`}
           >
             <Text
-              className={`text-sm font-semibold ${
-                active ? 'text-white' : 'text-light-muted dark:text-dark-muted'
+              className={`text-sm font-medium ${
+                active ? 'text-white' : 'text-light-secondary dark:text-dark-secondary'
               }`}
             >
               {t}
@@ -143,7 +138,7 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
             i === ROWS.length - 1 ? '' : 'border-b border-light-hairline dark:border-dark-border'
           }`}
         >
-          <Ionicons name={row.icon} size={16} color={brand.green} />
+          <Ionicons name={row.icon} size={16} color={brand.blue} />
           <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
             {row.label}
           </Text>
@@ -190,13 +185,6 @@ export default function ClubProfileScreen() {
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestPosition, setRequestPosition] = useState<string>(BOARD_POSITIONS[0]);
   const [requestMessage, setRequestMessage] = useState('');
-
-  const scrollY = useSharedValue(0);
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (e) => {
-      scrollY.value = e.contentOffset.y;
-    },
-  });
 
   const club = getClub(clubId);
   const membership = membershipFor(clubId);
@@ -330,17 +318,14 @@ export default function ClubProfileScreen() {
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <Animated.ScrollView
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 130 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         <ClubProfileHeader
           club={club}
           onBack={() => router.back()}
           onShare={handleShare}
-          scrollY={scrollY}
         />
 
         {/* Role badges + the entry point to the management area */}
@@ -375,12 +360,12 @@ export default function ClubProfileScreen() {
             <SkeletonRow count={3} />
           ) : tab === 'About' ? (
             <Animated.View entering={FadeIn.duration(240)}>
-              <Text className="text-base leading-7 text-light-secondary dark:text-dark-secondary">
+              <Text className="text-base leading-6 text-light-secondary dark:text-dark-secondary">
                 {club.description}
               </Text>
 
               <View className="mt-6">
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
                   Meeting info
                 </Text>
                 <Card elevation="ambient" className="px-4">
@@ -388,25 +373,21 @@ export default function ClubProfileScreen() {
                     icon="calendar-outline"
                     label="Meeting"
                     value={`${club.day} · ${club.time}`}
-                    iconTone="brand"
                   />
                   <MetaRow
                     icon="location-outline"
                     label="Location"
                     value={club.location}
-                    iconTone="info"
                   />
                   <MetaRow
                     icon="person-outline"
                     label="Advisor"
                     value={club.advisor}
-                    iconTone="brand"
                   />
                   <MetaRow
                     icon="people-outline"
                     label="Members"
                     value={`${club.memberCount} member${club.memberCount === 1 ? '' : 's'}`}
-                    iconTone="info"
                   />
                   <MetaRow
                     icon={club.joinPolicy === 'approval' ? 'lock-closed-outline' : 'lock-open-outline'}
@@ -416,14 +397,13 @@ export default function ClubProfileScreen() {
                         ? 'A club leader approves new members'
                         : 'Open to every student'
                     }
-                    iconTone="brand"
                     divider={false}
                   />
                 </Card>
               </View>
 
               <View className="mt-4">
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
                   Connect
                 </Text>
                 <Card elevation="ambient" className="px-4">
@@ -432,7 +412,6 @@ export default function ClubProfileScreen() {
                       icon="mail-outline"
                       label="Contact"
                       value={club.contactEmail}
-                      iconTone="info"
                       divider={!!club.instagram || !!club.website}
                       onPress={() => Linking.openURL(`mailto:${club.contactEmail}`)}
                     />
@@ -442,7 +421,6 @@ export default function ClubProfileScreen() {
                       icon="logo-instagram"
                       label="Instagram"
                       value={club.instagram}
-                      iconTone="info"
                       divider={!!club.website}
                       onPress={() => {
                         const handle = club.instagram!.replace(/^@/, '');
@@ -455,7 +433,6 @@ export default function ClubProfileScreen() {
                       icon="globe-outline"
                       label="Website"
                       value={club.website}
-                      iconTone="brand"
                       divider={false}
                       onPress={() => Linking.openURL(club.website!)}
                     />
@@ -486,7 +463,7 @@ export default function ClubProfileScreen() {
               ) : (
                 <View className="gap-3">
                   {announcements.map((a, i) => (
-                    <Animated.View key={a.id} entering={FadeInDown.duration(320).delay(i * 50)}>
+                    <Animated.View key={a.id} entering={FadeIn.duration(180)}>
                       <AnnouncementCard announcement={a} />
                     </Animated.View>
                   ))}
@@ -524,7 +501,7 @@ export default function ClubProfileScreen() {
                   ))}
                   {past.length > 0 ? (
                     <>
-                      <Text className="mt-3 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                      <Text className="mt-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
                         Past & cancelled
                       </Text>
                       {past.map((event) => (
@@ -548,7 +525,7 @@ export default function ClubProfileScreen() {
                 <View className="gap-2.5">
                   {folders.map((folder) => (
                     <View key={folder} className="gap-2.5">
-                      <Text className="mt-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                      <Text className="mt-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
                         {folder}
                       </Text>
                       {files
@@ -601,10 +578,10 @@ export default function ClubProfileScreen() {
                         initials={o.name.slice(0, 2).toUpperCase()}
                       />
                       <View className="flex-1">
-                        <Text className="text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                        <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
                           {o.role}
                         </Text>
-                        <Text className="mt-0.5 text-base font-bold tracking-tight text-light-text dark:text-dark-text">
+                        <Text className="mt-0.5 text-base font-semibold text-light-text dark:text-dark-text">
                           {o.name}
                         </Text>
                       </View>
@@ -619,7 +596,7 @@ export default function ClubProfileScreen() {
                 <View className="mt-5">
                   {requestOpen ? (
                     <Card elevation="ambient" className="p-4">
-                      <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                      <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                         {club.presidentId ? 'Request board access' : 'Claim this club'}
                       </Text>
                       {club.presidentId ? (
@@ -637,12 +614,12 @@ export default function ClubProfileScreen() {
                                 scaleTo={0.96}
                                 className={`h-8 items-center justify-center rounded-full px-3 ${
                                   requestPosition === position
-                                    ? 'bg-python-green'
-                                    : 'border border-light-border dark:border-dark-border'
+                                    ? 'bg-python-blue'
+                                    : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
                                 }`}
                               >
                                 <Text
-                                  className={`text-2xs font-bold ${
+                                  className={`text-2xs font-semibold ${
                                     requestPosition === position
                                       ? 'text-white'
                                       : 'text-light-secondary dark:text-dark-secondary'
@@ -694,7 +671,7 @@ export default function ClubProfileScreen() {
                     </Card>
                   ) : membership?.boardStatus === 'pending' ? (
                     <Card elevation="ambient" className="flex-row items-center gap-2.5 p-4">
-                      <Ionicons name="hourglass-outline" size={16} color="#D97706" />
+                      <Ionicons name="hourglass-outline" size={16} color={semantic.warn} />
                       <Text className="flex-1 text-xs text-light-muted dark:text-dark-muted">
                         Your board request is waiting for the president.
                       </Text>
@@ -714,7 +691,7 @@ export default function ClubProfileScreen() {
             </Animated.View>
           )}
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Sticky join / leave bar */}
       <View pointerEvents="box-none" className="absolute bottom-0 left-0 right-0">
@@ -782,7 +759,7 @@ export default function ClubProfileScreen() {
               <Ionicons
                 name="share-outline"
                 size={22}
-                color={isDark ? palette.white : brand.greenDeep}
+                color={isDark ? palette.white : brand.blueDeep}
               />
             </PressableScale>
           </View>

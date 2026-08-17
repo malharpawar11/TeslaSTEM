@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Image, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Gradient, BRAND_COLORS_RICH } from '@/components/Gradient';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -23,7 +23,7 @@ import { useNotifications } from '@/context/NotificationsContext';
 import { fetchDashboard, EMPTY_DASHBOARD, type Dashboard } from '@/data/feedRepo';
 import { clubInitials } from '@/types/domain';
 import { duration } from '@/theme/motion';
-import { brand } from '@/theme/tokens';
+import { brand, surfaces } from '@/theme/tokens';
 
 /* ----------------------------------------------------------------------------
  * Signed-out hero — the public front door of the directory.
@@ -34,97 +34,68 @@ function Hero() {
   const { clubs, loading } = useClubs();
 
   return (
-    <Gradient
-      colors={BRAND_COLORS_RICH as unknown as readonly [string, string, ...string[]]}
-      start={{ x: 0.15, y: 0 }}
-      end={{ x: 0.85, y: 1 }}
-      locations={[0, 0.5, 1] as unknown as readonly [number, number, ...number[]]}
-      className="flex-1"
-    >
-      <View
-        pointerEvents="none"
-        className="absolute inset-0 bg-python-blue-900/20 dark:bg-black/35"
-      />
-
-      <View
-        className="flex-row items-center justify-between px-6"
-        style={{ paddingTop: insets.top + 2 }}
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+      {/* Brand header: a single dark green→blue field, sized to the content
+          it holds rather than the whole screen. */}
+      <Gradient
+        colors={BRAND_COLORS_RICH as unknown as readonly [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ paddingTop: insets.top + 12 }}
       >
-        <Animated.View
-          entering={FadeIn.duration(duration.lg)}
-          className="flex-row items-center gap-2"
-        >
-          <Image
-            source={require('../../assets/teslastemlogo.png')}
-            style={{ width: 20, height: 20 }}
-            resizeMode="contain"
-            accessibilityLabel="Tesla STEM Pythons logo"
-          />
-          <Text className="text-2xs font-semibold uppercase tracking-widest text-white/85">
-            Tesla STEM Pythons
+        <View className="flex-row items-center justify-between px-6">
+          <View className="flex-row items-center gap-2.5">
+            <Image
+              source={require('../../assets/teslastemlogo.png')}
+              style={{ width: 22, height: 22 }}
+              resizeMode="contain"
+              accessibilityLabel="Tesla STEM Pythons logo"
+            />
+            <Text className="text-sm font-semibold text-white">Tesla STEM Clubs</Text>
+          </View>
+          <ThemeToggle variant="translucent" />
+        </View>
+
+        <View className="px-6 pb-9 pt-10">
+          <Text className="max-w-[440px] text-4xl font-semibold tracking-tight text-white">
+            Every club at Tesla STEM, in one place.
           </Text>
-        </Animated.View>
-        <ThemeToggle variant="translucent" />
-      </View>
-
-      <View className="flex-1 justify-center px-7" style={{ paddingBottom: insets.bottom + 24 }}>
-        <View className="max-w-[520px]">
-          {/* Live proof — the real club count, or nothing while it loads. */}
+          <Text className="mt-3 max-w-[420px] text-base leading-6 text-white/75">
+            Join clubs and get their announcements, files, and events on a single calendar —
+            instead of five group chats.
+          </Text>
           {!loading && clubs.length > 0 ? (
-            <Animated.Text
-              entering={FadeInDown.duration(duration.lg)}
-              className="text-2xs font-bold uppercase tracking-widest text-white/70"
-            >
-              {clubs.length} clubs · one hub
-            </Animated.Text>
+            <Text className="mt-5 text-sm text-white/60">
+              {clubs.length} clubs currently listed
+            </Text>
           ) : null}
+        </View>
+      </Gradient>
 
-          <Animated.Text
-            entering={FadeInDown.delay(120).duration(duration.xl)}
-            className="mt-4 text-5xl font-extrabold tracking-tightest text-white"
-          >
-            Every club.{'\n'}
-            <Text className="text-white/70">One place.</Text>
-          </Animated.Text>
-
-          <Animated.Text
-            entering={FadeInDown.delay(220).duration(duration.xl)}
-            className="mt-3 max-w-[420px] text-base leading-6 text-white/75"
-          >
-            Join clubs, get their announcements, files, and events, and keep every meeting on one
-            calendar — instead of five group chats.
-          </Animated.Text>
-
-          <Animated.View entering={FadeInDown.delay(340).duration(duration.xl)} className="mt-7">
-            <Button
-              label="Explore the directory"
-              onPress={() => router.push('/browse')}
-              variant="primary"
-              size="xl"
-              fullWidth
-              className="h-[60px] bg-white shadow-floating"
-            >
-              <Text className="flex-1 text-center text-lg font-bold tracking-tight text-python-blue-700">
-                Explore the directory
-              </Text>
-              <Ionicons name="arrow-forward" size={22} color="#0F4C92" />
-            </Button>
-            <Button
-              label="Sign in with your @lwsd.org account"
-              onPress={() => router.push('/account')}
-              variant="ghost"
-              size="lg"
-              fullWidth
-              className="mt-3"
-            >
-              <Text className="text-center text-sm font-semibold text-white">
-                Sign in with your @lwsd.org account
-              </Text>
-            </Button>
-          </Animated.View>
+      <View className="px-6 pt-6" style={{ paddingBottom: insets.bottom + 24 }}>
+        <View className="max-w-[440px] gap-2.5">
+          <Button
+            label="Browse the directory"
+            onPress={() => router.push('/browse')}
+            variant="primary"
+            size="lg"
+            iconRight="arrow-forward"
+            fullWidth
+          />
+          <Button
+            label="Sign in with your @lwsd.org account"
+            onPress={() => router.push('/account')}
+            variant="secondary"
+            size="lg"
+            fullWidth
+          />
+          <Text className="mt-1 text-xs leading-5 text-light-muted dark:text-dark-muted">
+            Signing in is only needed to join clubs and see your own updates. Browsing is open to
+            everyone.
+          </Text>
         </View>
       </View>
-    </Gradient>
+    </View>
   );
 }
 
@@ -158,16 +129,16 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
           accessibilityRole="button"
           accessibilityLabel={`Open ${club.name}`}
           scaleTo={0.96}
-          className="w-[196px] rounded-3xl border border-light-border bg-light-surface p-3.5 dark:border-dark-border dark:bg-dark-surface"
+          className="w-[200px] rounded-xl border border-light-border bg-light-surface p-3.5 dark:border-dark-border dark:bg-dark-surface"
         >
           <View className="flex-row items-center gap-2.5">
-            <View className="h-9 w-9 items-center justify-center rounded-2xl bg-python-green/14">
-              <Text className="text-2xs font-extrabold text-python-green-dark dark:text-python-green-light">
+            <View className="h-9 w-9 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
+              <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
                 {clubInitials(club.name)}
               </Text>
             </View>
             <Text
-              className="flex-1 text-sm font-bold text-light-text dark:text-dark-text"
+              className="flex-1 text-sm font-semibold text-light-text dark:text-dark-text"
               numberOfLines={2}
             >
               {club.name}
@@ -175,12 +146,12 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
           </View>
           <View className="mt-2.5 flex-row items-center gap-1.5">
             {club.status === 'pending' ? (
-              <Tag label="Pending approval" tone="warn" />
+              <Tag label="Pending" tone="warn" />
             ) : (
               <RoleBadge role={club.role} position={club.position} />
             )}
           </View>
-          <Text className="mt-1.5 text-2xs text-light-muted dark:text-dark-muted">
+          <Text className="mt-1.5 text-xs text-light-muted dark:text-dark-muted">
             {club.memberCount} member{club.memberCount === 1 ? '' : 's'}
           </Text>
         </PressableScale>
@@ -238,9 +209,9 @@ function DashboardScreen() {
     <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+      contentContainerStyle={{ paddingBottom: 32 }}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.green} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.blue} />
       }
     >
       <View
@@ -248,11 +219,11 @@ function DashboardScreen() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-1 pr-3">
-          <Text className="text-2xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">
-            Dashboard
+          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+            Hi, {firstName}
           </Text>
-          <Text className="mt-1.5 text-3xl font-extrabold tracking-tighter text-light-text dark:text-dark-text">
-            Hey {firstName}
+          <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
+            Updates from your clubs
           </Text>
         </View>
         <View className="flex-row items-center gap-2 pt-1">
@@ -261,9 +232,9 @@ function DashboardScreen() {
             accessibilityRole="button"
             accessibilityLabel="Search clubs, announcements, files, and events"
             scaleTo={0.92}
-            className="h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+            className="h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
           >
-            <Ionicons name="search" size={17} color={brand.green} />
+            <Ionicons name="search" size={17} color={brand.blue} />
           </PressableScale>
           <ThemeToggle />
         </View>
@@ -276,33 +247,33 @@ function DashboardScreen() {
       ) : (
         <>
           <View className="px-5 pt-5">
-            <SectionHeader eyebrow="MY CLUBS" title="Your clubs" size="sm" />
+            <SectionHeader title="Your clubs" size="sm" />
             <View className="mt-3">
               <MyClubsRow dashboard={dashboard} />
             </View>
           </View>
 
           {unreadCount > 0 ? (
-            <Animated.View entering={FadeInDown.duration(300)} className="px-5 pt-5">
+            <Animated.View entering={FadeIn.duration(180)} className="px-5 pt-5">
               <PressableScale
                 onPress={() => router.push('/notifications')}
                 accessibilityRole="button"
                 accessibilityLabel={`${unreadCount} unread notifications`}
                 scaleTo={0.98}
               >
-                <Card elevation="ambient" className="flex-row items-center gap-3 p-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-danger/12">
-                    <Ionicons name="notifications" size={18} color="#E11D48" />
+                <Card elevation="ambient" className="flex-row items-center gap-3 p-3.5">
+                  <View className="h-9 w-9 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
+                    <Ionicons name="notifications-outline" size={17} color={brand.blue} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                    <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                       {unreadCount} new update{unreadCount === 1 ? '' : 's'}
                     </Text>
                     <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted">
-                      Tap to open your notifications
+                      Open your notifications
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                  <Ionicons name="chevron-forward" size={17} color={surfaces.light.subtle} />
                 </Card>
               </PressableScale>
             </Animated.View>
@@ -311,8 +282,7 @@ function DashboardScreen() {
           {dashboard.events.length > 0 ? (
             <View className="px-5 pt-6">
               <SectionHeader
-                eyebrow="UPCOMING"
-                title="Next up"
+                title="Upcoming"
                 size="sm"
                 trailing={
                   <Button
@@ -334,7 +304,7 @@ function DashboardScreen() {
 
           {dashboard.announcements.length > 0 ? (
             <View className="px-5 pt-6">
-              <SectionHeader eyebrow="ANNOUNCEMENTS" title="Recent posts" size="sm" />
+              <SectionHeader title="Announcements" size="sm" />
               <View className="mt-3 gap-3">
                 {dashboard.announcements.slice(0, 4).map((announcement) => (
                   <AnnouncementCard key={announcement.id} announcement={announcement} showClub />
@@ -345,7 +315,7 @@ function DashboardScreen() {
 
           {dashboard.files.length > 0 ? (
             <View className="px-5 pt-6">
-              <SectionHeader eyebrow="RESOURCES" title="New files" size="sm" />
+              <SectionHeader title="Files" size="sm" />
               <View className="mt-3 gap-2.5">
                 {dashboard.files.slice(0, 4).map((file) => (
                   <FileRow key={file.id} file={file} showClub />

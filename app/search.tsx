@@ -59,11 +59,11 @@ export default function SearchScreen() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             scaleTo={0.9}
-            className="h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+            className="h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
           >
-            <Ionicons name="chevron-back" size={18} color={brand.green} />
+            <Ionicons name="chevron-back" size={18} color={brand.blue} />
           </PressableScale>
-          <Text className="flex-1 text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
+          <Text className="flex-1 text-xl font-semibold tracking-tight text-light-text dark:text-dark-text">
             Search
           </Text>
         </View>
@@ -118,7 +118,7 @@ export default function SearchScreen() {
           <Animated.View entering={FadeIn.duration(220)} className="gap-5 pt-2">
             {show('Clubs') && results.clubs.length > 0 ? (
               <View>
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Clubs
                 </Text>
                 <View className="gap-2.5">
@@ -131,14 +131,14 @@ export default function SearchScreen() {
                       scaleTo={0.98}
                     >
                       <Card elevation="ambient" className="flex-row items-center gap-3 p-3.5">
-                        <View className="h-10 w-10 items-center justify-center rounded-2xl bg-python-green/14">
-                          <Text className="text-2xs font-extrabold text-python-green-dark dark:text-python-green-light">
+                        <View className="h-10 w-10 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
+                          <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
                             {clubInitials(club.name)}
                           </Text>
                         </View>
                         <View className="flex-1">
                           <Text
-                            className="text-sm font-bold text-light-text dark:text-dark-text"
+                            className="text-sm font-semibold text-light-text dark:text-dark-text"
                             numberOfLines={1}
                           >
                             {club.name}
@@ -160,7 +160,7 @@ export default function SearchScreen() {
 
             {show('Announcements') && results.announcements.length > 0 ? (
               <View>
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Announcements
                 </Text>
                 <View className="gap-3">
@@ -173,7 +173,7 @@ export default function SearchScreen() {
 
             {show('Events') && results.events.length > 0 ? (
               <View>
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Events
                 </Text>
                 <View className="gap-3">
@@ -186,7 +186,7 @@ export default function SearchScreen() {
 
             {show('Files') && results.files.length > 0 ? (
               <View>
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Files
                 </Text>
                 <View className="gap-2.5">
@@ -199,7 +199,7 @@ export default function SearchScreen() {
 
             {show('Notes') && results.notes.length > 0 ? (
               <View>
-                <Text className="mb-2 text-2xs font-bold uppercase tracking-widest text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Notes & resources
                 </Text>
                 <View className="gap-3">
