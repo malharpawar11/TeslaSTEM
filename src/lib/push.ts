@@ -11,7 +11,7 @@ import type { ClubEvent } from '@/types/domain';
  *
  *  - The Expo push token is stored server-side (`push_tokens`) so a trusted
  *    backend job can fan real pushes out. The app never holds push credentials
- *    itself — sending from the client would mean shipping a secret.
+ *    itself; sending from the client would mean shipping a secret.
  *  - Meeting reminders are scheduled locally on the device, so an upcoming
  *    meeting still buzzes even with no server involved. They respect the same
  *    "reminders" preference the server-side fan-out uses.
@@ -89,7 +89,7 @@ export async function cancelReminder(id: string): Promise<void> {
   try {
     await Notifications.cancelScheduledNotificationAsync(id);
   } catch {
-    // Already fired or cancelled — nothing to do.
+    // Already fired or cancelled; nothing to do.
   }
 }
 

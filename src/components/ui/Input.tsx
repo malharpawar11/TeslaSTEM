@@ -15,7 +15,7 @@ interface FieldProps extends TextInputProps {
 }
 
 /**
- * Text field. Focus is communicated by a single blue border — no halo, no
+ * Text field. Focus is communicated by a single blue border, no halo, no
  * animated ring. One clear signal is easier to read than a glow.
  */
 export function Input({

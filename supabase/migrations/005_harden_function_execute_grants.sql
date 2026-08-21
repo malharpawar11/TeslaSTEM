@@ -10,7 +10,7 @@ revoke execute on function public.lock_club_privileged_fields() from public, ano
 
 -- Privileged workflow RPCs: keep them callable by signed-in users (the role
 -- check lives inside each), but there is no reason a signed-OUT (anon) caller
--- should reach them — they require auth.uid() and would only ever error.
+-- should reach them: they require auth.uid() and would only ever error.
 -- Postgres grants EXECUTE to PUBLIC by default on creation, so revoke that and
 -- re-assert the authenticated grant explicitly.
 do $$

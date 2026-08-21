@@ -16,7 +16,7 @@ interface Props {
 }
 
 /**
- * Confirmation for anything that cannot be undone from the UI — deleting an
+ * Confirmation for anything that cannot be undone from the UI: deleting an
  * announcement, removing a member, cancelling an event. React Native's
  * `Alert` is unavailable on web, so this is a plain modal that behaves the
  * same on every platform.

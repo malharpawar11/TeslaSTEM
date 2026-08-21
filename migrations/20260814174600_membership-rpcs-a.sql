@@ -54,7 +54,7 @@ begin
 end;
 $$;
 
--- Ask the president for board access. Joining first is not required — the RPC
+-- Ask the president for board access. Joining first is not required; the RPC
 -- creates the membership if it is missing.
 create or replace function public.request_board_role(
   p_club_id uuid, p_position text, p_message text default null

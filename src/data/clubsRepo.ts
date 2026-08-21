@@ -133,7 +133,7 @@ export interface NewClubInput {
 
 /**
  * Submits a club for school-admin approval. The row can only be created as
- * `pending` and owned by the caller — the RLS insert policy checks both, so a
+ * `pending` and owned by the caller: the RLS insert policy checks both, so a
  * student cannot self-approve a club by sending `status: 'approved'`.
  */
 export async function submitClub(input: NewClubInput): Promise<RpcResult> {

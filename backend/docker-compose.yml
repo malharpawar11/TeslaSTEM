@@ -1,4 +1,4 @@
-# Local development stack. NOT for production — production uses managed
+# Local development stack. NOT for production; production uses managed
 # Postgres + Redis (RDS / Cloud SQL / Neon / Upstash) and the api image
 # deployed via Cloud Run / Fly / ECS.
 services:

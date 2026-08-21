@@ -26,7 +26,7 @@ function dayAbbr(day: string): string {
 
 /**
  * Directory row. The join control is a labelled button rather than a bare
- * icon — students should not have to guess what a circled plus does, and
+ * icon: students should not have to guess what a circled plus does, and
  * "Joined" in green is the one place green earns its keep on this card.
  */
 function ClubCardBase({ club, joined, pending = false, onPress, onToggleJoin }: Props) {
@@ -87,7 +87,7 @@ function ClubCardBase({ club, joined, pending = false, onPress, onToggleJoin }: 
               {club.description}
             </Text>
 
-            {/* Facts row: category, meeting day/time, size — all one weight. */}
+            {/* Facts row: category, meeting day/time, size, all one weight. */}
             <View className="mt-2.5 flex-row flex-wrap items-center gap-x-2 gap-y-1.5">
               <Tag label={club.category} size="sm" />
               <Text className="text-xs text-light-muted dark:text-dark-muted">

@@ -33,7 +33,7 @@ export function buildApp() {
     }),
   );
 
-  // Security headers (CSP intentionally minimal — this is a JSON API).
+  // Security headers (CSP intentionally minimal: this is a JSON API).
   app.use(
     helmet({
       contentSecurityPolicy: false,

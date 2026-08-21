@@ -26,7 +26,7 @@ import { duration } from '@/theme/motion';
 import { brand, surfaces } from '@/theme/tokens';
 
 /* ----------------------------------------------------------------------------
- * Signed-out hero — the public front door of the directory.
+ * Signed-out hero: the public front door of the directory.
  * -------------------------------------------------------------------------- */
 function Hero() {
   const router = useRouter();
@@ -61,7 +61,7 @@ function Hero() {
             Every club at Tesla STEM, in one place.
           </Text>
           <Text className="mt-3 max-w-[420px] text-base leading-6 text-white/75">
-            Join clubs and get their announcements, files, and events on a single calendar —
+            Join clubs and get their announcements, files, and events on a single calendar,
             instead of five group chats.
           </Text>
           {!loading && clubs.length > 0 ? (
@@ -100,7 +100,7 @@ function Hero() {
 }
 
 /* ----------------------------------------------------------------------------
- * Signed-in dashboard — everything from every club the student joined.
+ * Signed-in dashboard: everything from every club the student joined.
  * -------------------------------------------------------------------------- */
 function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
   const router = useRouter();
@@ -181,7 +181,7 @@ function DashboardScreen() {
   }, [load]);
 
   // Returning to Home after joining a club should show the change without a
-  // manual pull — one request, only when the screen is actually visible.
+  // manual pull: one request, only when the screen is actually visible.
   useFocusEffect(
     useCallback(() => {
       void load();

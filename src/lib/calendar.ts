@@ -10,7 +10,7 @@ import type { ClubEvent } from '@/types/domain';
  * just to add one event.
  */
 
-/** 20260814T173000Z — the format both Google and iCalendar expect. */
+/** 20260814T173000Z: the format both Google and iCalendar expect. */
 function toCalendarStamp(iso: string): string {
   const d = new Date(iso);
   return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -35,7 +35,7 @@ export function eventDescription(event: ClubEvent): string {
 export function googleCalendarUrl(event: ClubEvent): string {
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: event.clubName ? `${event.title} — ${event.clubName}` : event.title,
+    text: event.clubName ? `${event.title}: ${event.clubName}` : event.title,
     dates: `${toCalendarStamp(event.startsAt)}/${toCalendarStamp(endOf(event))}`,
     details: eventDescription(event),
     location: event.location ?? '',
@@ -59,7 +59,7 @@ export function buildIcs(events: ClubEvent[], calendarName = 'Tesla STEM Clubs')
       `DTSTAMP:${toCalendarStamp(new Date().toISOString())}`,
       `DTSTART:${toCalendarStamp(event.startsAt)}`,
       `DTEND:${toCalendarStamp(endOf(event))}`,
-      `SUMMARY:${escapeIcs(event.clubName ? `${event.title} — ${event.clubName}` : event.title)}`,
+      `SUMMARY:${escapeIcs(event.clubName ? `${event.title}: ${event.clubName}` : event.title)}`,
       `DESCRIPTION:${escapeIcs(eventDescription(event))}`,
       `LOCATION:${escapeIcs(event.location ?? '')}`,
       `STATUS:${event.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
@@ -127,7 +127,7 @@ export function formatEventTime(event: { startsAt: string; endsAt: string | null
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
-/** "Today", "Tomorrow", or the weekday+date — used as calendar group headers. */
+/** "Today", "Tomorrow", or the weekday+date; used as calendar group headers. */
 export function dayLabel(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return 'Scheduled';

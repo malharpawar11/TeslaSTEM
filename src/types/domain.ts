@@ -22,7 +22,7 @@ export type MembershipStatus = 'pending' | 'active' | 'rejected' | 'removed';
 
 /**
  * The permission keys a president can grant a board member. Must stay in sync
- * with `public.club_permission_keys()` — the database re-checks every one of
+ * with `public.club_permission_keys()`; the database re-checks every one of
  * them, so a key that only exists here simply never authorizes anything.
  */
 export type ClubPermission =
@@ -224,7 +224,7 @@ export const NO_ACCESS: ClubAccess = {
 
 /**
  * Optional fields are the ones the backend has no column for yet. They are
- * omitted rather than invented — the UI hides the corresponding row instead of
+ * omitted rather than invented; the UI hides the corresponding row instead of
  * showing a made-up officer list or founding year.
  */
 export interface Club {

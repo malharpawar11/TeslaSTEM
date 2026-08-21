@@ -14,7 +14,7 @@ export function hashPassword(plain: string): Promise<string> {
   return argon2.hash(plain, options);
 }
 
-// Always run a verify call — even on lookup miss — using this dummy hash, to
+// Always run a verify call, even on lookup miss, using this dummy hash, to
 // avoid leaking user existence via timing on the login endpoint.
 const DUMMY_HASH =
   '$argon2id$v=19$m=19456,t=2,p=1$ZHVtbXlzYWx0ZHVtbXlzYWx0$2c+J1wkfHFiYg0/8/Ck5l3o/qNcCmuOZ/yp1u9zZWJk';

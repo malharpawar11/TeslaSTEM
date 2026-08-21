@@ -49,7 +49,7 @@ import {
 // ---------------------------------------------------------------------------
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '.';
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
@@ -560,11 +560,11 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
     setAdminsError(null);
     const rows = await fetchClubAdmins(clubId);
     setAdminsLoading(false);
-    // fetchClubAdmins returns [] on error — tolerate gracefully
+    // fetchClubAdmins returns [] on error; tolerate gracefully
     setAdmins(rows);
   }, []);
 
-  // Simple club picker — a scrollable horizontal chip strip
+  // Simple club picker: a scrollable horizontal chip strip
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const handleSelectClub = (id: string) => {

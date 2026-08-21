@@ -27,7 +27,7 @@ export function validate<
     try {
       for (const [src, schema] of entries) {
         const parsed = schema.parse(req[src]);
-        // express 5 freezes req.query getter — assign via defineProperty fallback
+        // express 5 freezes req.query getter: assign via defineProperty fallback
         Object.defineProperty(req, src, { value: parsed, writable: true, configurable: true });
       }
       next();

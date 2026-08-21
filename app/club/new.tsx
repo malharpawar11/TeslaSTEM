@@ -14,7 +14,7 @@ import { brand } from '@/theme/tokens';
 
 /**
  * New-club submission. The row is created as `pending` and owned by the
- * submitter — both enforced by the insert policy — so nothing here can put a
+ * submitter, both enforced by the insert policy, so nothing here can put a
  * club in the directory without a school admin approving it.
  */
 function NewClubForm() {
@@ -53,7 +53,7 @@ function NewClubForm() {
       joinPolicy,
     });
     setBusy(false);
-    if (toastResult(res, 'Submitted — the school admin will review it.')) {
+    if (toastResult(res, 'Submitted: the school admin will review it.')) {
       setSubmitted(true);
       await refresh();
     }

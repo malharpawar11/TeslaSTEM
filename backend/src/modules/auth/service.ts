@@ -102,7 +102,7 @@ export async function signupWithPassword(input: {
       email,
       displayName,
       passwordHash,
-      // Email NOT verified yet — verification flow will set emailVerifiedAt.
+      // Email NOT verified yet: verification flow will set emailVerifiedAt.
     },
   });
 
@@ -203,7 +203,7 @@ async function verifyMicrosoftIdToken(idToken: string): Promise<OAuthProfile> {
 export async function loginWithOAuth(provider: OAuthProvider, idToken: string, opts: IssueOpts): Promise<AuthResult> {
   const profile = provider === 'GOOGLE' ? await verifyGoogleIdToken(idToken) : await verifyMicrosoftIdToken(idToken);
 
-  // Domain policy must be enforced AFTER cryptographic verification — never
+  // Domain policy must be enforced AFTER cryptographic verification: never
   // trust the email a client claims.
   if (!isSchoolEmail(profile.email)) throw forbidden('Only school email accounts are allowed');
 
@@ -215,7 +215,7 @@ export async function loginWithOAuth(provider: OAuthProvider, idToken: string, o
     });
     if (identity) return identity.user;
 
-    // Account linking by email — same school email implies same person.
+    // Account linking by email: same school email implies same person.
     const byEmail = await tx.user.findUnique({ where: { email: profile.email } });
     if (byEmail) {
       await tx.oAuthIdentity.create({
@@ -285,7 +285,7 @@ export async function refreshSession(refreshToken: string, opts: IssueOpts): Pro
   if (stored.expiresAt < new Date()) throw unauthorized('Refresh token expired');
 
   // Reuse detection: a revoked token presented again means the family is
-  // compromised — revoke the whole family.
+  // compromised: revoke the whole family.
   if (stored.revokedAt) {
     await prisma.refreshToken.updateMany({
       where: { familyId: stored.familyId, revokedAt: null },
@@ -327,7 +327,7 @@ export async function logout(refreshToken: string | undefined, userId?: string):
         await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
       }
     } catch {
-      // swallow — logout is best-effort
+      // swallow: logout is best-effort
     }
   } else if (userId) {
     // No refresh token provided → revoke all sessions for this user.

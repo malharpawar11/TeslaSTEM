@@ -1,8 +1,8 @@
--- Tesla STEM Clubs — full schema on InsForge.
+-- Tesla STEM Clubs: full schema on InsForge.
 -- Ported from the old Supabase migrations (001/002/003), adapted to
 -- InsForge's auth.users conventions. LWSD-only enforcement happens in TWO
 -- places: the app's sign-up form (UX) and a BEFORE INSERT trigger on
--- auth.users (the real gate — a tampered client still cannot create a
+-- auth.users (the real gate: a tampered client still cannot create a
 -- non-@lwsd.org account).
 
 -- ===========================================================================
@@ -95,7 +95,7 @@ alter table public.club_followers enable row level security;
 alter table public.announcements enable row level security;
 alter table public.audit_logs enable row level security;
 
--- No one signs up as anonymous into these tables directly — only the
+-- No one signs up as anonymous into these tables directly; only the
 -- handle_new_user() trigger (SECURITY DEFINER, owner-bypass) creates profile
 -- rows, and only the workflow RPCs below mutate role/status columns.
 revoke insert, update, delete on public.profiles from anon, authenticated;
@@ -204,7 +204,7 @@ create policy "special admin audit read" on public.audit_logs
   using (public.is_special_admin());
 
 -- ===========================================================================
--- 6. COLUMN-LOCK TRIGGERS — defence in depth
+-- 6. COLUMN-LOCK TRIGGERS: defence in depth
 -- ===========================================================================
 
 -- CLUBS: only the special_admin may change status / ownership / review data.
@@ -246,7 +246,7 @@ create trigger prevent_role_change before update on public.profiles
   for each row execute procedure public.lock_profile_role();
 
 -- ===========================================================================
--- 7. SIGN-UP HOOK — enforce @lwsd.org and provision the profile row
+-- 7. SIGN-UP HOOK: enforce @lwsd.org and provision the profile row
 -- ===========================================================================
 create or replace function public.enforce_lwsd_email()
 returns trigger language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
@@ -292,7 +292,7 @@ begin
   end if;
   select id into v_id from public.profiles where lower(email) = lower(p_email);
   if v_id is null then
-    raise exception 'No profile for % — that user must sign up first', p_email;
+    raise exception 'No profile for %; that user must sign up first', p_email;
   end if;
   alter table public.profiles disable trigger prevent_role_change;
   update public.profiles set role = 'special_admin' where id = v_id;
@@ -303,7 +303,7 @@ $$;
 revoke all on function public.bootstrap_special_admin(text) from public, anon, authenticated;
 
 -- ===========================================================================
--- 9. WORKFLOW RPCs — the only sanctioned way to perform privileged
+-- 9. WORKFLOW RPCs: the only sanctioned way to perform privileged
 --    mutations. Each re-derives the caller from auth.uid(), re-checks role,
 --    and writes an audit row.
 -- ===========================================================================

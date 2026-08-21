@@ -32,7 +32,7 @@ export async function writeAudit(input: AuditInput): Promise<void> {
   }
 }
 
-// Convenience for routes — pulls actor + ip + UA from the request.
+// Convenience for routes: pulls actor + ip + UA from the request.
 export function auditFromReq(
   req: Request,
   partial: Omit<AuditInput, 'actorId' | 'ip' | 'userAgent'>,

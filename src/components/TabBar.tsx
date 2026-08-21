@@ -83,7 +83,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           >
             <View>
               <Ionicons name={focused ? meta.on : meta.off} size={22} color={color} />
-              {/* Unread badge — only the Alerts tab carries one. */}
+              {/* Unread badge: only the Alerts tab carries one. */}
               {route.name === 'notifications' && unreadCount > 0 ? (
                 <View
                   pointerEvents="none"

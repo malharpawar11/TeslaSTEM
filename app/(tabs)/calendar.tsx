@@ -81,7 +81,7 @@ export default function CalendarScreen() {
     toast(
       count > 0
         ? `Reminders set for ${count} event${count === 1 ? '' : 's'}.`
-        : 'No reminders set — enable notifications in your profile first.',
+        : 'No reminders set; enable notifications in your profile first.',
       count > 0 ? 'success' : 'info',
     );
   }, [visible, toast]);
@@ -157,7 +157,7 @@ export default function CalendarScreen() {
               title={scope === 'My clubs' ? 'No events from your clubs' : 'No upcoming events'}
               description={
                 scope === 'My clubs'
-                  ? 'Join a club — or switch to All clubs to see everything happening at Tesla STEM.'
+                  ? 'Join a club, or switch to All clubs to see everything happening at Tesla STEM.'
                   : 'Club leaders schedule meetings, competitions, and deadlines here.'
               }
               actionLabel={scope === 'My clubs' ? 'Browse clubs' : undefined}

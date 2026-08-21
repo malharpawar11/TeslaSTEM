@@ -9,7 +9,7 @@ import type { Announcement, ClubEvent, ClubFile, ClubNote, EventStatus } from '@
  * the rule exactly: every INSERT/UPDATE/DELETE policy calls
  * `has_club_permission(club_id, '<area>')`, so a board member with only the
  * "events" grant is rejected by Postgres when they try to post an
- * announcement — regardless of what the client sends.
+ * announcement, regardless of what the client sends.
  */
 
 // ---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ import type { Announcement, ClubEvent, ClubFile, ClubNote, EventStatus } from '@
 // ---------------------------------------------------------------------------
 
 // `announcements` has two foreign keys into `profiles` (created_by and
-// updated_by), so the author embed has to name the constraint explicitly —
+// updated_by), so the author embed has to name the constraint explicitly:
 // an unqualified `profiles(...)` embed would be ambiguous and fail.
 const ANNOUNCEMENT_COLUMNS =
   'id, club_id, title, body, pinned, created_at, created_by, author:profiles!announcements_created_by_fkey(display_name, email)';
@@ -159,7 +159,7 @@ export async function fetchClubEvents(clubId: string, includePast = false): Prom
   return (data as unknown as DbEvent[]).map(toEvent);
 }
 
-/** Every upcoming event across the school — powers the Calendar tab. */
+/** Every upcoming event across the school; powers the Calendar tab. */
 export async function fetchUpcomingEvents(limit = 100): Promise<ClubEvent[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
@@ -281,7 +281,7 @@ export async function fetchClubFiles(clubId: string): Promise<ClubFile[]> {
 /**
  * Uploads to the club-files bucket and records the row. Keys are written as
  * `clubs/<club_id>/<random>-<name>` because the storage policies derive the
- * owning club from the key — an upload aimed at another club's folder is
+ * owning club from the key: an upload aimed at another club's folder is
  * rejected by storage RLS, not just by this function.
  */
 export async function uploadClubFile(
@@ -334,7 +334,7 @@ export async function deleteClubFile(file: ClubFile): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await insforge.database.from('club_files').delete().eq('id', file.id);
   if (error) return { ok: false, error: error.message };
-  // Best effort — the row is gone, so the object is already invisible.
+  // Best effort: the row is gone, so the object is already invisible.
   await insforge.storage.from('club-files').remove(file.fileKey);
   return { ok: true };
 }

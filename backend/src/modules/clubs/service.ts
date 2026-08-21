@@ -33,7 +33,7 @@ const publicClubSelect = {
 export async function listClubs(args: ListClubsArgs) {
   const where: Prisma.ClubWhereInput = { deletedAt: null };
 
-  // Approval filter — students only see approved clubs.
+  // Approval filter: students only see approved clubs.
   if (args.actorRole === 'SUPER_ADMIN' && typeof args.approved === 'boolean') {
     where.isApproved = args.approved;
   } else {
@@ -201,7 +201,7 @@ export async function listClubMembers(clubId: string, args: { limit: number; cur
   });
 }
 
-// Validate role of an actor against a club at the service layer too — defence
+// Validate role of an actor against a club at the service layer too: defence
 // in depth alongside the middleware guards.
 export async function assertCanManageClub(actorId: string, actorRole: Role, clubId: string) {
   if (actorRole === 'SUPER_ADMIN') return;

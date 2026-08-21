@@ -40,7 +40,7 @@ export async function createAnnouncement(
     select: announcementSelect,
   });
 
-  // Fire push notifications asynchronously — do not block the HTTP response on it.
+  // Fire push notifications asynchronously: do not block the HTTP response on it.
   void dispatchAnnouncementPush(announcement.id, club.name, announcement.title, schoolWide ? null : clubId);
 
   return announcement;

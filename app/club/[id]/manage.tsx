@@ -71,7 +71,7 @@ import { brand, semantic, surfaces } from '@/theme/tokens';
 /**
  * The club admin dashboard.
  *
- * Tabs appear only for permissions the *database* granted this user — the
+ * Tabs appear only for permissions the *database* granted this user: the
  * `permissions` array comes from `my_club_access()`, which is the same
  * `has_club_permission()` function the RLS policies call. A board member with
  * only "events" therefore sees the Events tab, and if they somehow issued an
@@ -100,7 +100,7 @@ const SECTION_PERMISSION: Record<Section, ClubPermission | null> = {
 };
 
 function toLocalInput(iso: string): string {
-  // "2026-08-20T15:30" — what the text fields below take.
+  // "2026-08-20T15:30": what the text fields below take.
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -386,7 +386,7 @@ function ManageClubScreen() {
     setBusy(true);
     const res = eventId ? await updateEvent(eventId, payload) : await createEvent(clubId, payload);
     setBusy(false);
-    if (toastResult(res, eventId ? 'Event updated — members were notified.' : 'Event created.')) {
+    if (toastResult(res, eventId ? 'Event updated; members were notified.' : 'Event created.')) {
       setEventOpen(false);
       setEventId(null);
       setEvents(await fetchClubEvents(clubId, true));
@@ -420,7 +420,7 @@ function ManageClubScreen() {
       { title: fileTitle.trim() || asset.name, folder: fileFolder },
     );
     setBusy(false);
-    if (toastResult(res, 'File uploaded — members were notified.')) {
+    if (toastResult(res, 'File uploaded; members were notified.')) {
       setFileTitle('');
       setFiles(await fetchClubFiles(clubId));
     }
@@ -691,7 +691,7 @@ function ManageClubScreen() {
                 <EmptyState
                   icon="megaphone-outline"
                   title="Nothing posted yet"
-                  description="Meeting reminders, competition info, deadlines — members see them instantly."
+                  description="Meeting reminders, competition info, deadlines: members see them instantly."
                   tone="neutral"
                 />
               ) : (
@@ -891,7 +891,7 @@ function ManageClubScreen() {
                           message: `Members will be notified that "${event.title}" is cancelled.`,
                           action: async () => {
                             const res = await cancelEvent(event.id);
-                            if (toastResult(res, 'Event cancelled — members notified.')) {
+                            if (toastResult(res, 'Event cancelled; members notified.')) {
                               setEvents(await fetchClubEvents(clubId, true));
                             }
                           },
@@ -973,7 +973,7 @@ function ManageClubScreen() {
                 <EmptyState
                   icon="people-outline"
                   title="No members yet"
-                  description="Share the club page — students join straight from the directory."
+                  description="Share the club page; students join straight from the directory."
                   tone="neutral"
                 />
               ) : (
@@ -1083,7 +1083,7 @@ function ManageClubScreen() {
                           </Text>
                         ) : null}
                         <Text className="mt-3 text-2xs text-light-subtle dark:text-dark-subtle">
-                          Approving grants the default permissions for that position — you can adjust
+                          Approving grants the default permissions for that position; you can adjust
                           them right after.
                         </Text>
                         <View className="mt-3 flex-row gap-2.5">
@@ -1316,7 +1316,7 @@ function ManageClubScreen() {
                       label="Title"
                       value={noteForm.title}
                       onChangeText={(title) => setNoteForm((f) => ({ ...f, title }))}
-                      placeholder="Meeting notes — Sept 4"
+                      placeholder="Meeting notes, Sept 4"
                     />
                     <Input
                       label="Category"
@@ -1528,7 +1528,7 @@ function ManageClubScreen() {
                 onPress={() => void saveSettings()}
               />
               <Text className="text-2xs leading-4 text-light-subtle dark:text-dark-subtle">
-                Club name, approval status, and ownership are managed by the school admin — those
+                Club name, approval status, and ownership are managed by the school admin; those
                 columns are locked in the database even for presidents.
               </Text>
             </Animated.View>

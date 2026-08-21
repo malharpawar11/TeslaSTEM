@@ -31,7 +31,7 @@ interface Props {
 }
 
 // `h-13` is not a Tailwind default, so heights are set explicitly here rather
-// than through the scale — a missing height class silently collapses a button.
+// than through the scale: a missing height class silently collapses a button.
 const SIZE: Record<Size, { h: number; px: string; text: string; icon: number; gap: string; radius: string }> = {
   sm: { h: 32, px: 'px-3', text: 'text-xs', icon: 14, gap: 'gap-1.5', radius: 'rounded-lg' },
   md: { h: 40, px: 'px-4', text: 'text-sm', icon: 16, gap: 'gap-2', radius: 'rounded-lg' },
@@ -72,7 +72,7 @@ const VARIANT: Record<Variant, { container: string; text: string; iconColor: str
     iconColor: brand.blue,
     pressedOpacity: 0.7,
   },
-  // Green is the confirmation accent — joining, approving, publishing.
+  // Green is the confirmation accent: joining, approving, publishing.
   success: {
     container: 'bg-python-green',
     text: 'text-white font-semibold',

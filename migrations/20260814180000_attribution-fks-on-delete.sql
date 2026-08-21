@@ -6,7 +6,7 @@
 -- columns now null out on delete: the club's content and the audit trail
 -- survive, and the account can actually be removed. Ownership columns that
 -- describe membership (club_members.user_id, notifications.user_id, …) keep
--- their existing ON DELETE CASCADE — that data is the person, not their work.
+-- their existing ON DELETE CASCADE; that data is the person, not their work.
 
 alter table public.audit_logs
   drop constraint audit_logs_actor_fkey,

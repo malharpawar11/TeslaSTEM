@@ -13,7 +13,7 @@ export const corsMiddleware = cors({
     if (allowed.has(origin)) return cb(null, true);
     if (!isProd) {
       // In dev be permissive to ease local debugging, but log every cross-origin hit.
-      logger.warn({ origin }, 'cors: non-allowlisted origin in dev — allowing');
+      logger.warn({ origin }, 'cors: non-allowlisted origin in dev, allowing');
       return cb(null, true);
     }
     return cb(new Error('CORS: origin not allowed'));

@@ -27,7 +27,7 @@ const TONE_SOFT: Record<NonNullable<Props['tone']>, { bg: string; text: string }
 };
 
 /**
- * Small status/category label. Sentence case on purpose — all-caps micro type
+ * Small status/category label. Sentence case on purpose: all-caps micro type
  * is hard to read at 11px and makes every label shout equally loudly.
  */
 export function Tag({ label, tone = 'info', size = 'sm', filled = false }: Props) {

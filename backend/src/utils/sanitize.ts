@@ -1,4 +1,4 @@
-// Strip control + zero-width chars and clamp length. We do NOT strip HTML here —
+// Strip control + zero-width chars and clamp length. We do NOT strip HTML here:
 // the mobile client renders plain text and Prisma's parameterized queries already
 // neutralise SQL injection. XSS prevention belongs in the consumer.
 

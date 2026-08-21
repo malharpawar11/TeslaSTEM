@@ -3,7 +3,7 @@
 -- Object keys are written as `clubs/<club_id>/<uuid>-<filename>`, so the club
 -- that owns an object is recoverable from its key. Writes are therefore gated
 -- on the same has_club_permission(club, 'files') check the club_files table
--- uses — an uploader cannot drop a file into another club's folder by editing
+-- uses: an uploader cannot drop a file into another club's folder by editing
 -- the key in the request.
 --
 -- Reads: the bucket is public-read (unguessable UUID keys, link-style

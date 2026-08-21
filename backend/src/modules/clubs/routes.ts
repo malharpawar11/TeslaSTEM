@@ -29,11 +29,11 @@ import {
 
 export const clubsRouter = Router();
 
-// Public-ish browsing — optionalAuth so we can show approval state to super admins.
+// Public-ish browsing: optionalAuth so we can show approval state to super admins.
 clubsRouter.get('/', optionalAuth, validate({ query: listClubsQuerySchema }), list);
 clubsRouter.get('/:clubId', optionalAuth, validate({ params: clubIdParamSchema }), getOne);
 
-// Create — any authenticated user may propose a club; super admin auto-approves.
+// Create: any authenticated user may propose a club; super admin auto-approves.
 clubsRouter.post(
   '/',
   requireAuth,
@@ -74,7 +74,7 @@ clubsRouter.delete(
   unfollow,
 );
 
-// Member listing — only admins of the club (or super admins).
+// Member listing: only admins of the club (or super admins).
 clubsRouter.get(
   '/:clubId/members',
   requireAuth,
@@ -83,7 +83,7 @@ clubsRouter.get(
   members,
 );
 
-// Admin assignment — super-admin only.
+// Admin assignment: super-admin only.
 clubsRouter.post(
   '/:clubId/admins',
   requireAuth,

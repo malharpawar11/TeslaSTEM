@@ -35,7 +35,7 @@ create or replace function public.has_club_permission(c uuid, perm text) returns
          )
 $$;
 
--- Membership — gates the club's member-only area (files, notes, roster).
+-- Membership: gates the club's member-only area (files, notes, roster).
 create or replace function public.is_club_member(c uuid) returns boolean
   language sql stable security definer set search_path = pg_catalog, public, pg_temp as $$
   select public.can_admin_club(c)
@@ -50,7 +50,7 @@ grant execute on function public.has_club_permission(uuid, text) to authenticate
 grant execute on function public.is_club_member(uuid) to authenticated;
 
 -- ===========================================================================
--- 8. DERIVED STATE — member counts and updated_at
+-- 8. DERIVED STATE: member counts and updated_at
 -- ===========================================================================
 create or replace function public.touch_updated_at() returns trigger
   language plpgsql set search_path = pg_catalog, public, pg_temp as $$
@@ -201,12 +201,12 @@ begin
     v_title := coalesce(v_club_name, 'Your club') || ': ' || new.title;
   elsif new.status = 'cancelled' and old.status <> 'cancelled' then
     v_type := 'event_cancelled';
-    v_title := 'Cancelled — ' || new.title;
+    v_title := 'Cancelled: ' || new.title;
   elsif new.starts_at is distinct from old.starts_at
         or new.location is distinct from old.location
         or new.title is distinct from old.title then
     v_type := 'event_updated';
-    v_title := 'Updated — ' || new.title;
+    v_title := 'Updated: ' || new.title;
   else
     return new;
   end if;

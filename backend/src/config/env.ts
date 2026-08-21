@@ -49,7 +49,7 @@ const EnvSchema = z.object({
 
 const parsed = EnvSchema.safeParse(process.env);
 if (!parsed.success) {
-  // Surface configuration errors loudly and stop the process — do not run with bad config.
+  // Surface configuration errors loudly and stop the process: do not run with bad config.
   console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
   process.exit(1);
 }

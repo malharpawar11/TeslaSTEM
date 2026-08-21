@@ -13,7 +13,7 @@ interface Props {
 
 /**
  * Label/value row for club details. The icon sits in the gutter without a
- * coloured tile — a wall of tinted squares reads as decoration, not structure.
+ * coloured tile: a wall of tinted squares reads as decoration, not structure.
  */
 export function MetaRow({ icon, label, value, iconTone = 'info', divider = true, onPress }: Props) {
   const color =

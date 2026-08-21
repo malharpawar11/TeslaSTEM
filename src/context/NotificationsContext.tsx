@@ -24,7 +24,7 @@ import type { AppNotification, NotificationPrefs } from '@/types/domain';
  * The notification inbox plus the per-club preference matrix.
  *
  * Refreshes happen on sign-in, on an explicit pull, and when the app returns
- * to the foreground — never on a timer, because a polling loop over a growing
+ * to the foreground, never on a timer, because a polling loop over a growing
  * inbox is the classic way to burn a project's egress budget.
  */
 

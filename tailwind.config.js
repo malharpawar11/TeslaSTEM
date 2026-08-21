@@ -104,7 +104,7 @@ module.exports = {
       },
 
       // Restrained scale: body text sits at 15px, headings top out at 30px.
-      // Nothing here is display type — this is an information app, not a
+      // Nothing here is display type; this is an information app, not a
       // marketing page.
       fontSize: {
         '2xs': ['11px', { lineHeight: '15px', letterSpacing: '0.2px' }],

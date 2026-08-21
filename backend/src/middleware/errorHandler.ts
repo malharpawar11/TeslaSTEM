@@ -68,7 +68,7 @@ export function errorHandler(
     return;
   }
 
-  // Unknown — never expose internals.
+  // Unknown: never expose internals.
   logger.error({ err, requestId, path: req.path, method: req.method }, 'unhandled error');
   res.status(500).json({
     error: {

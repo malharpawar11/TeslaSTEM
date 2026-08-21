@@ -8,7 +8,7 @@ export type { AppRole } from '@/types/domain';
 const REFRESH_TOKEN_KEY = 'tsc.insforge.refreshToken';
 const LWSD_RE = /@lwsd\.org$/i;
 
-/** Minimal session shape — enough for the rest of the app to check "signed in". */
+/** Minimal session shape, enough for the rest of the app to check "signed in". */
 export interface AppSession {
   user: { id: string; email: string };
 }
@@ -17,7 +17,7 @@ export interface AppSession {
  * The signed-in user's profile row. `role` and `president_status` are read
  * straight from `public.profiles` and are only ever set by the database
  * (RLS + the SECURITY DEFINER RPCs in the schema migration). The client
- * treats them as display hints — every privileged action is re-checked
+ * treats them as display hints: every privileged action is re-checked
  * server-side.
  */
 export interface Profile {
@@ -36,7 +36,7 @@ interface AuthContextValue {
   loading: boolean;
   session: AppSession | null;
   profile: Profile | null;
-  /** Convenience role flags — UI gating only; the DB remains the source of truth. */
+  /** Convenience role flags: UI gating only; the DB remains the source of truth. */
   isSpecialAdmin: boolean;
   isVerifiedPresident: boolean;
   isClubAdmin: boolean;

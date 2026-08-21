@@ -17,7 +17,7 @@ interface Props extends PressableProps {
   scaleTo?: number;
   /** Opacity on press (default 1). */
   pressedOpacity?: number;
-  /** When true, no accessibilityRole defaults — useful for tappable cards that wrap other interactive elements (avoids nested <button> on web). */
+  /** When true, no accessibilityRole defaults; useful for tappable cards that wrap other interactive elements (avoids nested <button> on web). */
   asSurface?: boolean;
 }
 

@@ -4,7 +4,7 @@
  * Gradient color stops, status bar tints, native shadow color, etc).
  *
  * Brand rule: BLUE is the primary. It carries navigation, primary actions,
- * links, focus and selection. GREEN is the accent — reserved for confirmation
+ * links, focus and selection. GREEN is the accent: reserved for confirmation
  * and membership ("joined", "approved", "success"). Keeping green scarce is
  * what makes it mean something, and what keeps the app from looking like a
  * highlighter.
@@ -40,11 +40,11 @@ export const palette = {
 } as const;
 
 export const brand = {
-  /** Primary — navigation, primary buttons, links, focus. */
+  /** Primary: navigation, primary buttons, links, focus. */
   blue: palette.blue[500],
   blueDeep: palette.blue[700],
   blueSoft: palette.blue[100],
-  /** Accent — confirmation, membership, success. Use sparingly. */
+  /** Accent: confirmation, membership, success. Use sparingly. */
   green: palette.green[500],
   greenDeep: palette.green[700],
   greenSoft: palette.green[100],

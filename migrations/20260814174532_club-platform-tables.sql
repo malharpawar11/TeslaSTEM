@@ -1,4 +1,4 @@
--- Tesla STEM Clubs — club platform schema.
+-- Tesla STEM Clubs: club platform schema.
 --
 -- Extends the directory (clubs / announcements / roles) into a full club
 -- management platform: memberships, board members with per-permission grants,

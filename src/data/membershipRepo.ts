@@ -86,7 +86,7 @@ export function requestBoardRole(
   });
 }
 
-/** The full roster — only returns rows if the caller may manage members. */
+/** The full roster; only returns rows if the caller may manage members. */
 export async function fetchClubMembers(clubId: string): Promise<ClubMemberRow[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database.rpc('list_club_members', { p_club_id: clubId });

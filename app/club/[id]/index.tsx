@@ -48,7 +48,7 @@ import {
 import { brand, palette, semantic } from '@/theme/tokens';
 
 /**
- * A club's public profile and — once a student joins — its member area.
+ * A club's public profile and, once a student joins, its member area.
  *
  * Which tabs appear is decided by `my_club_access`, the same SQL function the
  * RLS policies consult, so the UI can never offer something the database will
@@ -244,7 +244,7 @@ export default function ClubProfileScreen() {
     }
     toast(
       res.status === 'pending'
-        ? 'Request sent — a club leader will review it.'
+        ? 'Request sent: a club leader will review it.'
         : `Joined ${club?.name ?? 'the club'}`,
     );
     await Promise.all([load(), refreshClubs()]);
@@ -278,7 +278,7 @@ export default function ClubProfileScreen() {
     setBusy(true);
     const res = await claimClub(clubId, 'President', requestMessage);
     setBusy(false);
-    if (toastResult(res, 'Claim submitted — the school admin will review it.')) {
+    if (toastResult(res, 'Claim submitted: the school admin will review it.')) {
       setRequestOpen(false);
       setRequestMessage('');
     }
@@ -302,7 +302,7 @@ export default function ClubProfileScreen() {
     try {
       if (Platform.OS === 'web') return;
       await Share.share({
-        message: `Check out ${club.name} at Tesla STEM — ${club.description}`,
+        message: `Check out ${club.name} at Tesla STEM: ${club.description}`,
         title: club.name,
       });
     } catch {

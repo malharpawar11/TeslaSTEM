@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { isProd } from '@/config/env';
 import { logger } from '@/lib/logger';
 
-// Single PrismaClient instance shared across the app — Prisma connection pool handles concurrency.
+// Single PrismaClient instance shared across the app: Prisma connection pool handles concurrency.
 export const prisma = new PrismaClient({
   log: isProd
     ? [{ emit: 'event', level: 'warn' }, { emit: 'event', level: 'error' }]

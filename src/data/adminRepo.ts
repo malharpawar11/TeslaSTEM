@@ -20,7 +20,7 @@ async function callRpc(fn: string, args?: Record<string, unknown>): Promise<RpcR
 }
 
 // ---------------------------------------------------------------------------
-// Review queues — special-admin reads. RLS lets a special admin see every
+// Review queues: special-admin reads. RLS lets a special admin see every
 // club/profile; a non-admin caller simply gets an empty list back.
 // ---------------------------------------------------------------------------
 
@@ -113,7 +113,7 @@ export async function fetchClubAdmins(clubId: string): Promise<ClubAdminRow[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Workflow actions — each maps 1:1 to a SECURITY DEFINER RPC in the schema
+// Workflow actions: each maps 1:1 to a SECURITY DEFINER RPC in the schema
 // migration.
 // ---------------------------------------------------------------------------
 
@@ -153,7 +153,7 @@ export function removeClubAdmin(clubId: string, userId: string): Promise<RpcResu
 }
 
 // ---------------------------------------------------------------------------
-// Club claims — a president asking for control of a club that already exists.
+// Club claims: a president asking for control of a club that already exists.
 // ---------------------------------------------------------------------------
 
 export interface ClubClaim {
@@ -180,7 +180,7 @@ export async function fetchClubClaims(): Promise<ClubClaim[]> {
     userId: r.user_id as string,
     email: r.email as string,
     displayName: (r.display_name as string | null) ?? null,
-    // `member_position`, not `position` — see list_club_members for why.
+    // `member_position`, not `position`; see list_club_members for why.
     position: (r.member_position as string | null) ?? 'President',
     message: (r.message as string | null) ?? null,
     createdAt: (r.created_at as string | null) ?? null,

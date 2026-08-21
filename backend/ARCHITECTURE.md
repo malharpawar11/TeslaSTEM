@@ -1,7 +1,7 @@
 # ClubHub Backend Architecture
 
 Production-grade backend for the ClubHub mobile app (Apple App Store / Google
-Play Store distribution). Backend-only — the existing Expo React Native
+Play Store distribution). Backend-only: the existing Expo React Native
 frontend is unchanged.
 
 ## 1. Tech stack
@@ -97,7 +97,7 @@ Mobile App ──signup/login──► /api/v1/auth/login
 ### OAuth
 - Google: `id_token` verified via `google-auth-library` (audience pinned to our client id).
 - Microsoft: `id_token` verified via the tenant's JWKS endpoint.
-- After cryptographic verification, the email domain is checked against `SCHOOL_EMAIL_DOMAINS` (server-side only — never trust the client).
+- After cryptographic verification, the email domain is checked against `SCHOOL_EMAIL_DOMAINS` (server-side only; never trust the client).
 - If an OAuth identity is unseen but the verified email matches an existing user, identities are linked.
 
 ### Session invalidation
@@ -106,7 +106,7 @@ Mobile App ──signup/login──► /api/v1/auth/login
 
 ### Account deletion (App Store §5.1.1(v))
 - `DELETE /api/v1/auth/account` soft-deletes, strips PII, revokes all sessions, clears device tokens, removes OAuth identities.
-- Hard-purge job runs after a retention window (to be added as a cron — see roadmap).
+- Hard-purge job runs after a retention window (to be added as a cron: see roadmap).
 
 ## 5. RBAC
 
@@ -135,7 +135,7 @@ Two-layer enforcement:
 
 | Concern                  | Mitigation                                                                 |
 | ------------------------ | -------------------------------------------------------------------------- |
-| SQL injection            | Prisma parameterised queries only — no raw SQL with user input.            |
+| SQL injection            | Prisma parameterised queries only, no raw SQL with user input.            |
 | XSS                      | API returns JSON only; sanitizeText strips control + zero-width chars.     |
 | CSRF                     | API consumed by mobile / SPA with `Authorization: Bearer`; no auth cookies on mutating endpoints. |
 | Credential stuffing      | argon2id + redis-backed per-(ip,email) rate limit on `/auth/*`.            |
@@ -217,7 +217,7 @@ for lists. Errors always return:
 - `Dockerfile` is multi-stage, runs as non-root, includes a healthcheck.
 - `docker-compose.yml` brings up Postgres + Redis + API locally.
 - Environments separated via `.env`. Required env vars validated at boot
-  (`src/config/env.ts`) — the process exits if anything is missing.
+  (`src/config/env.ts`); the process exits if anything is missing.
 - Migrations run via `npm run prisma:migrate:deploy` in CI/CD before the new
   image is promoted.
 
@@ -234,11 +234,11 @@ super admin exists; the bootstrap path runs once and is a no-op afterwards.
 
 ## 10. Roadmap (next iterations)
 
-1. **Email delivery** — wire `EmailVerificationToken` + `PasswordResetToken` to a transactional email provider (Postmark / SES). Currently issued but unsent.
-2. **Cron jobs** — purge refresh tokens past expiry, hard-delete users past retention window, cleanup expired email tokens.
-3. **Realtime** — optional WebSocket/SSE channel for live announcement delivery in addition to push.
-4. **APNs/FCM direct** — Expo push is the v1 path; if Expo dependency is dropped, switch to direct APNs/FCM.
-5. **OpenAPI** — generate spec from zod schemas (`zod-to-openapi`) for the mobile client + docs.
-6. **CI** — typecheck, lint, prisma validate, integration tests against an ephemeral Postgres.
-7. **Observability** — OpenTelemetry tracing exporter; Sentry for errors.
-8. **Image upload** — direct-to-S3 presigned URLs for club images; server stores the resulting URL.
+1. **Email delivery**: wire `EmailVerificationToken` + `PasswordResetToken` to a transactional email provider (Postmark / SES). Currently issued but unsent.
+2. **Cron jobs**: purge refresh tokens past expiry, hard-delete users past retention window, cleanup expired email tokens.
+3. **Realtime**: optional WebSocket/SSE channel for live announcement delivery in addition to push.
+4. **APNs/FCM direct**: Expo push is the v1 path; if Expo dependency is dropped, switch to direct APNs/FCM.
+5. **OpenAPI**: generate spec from zod schemas (`zod-to-openapi`) for the mobile client + docs.
+6. **CI**: typecheck, lint, prisma validate, integration tests against an ephemeral Postgres.
+7. **Observability**: OpenTelemetry tracing exporter; Sentry for errors.
+8. **Image upload**: direct-to-S3 presigned URLs for club images; server stores the resulting URL.

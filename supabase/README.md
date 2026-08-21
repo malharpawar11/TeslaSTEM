@@ -28,7 +28,7 @@ the same classes of bug are worth checking for in any backend this app uses:
 - **The anon key could read and call too much.** Policies were granted to
   `public`, so the key shipped in the app evaluated them; helper functions were
   callable over `/rest/v1/rpc/*`. Now everything is `authenticated`-only and
-  EXECUTE is revoked from `PUBLIC` — note that revoking from the `anon` role
+  EXECUTE is revoked from `PUBLIC`; note that revoking from the `anon` role
   alone does nothing, because the grant is held via `PUBLIC`. (`007`, `008`)
 - **Users could not be deleted.** Six foreign keys to `profiles(id)` were
   `NO ACTION`, so removing anyone who had submitted a club failed. Worse, the

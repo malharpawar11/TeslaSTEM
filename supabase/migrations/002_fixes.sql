@@ -1,4 +1,4 @@
--- 002_fixes.sql — corrects gaps found in 001_initial_schema.sql.
+-- 002_fixes.sql: corrects gaps found in 001_initial_schema.sql.
 -- Safe to run after 001. Re-runnable: every object is dropped-if-exists first.
 
 -- ---------------------------------------------------------------------------
@@ -14,7 +14,7 @@ create policy "users submit clubs" on public.clubs
 -- ---------------------------------------------------------------------------
 -- 2. Audit logging via SECURITY DEFINER RPC instead of a super-only INSERT
 --    policy. Any authenticated user can record an action *as themselves*;
---    the function — not the caller — owns the insert, so RLS no longer
+--    the function, not the caller, owns the insert, so RLS no longer
 --    blocks club-admin actions. Direct client INSERTs stay super-only.
 -- ---------------------------------------------------------------------------
 create or replace function public.log_audit(

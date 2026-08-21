@@ -8,8 +8,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import { brand, semantic } from '@/theme/tokens';
 
-// Client-side LWSD gate. The database enforces the same rule independently —
-// a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses — so this
+// Client-side LWSD gate. The database enforces the same rule independently:
+// a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses, so this
 // is a UX nicety, not the security line.
 const LWSD_RE = /@lwsd\.org$/i;
 
@@ -30,7 +30,7 @@ interface SignInGateProps {
  *   configured + signed out -> renders the LWSD sign-in / sign-up form
  *   configured + signed in  -> renders children
  *
- * Role checks belong to the wrapped screen via useAuth().profile — this gate
+ * Role checks belong to the wrapped screen via useAuth().profile; this gate
  * only proves identity, not authority.
  */
 export function SignInGate({
@@ -237,7 +237,7 @@ export function SignInGate({
                   icon="keypad-outline"
                   returnKeyType="go"
                   onSubmitEditing={verify}
-                  helper="Check your inbox — the code expires shortly."
+                  helper="Check your inbox: the code expires shortly."
                 />
                 <Button
                   label="Verify & continue"

@@ -1,4 +1,4 @@
--- 14. AGGREGATE READS — dashboard and search
+-- 14. AGGREGATE READS: dashboard and search
 --     One round trip each, and every branch is scoped to what the caller is
 --     actually allowed to see.
 -- ===========================================================================

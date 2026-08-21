@@ -9,7 +9,7 @@ interface Props {
 }
 
 /**
- * Light/dark switch. It swaps one icon for another — no rotation, no expanding
+ * Light/dark switch. It swaps one icon for another, no rotation, no expanding
  * halo. A utility control shouldn't be the most animated thing on screen.
  */
 export function ThemeToggle({ variant = 'surface' }: Props) {

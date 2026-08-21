@@ -14,7 +14,7 @@ import type {
 import { brand, semantic, surfaces } from '@/theme/tokens';
 
 /**
- * The cards that render club content wherever it appears — inside a club, on
+ * The cards that render club content wherever it appears: inside a club, on
  * the personal dashboard, in search results, and on the calendar. They take a
  * `clubName` so a dashboard row can always say which club an item came from.
  */

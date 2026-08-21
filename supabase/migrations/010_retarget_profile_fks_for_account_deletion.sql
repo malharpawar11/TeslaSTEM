@@ -1,6 +1,6 @@
 -- Every reference to profiles(id) below was NO ACTION, so deleting a graduating
 -- student who had ever submitted a club, authored an announcement, or triggered
--- an audit entry failed with a foreign key violation — from the app, from an
+-- an audit entry failed with a foreign key violation, from the app, from an
 -- admin RPC, and from the Supabase dashboard alike. Their content should outlive
 -- the account (an approved club must not vanish when its founder graduates), so
 -- the reference is nulled rather than cascaded, and audit history is preserved.

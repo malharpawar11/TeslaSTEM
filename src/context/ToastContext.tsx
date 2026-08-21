@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /**
  * App-wide toasts for the result of an action ("Announcement posted",
  * "Couldn't upload file"). Errors that need a decision still render inline
- * next to the control — a toast is for confirmation, not for recovery.
+ * next to the control; a toast is for confirmation, not for recovery.
  */
 
 type ToastTone = 'success' | 'error' | 'info';

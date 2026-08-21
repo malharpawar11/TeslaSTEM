@@ -15,7 +15,7 @@ import { brand } from '@/theme/tokens';
  * Search across clubs, announcements, events, files, and notes.
  *
  * The query runs as one SQL function that applies the same visibility rules as
- * the rest of the app — files and notes only match inside clubs the searcher
+ * the rest of the app: files and notes only match inside clubs the searcher
  * belongs to, and unapproved clubs never surface.
  */
 
@@ -97,7 +97,7 @@ export default function SearchScreen() {
             <EmptyState
               icon="search-outline"
               title="Search everything"
-              description="Clubs, announcements, events, files, and notes — filtered to what you're allowed to see."
+              description="Clubs, announcements, events, files, and notes, filtered to what you're allowed to see."
               tone="neutral"
             />
           </View>

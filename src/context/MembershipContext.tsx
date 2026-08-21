@@ -16,7 +16,7 @@ import {
 import type { Membership, MembershipStatus } from '@/types/domain';
 
 /**
- * The signed-in student's club memberships — the single source of truth for
+ * The signed-in student's club memberships: the single source of truth for
  * "my clubs" across the dashboard, the directory, and the calendar.
  *
  * Membership is server state, not a local preference: the previous "follow"

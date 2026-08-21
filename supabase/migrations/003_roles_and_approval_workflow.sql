@@ -3,7 +3,7 @@
 -- approval workflow on top of 001/002. Run ONCE after 002 (the destructive
 -- steps are guarded, so a re-run is a safe no-op).
 --
--- SECURITY MODEL — enforced in the database, never trusted from the client:
+-- SECURITY MODEL: enforced in the database, never trusted from the client:
 --   * Roles (high -> low): special_admin, verified_president, club_admin,
 --     student. The client may *display* role-based UI, but every read/write
 --     is independently gated by RLS and SECURITY DEFINER RPCs below.
@@ -55,7 +55,7 @@ begin
 end $$;
 
 -- ===========================================================================
--- 2. PROFILES — president verification
+-- 2. PROFILES: president verification
 -- ===========================================================================
 -- president_status NULL  => ordinary student, never asked to be a president.
 --                  pending/approved/rejected => reviewed by the special_admin.
@@ -67,7 +67,7 @@ alter table public.profiles
   add column if not exists president_rejection_reason text;
 
 -- ===========================================================================
--- 3. CLUBS — 3-state status + president / review context
+-- 3. CLUBS: 3-state status + president / review context
 -- ===========================================================================
 alter table public.clubs
   add column if not exists status           public.approval_status not null default 'pending',
@@ -141,7 +141,7 @@ create or replace function public.can_admin_club(c uuid) returns boolean
 $$;
 
 -- ===========================================================================
--- 5. ROW LEVEL SECURITY  — the real enforcement layer
+-- 5. ROW LEVEL SECURITY: the real enforcement layer
 -- ===========================================================================
 
 -- CLUBS: the public sees only approved clubs. A submitter and a club's
@@ -177,13 +177,13 @@ create policy "announcements readable" on public.announcements
 
 -- CLUB_ADMINS: 001 enabled RLS but never added a SELECT policy, so the
 -- assignment list was unreadable. Let club managers see their own roster.
--- Writes stay closed here on purpose — only the RPCs in section 8 mutate it.
+-- Writes stay closed here on purpose; only the RPCs in section 8 mutate it.
 drop policy if exists "club admins visible to managers" on public.club_admins;
 create policy "club admins visible to managers" on public.club_admins
   for select using (public.can_admin_club(club_id) or user_id = auth.uid());
 
 -- ===========================================================================
--- 6. COLUMN-LOCK TRIGGERS  — defence in depth
+-- 6. COLUMN-LOCK TRIGGERS: defence in depth
 --    RLS grants a club admin UPDATE on their club; these triggers stop them
 --    editing the fields that decide privilege (e.g. approving their own
 --    club, or self-promoting). Privileged RPCs run as the special_admin and
@@ -210,7 +210,7 @@ create trigger lock_club_fields before update on public.clubs
   for each row execute procedure public.lock_club_privileged_fields();
 
 -- PROFILES: non-admins can't change any role (blocks self-escalation);
--- and NO ONE can set 'special_admin' via an UPDATE — the lone special_admin
+-- and NO ONE can set 'special_admin' via an UPDATE: the lone special_admin
 -- is minted only by bootstrap_special_admin(), which flips the GUC below.
 create or replace function public.lock_profile_role()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -251,7 +251,7 @@ begin
   end if;
   select id into v_id from profiles where lower(email) = lower(p_email);
   if v_id is null then
-    raise exception 'No profile for % — that user must sign in once first', p_email;
+    raise exception 'No profile for %; that user must sign in once first', p_email;
   end if;
   perform set_config('app.allow_special_admin', 'on', true);  -- one-shot bypass
   update profiles set role = 'special_admin' where id = v_id;
@@ -326,7 +326,7 @@ end;
 $$;
 
 -- Special-admin only: approve a club. Approving a club also verifies its
--- submitter as a president — one action clears both gates for the common case.
+-- submitter as a president: one action clears both gates for the common case.
 create or replace function public.approve_club(p_club_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_owner uuid;

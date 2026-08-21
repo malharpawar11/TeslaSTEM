@@ -39,7 +39,7 @@ export const globalLimiter = makeLimiter(
   ipKey,
 );
 
-// Auth endpoints — tighter, scoped by IP+email body to slow credential stuffing.
+// Auth endpoints: tighter, scoped by IP+email body to slow credential stuffing.
 export const authLimiter = makeLimiter(
   'auth',
   RATE_LIMITS.auth.windowMs,
@@ -61,7 +61,7 @@ export const writeLimiter = makeLimiter(
   userOrIpKey,
 );
 
-// Announcement / push triggers — very tight to prevent broadcast spam.
+// Announcement / push triggers: very tight to prevent broadcast spam.
 export const pushLimiter = makeLimiter(
   'push',
   RATE_LIMITS.push.windowMs,

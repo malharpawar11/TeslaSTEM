@@ -72,7 +72,7 @@ export default function BrowseScreen() {
     setJoinedOnly(false);
   }, []);
 
-  // Joining is a server action, so the card reports what actually happened —
+  // Joining is a server action, so the card reports what actually happened:
   // including the "waiting for approval" case at clubs that vet their members.
   const toggleJoin = useCallback(
     async (club: Club) => {
@@ -88,7 +88,7 @@ export default function BrowseScreen() {
       }
       toast(
         res.status === 'pending'
-          ? `Requested to join ${club.name} — a club leader will review it.`
+          ? `Requested to join ${club.name}: a club leader will review it.`
           : `Joined ${club.name}`,
       );
     },
@@ -116,7 +116,7 @@ export default function BrowseScreen() {
         <SkeletonRow count={4} />
       </View>
     ) : error ? (
-      // A failed load is reported as a failure — never as an empty directory,
+      // A failed load is reported as a failure, never as an empty directory,
       // and never by falling back to placeholder clubs.
       <EmptyState
         icon="cloud-offline-outline"
@@ -210,7 +210,7 @@ export default function BrowseScreen() {
           showsVerticalScrollIndicator={false}
           // The list is the only in-flow child of a flex-1 container, so it
           // must explicitly claim the space. react-native-web's ScrollView
-          // grows by default; native ScrollView does not — without flex:1 the
+          // grows by default; native ScrollView does not: without flex:1 the
           // list has no viewport and renders zero rows on iOS/Android.
           style={{ flex: 1 }}
           contentContainerStyle={{

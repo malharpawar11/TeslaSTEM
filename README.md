@@ -41,9 +41,9 @@ upcoming events, announcements, new files, and notifications. Events can be
 added to Google Calendar or exported as `.ics` for Apple/other calendars, and a
 platform-wide search covers clubs, announcements, events, files, and notes.
 
-**Club leadership** gets a management area per club —
+**Club leadership** gets a management area per club:
 Overview · Announcements · Events · Members · Board · Files · Resources ·
-Settings — with board-member verification: a student requests a position, the
+Settings, with board-member verification: a student requests a position, the
 president approves it and grants an exact set of permissions.
 
 **School admins** approve new clubs, verify presidents, review claims on
@@ -72,7 +72,7 @@ Grantable permissions: `announcements`, `events`, `files`, `notes`, `members`,
 
 ## Security model
 
-- Accounts are restricted to `@lwsd.org` addresses — enforced client-side and
+- Accounts are restricted to `@lwsd.org` addresses, enforced client-side and
   by a `BEFORE INSERT` trigger on `auth.users`, so a tampered client still
   cannot create a non-LWSD account.
 - Authorization lives in the database, not the UI. Content writes are gated by
@@ -83,7 +83,7 @@ Grantable permissions: `announcements`, `events`, `files`, `notes`, `members`,
 - Files and notes are member-only (`is_club_member`); announcements and events
   stay public so the directory and calendar work before joining. The
   `club-files` bucket is public-read with unguessable keys (link-style
-  sharing) — the row that points at an object is member-gated, and writes are
+  sharing); the row that points at an object is member-gated, and writes are
   restricted by key prefix to people holding the club's `files` permission.
 - Notifications are written only by database triggers; a user's only permitted
   write to their inbox is marking rows read (enforced by a column-lock trigger).
@@ -95,7 +95,7 @@ Grantable permissions: `announcements`, `events`, `files`, `notes`, `members`,
   `ON DELETE SET NULL`, so deleting an account never fails and never deletes a
   club's history.
 - Push: the app stores only an Expo push token. Delivery belongs to a trusted
-  backend job — never send with service credentials from the client. Meeting
+  backend job; never send with service credentials from the client. Meeting
   reminders in the app are scheduled locally on the device.
 
 ## Layout

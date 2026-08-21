@@ -1,6 +1,6 @@
 -- The lock triggers exist to stop CLIENT writes from touching server-owned
--- columns. They were also firing for internal operations that have no auth.uid()
--- — most importantly the ON DELETE SET NULL cascade that runs when a profile is
+-- columns. They were also firing for internal operations that have no auth.uid():
+-- most importantly the ON DELETE SET NULL cascade that runs when a profile is
 -- removed: Postgres set clubs.created_by to null, the trigger copied the old
 -- value straight back, and the delete then failed with a foreign key violation.
 -- Deleting any user who had submitted a club was therefore impossible, from the

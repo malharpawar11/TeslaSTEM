@@ -67,7 +67,7 @@ export function markNotificationsRead(ids?: number[]): Promise<RpcResult> {
 }
 
 // ---------------------------------------------------------------------------
-// Preferences — one global row plus one row per club the user overrode.
+// Preferences: one global row plus one row per club the user overrode.
 // ---------------------------------------------------------------------------
 
 export interface PrefsRow extends NotificationPrefs {

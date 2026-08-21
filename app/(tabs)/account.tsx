@@ -235,7 +235,7 @@ function AccountDashboard() {
         )}
       </Animated.View>
 
-      {/* Notification preferences — the account-wide defaults. Each club can
+      {/* Notification preferences: the account-wide defaults. Each club can
           override these from its own page. */}
       <Animated.View entering={FadeIn.duration(180)}>
         <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
