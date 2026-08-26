@@ -31,6 +31,22 @@ export interface Profile {
 
 export type VerificationStep = { email: string } | null;
 
+/**
+ * Result of a sign-in / sign-up attempt. `requiresCode` means the account
+ * exists but is unverified and a 6-digit code is now in the user's inbox;
+ * the caller should show the code step.
+ */
+export interface AuthAttempt {
+  error: string | null;
+  requiresCode: boolean;
+  /** Sign-up only: the address is already registered, so sign in instead. */
+  existingAccount?: boolean;
+}
+
+/** InsForge error codes this flow has to branch on, not just display. */
+const NEEDS_VERIFICATION = 'AUTH_NEED_VERIFICATION';
+const EMAIL_EXISTS = 'AUTH_EMAIL_EXISTS';
+
 interface AuthContextValue {
   configured: boolean;
   loading: boolean;
@@ -43,11 +59,17 @@ interface AuthContextValue {
   /** Re-reads the profile row, e.g. after a role/verification change. */
   refreshProfile: () => Promise<void>;
   /** Creates an @lwsd.org account. Returns whether a 6-digit code was sent. */
-  signUp: (email: string, password: string) => Promise<{ error: string | null; requiresCode: boolean }>;
+  signUp: (email: string, password: string) => Promise<AuthAttempt>;
   /** Exchanges the emailed code for a session, completing sign-up. */
   verifyCode: (email: string, code: string) => Promise<{ error: string | null }>;
-  /** Signs in an already-verified @lwsd.org account. */
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  /**
+   * Signs in an @lwsd.org account. If the address exists but was never
+   * verified, this sends a fresh code and reports `requiresCode: true` so the
+   * caller can drop the user into the code step instead of dead-ending.
+   */
+  signIn: (email: string, password: string) => Promise<AuthAttempt>;
+  /** Mails a new 6-digit code to an account that hasn't verified yet. */
+  resendCode: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -117,12 +139,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session?.user) await loadProfile(session.user.id);
   }, [session, loadProfile]);
 
-  const signUp = useCallback(async (email: string, password: string) => {
+  const resendCode = useCallback(async (email: string) => {
+    if (!insforge) return { error: 'Backend not configured.' };
+    const { error } = await insforge.auth.resendVerificationEmail({
+      email: email.trim().toLowerCase(),
+    });
+    return { error: error ? error.message : null };
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string): Promise<AuthAttempt> => {
     const e = email.trim().toLowerCase();
     if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.', requiresCode: false };
     if (!insforge) return { error: 'Backend not configured.', requiresCode: false };
     const { data, error } = await insforge.auth.signUp({ email: e, password });
-    if (error) return { error: error.message, requiresCode: false };
+    if (error) {
+      // Already registered. We can't tell from here whether that account is
+      // verified, so don't guess; hand it to sign-in, which mails a fresh
+      // code when the account turns out to be unverified.
+      if (error.error === EMAIL_EXISTS) {
+        return {
+          error: 'That email already has an account; enter your password to sign in.',
+          requiresCode: false,
+          existingAccount: true,
+        };
+      }
+      return { error: error.message, requiresCode: false };
+    }
     if (data?.requireEmailVerification) {
       return { error: null, requiresCode: true };
     }
@@ -136,21 +178,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!insforge) return { error: 'Backend not configured.' };
     const { data, error } = await insforge.auth.verifyEmail({
       email: email.trim().toLowerCase(),
-      otp: code.trim(),
+      // Codes get pasted from mail clients with stray spaces or dashes.
+      otp: code.replace(/\D/g, ''),
     });
     if (error) return { error: error.message };
     if (data) applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
     return { error: null };
   }, [applySession]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string): Promise<AuthAttempt> => {
     const e = email.trim().toLowerCase();
-    if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.' };
-    if (!insforge) return { error: 'Backend not configured.' };
+    if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.', requiresCode: false };
+    if (!insforge) return { error: 'Backend not configured.', requiresCode: false };
     const { data, error } = await insforge.auth.signInWithPassword({ email: e, password });
-    if (error) return { error: error.message };
+    if (error) {
+      // Credentials were fine but the address was never verified. Mail a new
+      // code (the original has almost certainly expired) and hand the caller
+      // the code step. Without this the account is permanently unreachable:
+      // sign-in rejects it and sign-up says the email is taken.
+      if (error.error === NEEDS_VERIFICATION) {
+        // A resend failure here (rate limit, mailer down) is not fatal: show
+        // the code step anyway so a code the user already holds still works.
+        await insforge.auth.resendVerificationEmail({ email: e });
+        return { error: null, requiresCode: true };
+      }
+      return { error: error.message, requiresCode: false };
+    }
     if (data) applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
-    return { error: null };
+    return { error: null, requiresCode: false };
   }, [applySession]);
 
   const signOut = useCallback(async () => {
@@ -173,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         verifyCode,
         signIn,
+        resendCode,
         signOut,
       }}
     >

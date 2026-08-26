@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -15,6 +15,10 @@ const LWSD_RE = /@lwsd\.org$/i;
 
 type Mode = 'signIn' | 'signUp';
 type Step = 'form' | 'code';
+
+// Matches `min_interval_seconds` in insforge.toml: the backend rejects a
+// resend inside this window, so don't offer the button until it has passed.
+const RESEND_COOLDOWN_SECONDS = 60;
 
 interface SignInGateProps {
   children: ReactNode;
@@ -38,7 +42,7 @@ export function SignInGate({
   title = 'Sign in to continue',
   subtitle = 'Use your Lake Washington School District (@lwsd.org) account.',
 }: SignInGateProps) {
-  const { configured, loading, session, signUp, verifyCode, signIn } = useAuth();
+  const { configured, loading, session, signUp, verifyCode, signIn, resendCode } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>('signIn');
   const [step, setStep] = useState<Step>('form');
@@ -46,7 +50,16 @@ export function SignInGate({
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Tick the resend cooldown down to zero, then re-enable the button.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
 
   // Demo mode (no backend) or an existing session: pass straight through.
   if (!configured || session) return <>{children}</>;
@@ -66,38 +79,74 @@ export function SignInGate({
     return e;
   };
 
+  /** Move to the code step and start the resend cooldown for the code just sent. */
+  const enterCodeStep = (e: string, message: string) => {
+    setEmail(e);
+    setCode('');
+    setNotice(message);
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+    setStep('code');
+  };
+
   const submit = async () => {
     const e = validate();
     if (!e) return;
     setError(null);
+    setNotice(null);
     setBusy(true);
-    if (mode === 'signUp') {
-      const res = await signUp(e, password);
-      setBusy(false);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      setEmail(e);
-      if (res.requiresCode) setStep('code');
-    } else {
-      const res = await signIn(e, password);
-      setBusy(false);
-      if (res.error) setError(res.error);
+    const res = mode === 'signUp' ? await signUp(e, password) : await signIn(e, password);
+    setBusy(false);
+
+    // An unverified account reaches here from either mode: sign-up returns
+    // requiresCode for a brand-new user, sign-in returns it for someone who
+    // never finished. Both mean "a code is in their inbox".
+    if (res.requiresCode) {
+      enterCodeStep(e, `We sent a 6-digit code to ${e}.`);
+      return;
     }
+    if (res.error) {
+      setError(res.error);
+      // The address is taken, so sign-up can never succeed; flip to sign-in
+      // with the email kept so the user just types their password.
+      if (res.existingAccount) {
+        setMode('signIn');
+        setEmail(e);
+        setPassword('');
+      }
+      return;
+    }
+    setEmail(e);
   };
 
   const verify = async () => {
-    if (code.trim().length < 6) {
+    const digits = code.replace(/\D/g, '');
+    if (digits.length !== 6) {
       setError('Enter the 6-digit code from your email.');
       return;
     }
     setError(null);
+    setNotice(null);
     setBusy(true);
-    const res = await verifyCode(email, code);
+    const res = await verifyCode(email, digits);
     setBusy(false);
     // On success the session updates and this component re-renders into children.
     if (res.error) setError(res.error);
+  };
+
+  const resend = async () => {
+    if (cooldown > 0 || busy) return;
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    const res = await resendCode(email);
+    setBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    setCode('');
+    setNotice(`A new code is on its way to ${email}.`);
+    setCooldown(RESEND_COOLDOWN_SECONDS);
   };
 
   return (
@@ -132,6 +181,7 @@ export function SignInGate({
                     onPress={() => {
                       setMode('signIn');
                       setError(null);
+                      setNotice(null);
                     }}
                     className={`flex-1 items-center rounded-lg py-2 ${
                       mode === 'signIn' ? 'bg-light-surface dark:bg-dark-surface' : ''
@@ -153,6 +203,7 @@ export function SignInGate({
                     onPress={() => {
                       setMode('signUp');
                       setError(null);
+                      setNotice(null);
                     }}
                     className={`flex-1 items-center rounded-lg py-2 ${
                       mode === 'signUp' ? 'bg-light-surface dark:bg-dark-surface' : ''
@@ -218,6 +269,7 @@ export function SignInGate({
                       setStep('form');
                       setCode('');
                       setError(null);
+                      setNotice(null);
                     }}
                     accessibilityRole="button"
                     accessibilityLabel="Change email"
@@ -230,12 +282,15 @@ export function SignInGate({
                 <Input
                   label="6-digit code"
                   value={code}
-                  onChangeText={setCode}
+                  onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   keyboardType="number-pad"
                   autoCapitalize="none"
                   icon="keypad-outline"
                   returnKeyType="go"
+                  maxLength={6}
+                  textContentType="oneTimeCode"
+                  autoComplete="one-time-code"
                   onSubmitEditing={verify}
                   helper="Check your inbox: the code expires shortly."
                 />
@@ -248,8 +303,37 @@ export function SignInGate({
                   loading={busy}
                   onPress={verify}
                 />
+                <PressableScale
+                  onPress={resend}
+                  disabled={cooldown > 0 || busy}
+                  className="items-center py-1"
+                  accessibilityRole="button"
+                  accessibilityLabel="Resend verification code"
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      cooldown > 0
+                        ? 'text-light-subtle dark:text-dark-subtle'
+                        : 'text-python-blue-dark dark:text-python-blue-light'
+                    }`}
+                  >
+                    {cooldown > 0 ? `Resend code in ${cooldown}s` : "Didn't get it? Resend code"}
+                  </Text>
+                </PressableScale>
               </View>
             )}
+
+            {notice && !error ? (
+              <Animated.View
+                entering={FadeIn.duration(180)}
+                className="mt-4 flex-row items-start gap-2 rounded-xl border border-python-blue/40 bg-python-blue/10 p-3 dark:bg-python-blue/20"
+              >
+                <Ionicons name="mail-unread-outline" size={16} color={brand.blue} />
+                <Text className="flex-1 text-xs font-semibold leading-5 text-python-blue-dark dark:text-python-blue-light">
+                  {notice}
+                </Text>
+              </Animated.View>
+            ) : null}
 
             {error ? (
               <Animated.View
