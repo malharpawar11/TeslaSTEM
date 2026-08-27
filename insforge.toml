@@ -13,12 +13,15 @@ require_uppercase = false
 require_special_char = false
 
 [auth.smtp]
-enabled = false
-host = ""
+enabled = true
+host = "smtp.gmail.com"
 port = 465
-username = ""
-sender_email = ""
-sender_name = ""
+username = "teslastem825@gmail.com"
+# password is managed via secrets, never stored here:
+# npx -y @insforge/cli secrets add SMTP_PASSWORD "<google app password>"
+password = "env(SMTP_PASSWORD)"
+sender_email = "teslastem825@gmail.com"
+sender_name = "Tesla STEM Clubs"
 min_interval_seconds = 60
 
 [storage]
