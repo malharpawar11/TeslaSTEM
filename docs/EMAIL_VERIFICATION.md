@@ -7,3 +7,5 @@ On October 4, 2026, a live resend to the owner's supplied, registered, unverifie
 Unverified sign-in previously ignored resend errors and always displayed “We sent a 6-digit code.” It now propagates the error while keeping the code input and resend available, so an existing valid code can still be entered without a false delivery claim.
 
 Validation: TypeScript checking, existing discovery regression tests, and web export. Live auth configuration was inspected; no backend configuration change was necessary.
+
+Follow-up: the deployed backend reports an unverified sign-in as HTTP 403 with “Email verification required,” rather than the legacy `AUTH_NEED_VERIFICATION` code. The app now recognizes both responses and opens the code-entry step. Regression tests cover the current response, the legacy response, and unrelated forbidden/invalid-credential/server errors.

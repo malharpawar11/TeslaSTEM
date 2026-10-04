@@ -10,6 +10,7 @@ import {
 import { AppState } from "react-native";
 import { getRefreshToken, persistRefreshToken } from "@/lib/authStorage";
 import { insforge, isInsforgeConfigured } from "@/lib/insforge";
+import { requiresEmailVerification } from "@/lib/authErrors";
 import type { AppRole, ApprovalStatus } from "@/types/domain";
 
 export type { AppRole } from "@/types/domain";
@@ -52,7 +53,6 @@ export interface AuthAttempt {
 }
 
 /** InsForge error codes this flow has to branch on, not just display. */
-const NEEDS_VERIFICATION = "AUTH_NEED_VERIFICATION";
 const EMAIL_EXISTS = "AUTH_EMAIL_EXISTS";
 
 interface AuthContextValue {
@@ -299,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // code (the original has almost certainly expired) and hand the caller
         // the code step. Without this the account is permanently unreachable:
         // sign-in rejects it and sign-up says the email is taken.
-        if (error.error === NEEDS_VERIFICATION) {
+        if (requiresEmailVerification(error)) {
           // Keep the code step usable, but never claim delivery when sending
           // failed (including SMTP errors or the resend rate limit).
           const { error: sendError } =
