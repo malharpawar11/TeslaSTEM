@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Image, ScrollView, RefreshControl } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { CampusVisual, PageIntro } from '@/components/CampusVisual';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -31,72 +33,30 @@ import { brand, surfaces } from '@/theme/tokens';
 function Hero() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const focused = useIsFocused();
   const { clubs, loading } = useClubs();
-
-  return (
-    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      {/* Brand header: a single dark green→blue field, sized to the content
-          it holds rather than the whole screen. */}
-      <Gradient
-        colors={BRAND_COLORS_RICH as unknown as readonly [string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ paddingTop: insets.top + 12 }}
-      >
-        <View className="flex-row items-center justify-between px-6">
-          <View className="flex-row items-center gap-2.5">
-            <Image
-              source={require('../../assets/teslastemlogo.png')}
-              style={{ width: 22, height: 22 }}
-              resizeMode="contain"
-              accessibilityLabel="Tesla STEM Pythons logo"
-            />
-            <Text className="text-sm font-semibold text-white">Tesla STEM Clubs</Text>
-          </View>
+  return <ScrollView className="flex-1 bg-light-bg dark:bg-dark-bg" contentContainerStyle={{ paddingBottom: 40 }}>
+    <Gradient colors={['#10285D', '#104A51']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top + 20, overflow: 'hidden' }}>
+      <CampusVisual active={focused} />
+      <View className="px-7 pb-10">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-3"><Image source={require('../../assets/teslastemlogo.png')} style={{ width: 32, height: 32 }} resizeMode="contain" accessibilityLabel="Tesla STEM Pythons logo" /><Text className="text-base font-bold text-white">Tesla STEM Clubs</Text></View>
           <ThemeToggle variant="translucent" />
         </View>
-
-        <View className="px-6 pb-9 pt-10">
-          <Text className="max-w-[440px] text-4xl font-semibold tracking-tight text-white">
-            Every club at Tesla STEM, in one place.
-          </Text>
-          <Text className="mt-3 max-w-[420px] text-base leading-6 text-white/75">
-            Join clubs and get their announcements, files, and events on a single calendar,
-            instead of five group chats.
-          </Text>
-          {!loading && clubs.length > 0 ? (
-            <Text className="mt-5 text-sm text-white/60">
-              {clubs.length} clubs currently listed
-            </Text>
-          ) : null}
-        </View>
-      </Gradient>
-
-      <View className="px-6 pt-6" style={{ paddingBottom: insets.bottom + 24 }}>
-        <View className="max-w-[440px] gap-2.5">
-          <Button
-            label="Browse the directory"
-            onPress={() => router.push('/browse')}
-            variant="primary"
-            size="lg"
-            iconRight="arrow-forward"
-            fullWidth
-          />
-          <Button
-            label="Sign in with your @lwsd.org account"
-            onPress={() => router.push('/account')}
-            variant="secondary"
-            size="lg"
-            fullWidth
-          />
-          <Text className="mt-1 text-xs leading-5 text-light-muted dark:text-dark-muted">
-            Signing in is only needed to join clubs and see your own updates. Browsing is open to
-            everyone.
-          </Text>
-        </View>
+        <View className="mt-12 self-start rounded-full border border-white/20 bg-white/10 px-3 py-2"><Text className="text-2xs font-bold tracking-widest text-white/80">YOUR CAMPUS. YOUR COMMUNITY.</Text></View>
+        <Text accessibilityRole="header" className="mt-6 max-w-xl text-5xl font-bold tracking-tight text-white">Find your people.{'\n'}Build your future.</Text>
+        <Text className="mt-4 max-w-md text-base leading-6 text-white/75">Explore the clubs that match your curiosity. Make connections, discover opportunities, and keep every deadline in view.</Text>
+        <View className="mt-7 self-start"><Button label="Explore clubs" iconRight="arrow-forward" size="xl" variant="success" onPress={() => router.push('/browse')} /></View>
+        {!loading && clubs.length > 0 ? <View className="mt-7 flex-row items-center gap-2"><View className="h-2 w-2 rounded-full bg-python-green-light" /><Text className="text-sm text-white/75">{clubs.length} clubs. A place for every interest.</Text></View> : null}
       </View>
+    </Gradient>
+    <View className="gap-5 px-6 pt-7">
+      <SectionHeader eyebrow="MADE FOR STUDENTS" title="Your next chapter starts here" size="lg" />
+      {([{icon:'compass-outline',title:'Discover your fit',body:'Filter by interests, career goals, and when you are free.',route:'/browse'}, {icon:'calendar-outline',title:'Stay one step ahead',body:'Meetings and deadlines from all your clubs in one calendar.',route:'/calendar'}, {icon:'chatbubbles-outline',title:'Start a conversation',body:'Reach your club board directly. No email hunting.',route:'/messages'}] as const).map(item => <PressableScale key={item.title} accessibilityRole="button" accessibilityLabel={item.title} onPress={() => router.push(item.route)} className="flex-row items-center gap-4 rounded-2xl border border-light-border bg-light-surface p-5 dark:border-dark-border dark:bg-dark-surface"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-python-blue/10"><Ionicons name={item.icon} size={24} color={brand.blue} /></View><View className="flex-1"><Text className="text-base font-bold text-light-text dark:text-dark-text">{item.title}</Text><Text className="mt-1 text-sm text-light-muted dark:text-dark-muted">{item.body}</Text></View><Ionicons name="arrow-forward" size={18} color={brand.blue} /></PressableScale>)}
+      <Button label="Sign in with your @lwsd.org account" variant="outline" size="lg" fullWidth onPress={() => router.push('/account')} />
+      <Text className="text-center text-xs text-light-muted dark:text-dark-muted">Explore freely. Sign in to join clubs and personalize your campus.</Text>
     </View>
-  );
+  </ScrollView>;
 }
 
 /* ----------------------------------------------------------------------------
@@ -129,7 +89,7 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
           accessibilityRole="button"
           accessibilityLabel={`Open ${club.name}`}
           scaleTo={0.96}
-          className="w-[200px] rounded-xl border border-light-border bg-light-surface p-3.5 dark:border-dark-border dark:bg-dark-surface"
+          className="w-[240px] rounded-2xl border border-light-border bg-light-surface p-5 dark:border-dark-border dark:bg-dark-surface"
         >
           <View className="flex-row items-center gap-2.5">
             <View className="h-9 w-9 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
@@ -239,6 +199,8 @@ function DashboardScreen() {
           <ThemeToggle />
         </View>
       </View>
+
+      <View className="px-5 pt-5"><PageIntro eyebrow="YOUR CAMPUS / TODAY" title="Make room for what matters." description="Your clubs, conversations, and next opportunities. All connected." ><Button label="Discover something new" variant="success" size="md" iconRight="arrow-forward" onPress={() => router.push('/browse')} /></PageIntro></View>
 
       {loading ? (
         <View className="px-5 pt-6">

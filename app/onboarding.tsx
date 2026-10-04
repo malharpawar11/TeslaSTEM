@@ -1,3 +1,4 @@
+import { PageIntro } from '@/components/CampusVisual';
 import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -91,13 +92,7 @@ function Survey() {
       }}
     >
       <View className="gap-4">
-        <Text className="text-2xl font-semibold text-light-text dark:text-dark-text">
-          Find your clubs
-        </Text>
-        <Text className="text-sm text-light-muted dark:text-dark-muted">
-          Choose your interests, career goals, and availability. You can edit
-          these anytime. All meeting times use Pacific time.
-        </Text>
+        <PageIntro eyebrow="YOUR PERSONAL CLUB GUIDE" title="Follow your curiosity." description="Choose your interests, future goals, and free time. We will help you find your fit. Edit anytime; schedules use Pacific time." />
         {loading ? (
           <SkeletonRow count={3} />
         ) : error ? (
@@ -113,7 +108,7 @@ function Survey() {
         ) : (
           <>
             <Text className="font-semibold text-light-text dark:text-dark-text">
-              What interests you?
+              01 / What interests you?
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {CATEGORIES.map((category) => (
@@ -153,7 +148,7 @@ function Survey() {
               ))}
             </View>
             <Text className="font-semibold text-light-text dark:text-dark-text">
-              When are you available?
+              03 / Make space in your week
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {DAYS.map((d) => (

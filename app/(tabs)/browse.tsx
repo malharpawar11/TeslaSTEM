@@ -1,3 +1,4 @@
+import { PageIntro } from '@/components/CampusVisual';
 import { useMemo, useState, useCallback } from "react";
 import { View, Text, FlatList } from "react-native";
 import { useRouter } from "expo-router";
@@ -148,13 +149,13 @@ export default function BrowseScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Club }) => (
-      <ClubCard
+      <View className="px-5"><ClubCard
         club={item}
         joined={isMember(item.id)}
         pending={membershipFor(item.id)?.status === "pending"}
         onPress={() => router.push(`/club/${item.id}`)}
         onToggleJoin={() => void toggleJoin(item)}
-      />
+      /></View>
     ),
     [isMember, membershipFor, toggleJoin, router],
   );
@@ -198,18 +199,15 @@ export default function BrowseScreen() {
       />
     ) : null;
 
-  return (
-    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      {/* Header. Static rather than scroll-collapsing: search and filters stay
-          exactly where the student left them. */}
+  const header = (
       <View
-        className="border-b border-light-border bg-light-surface px-5 pb-2 dark:border-dark-border dark:bg-dark-surface"
+        className="px-5 pb-3"
         style={{ paddingTop: insets.top + 10 }}
       >
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
-              Clubs
+            <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
+              Discover clubs
             </Text>
             <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
               {clubs.length} club{clubs.length === 1 ? "" : "s"} at Tesla STEM
@@ -252,6 +250,7 @@ export default function BrowseScreen() {
           </View>
         </View>
 
+        <View className="mt-5"><PageIntro eyebrow="EXPLORE / CONNECT / GROW" title="A club for your curiosity." description="Find a community that fits your goals and your week." /></View>
         <View className="mt-3">
           <SearchBar
             value={query}
@@ -316,8 +315,13 @@ export default function BrowseScreen() {
         ) : null}
       </View>
 
-      {body ?? (
+  );
+
+  return (
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+      {body ? <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>{header}{body}</ScrollView> : (
         <FlatList
+          ListHeaderComponent={header}
           data={data}
           keyExtractor={(c) => c.id}
           renderItem={renderItem}
@@ -331,7 +335,7 @@ export default function BrowseScreen() {
           onRefresh={() => void refresh()}
           contentContainerStyle={{
             paddingTop: 12,
-            paddingHorizontal: 20,
+            paddingHorizontal: 0,
             paddingBottom: 32,
           }}
           initialNumToRender={8}
