@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useEffect, useState } from "react";
+import { View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import {
   Avatar,
   Button,
@@ -11,23 +11,23 @@ import {
   PressableScale,
   SectionHeader,
   Tag,
-} from '@/components/ui';
-import { AnnouncementCard } from '@/components/ClubContentCards';
-import { useToast } from '@/context/ToastContext';
+} from "@/components/ui";
+import { AnnouncementCard } from "@/components/ClubContentCards";
+import { useToast } from "@/context/ToastContext";
 import {
   fetchClubClaims,
   reviewClubClaim,
   transferClubOwnership,
   setClubActive,
   type ClubClaim,
-} from '@/data/adminRepo';
+} from "@/data/adminRepo";
 import {
   createAnnouncement,
   deleteAnnouncement,
   fetchSchoolAnnouncements,
-} from '@/data/contentRepo';
-import type { Announcement, Club } from '@/types/domain';
-import { brand } from '@/theme/tokens';
+} from "@/data/contentRepo";
+import type { Announcement, Club } from "@/types/domain";
+import { brand } from "@/theme/tokens";
 
 /**
  * The school-wide sections of the admin dashboard: president claims on
@@ -41,15 +41,23 @@ import { brand } from '@/theme/tokens';
 // ---------------------------------------------------------------------------
 
 export function ClubClaimSection() {
-  const { toastResult } = useToast();
+  const { toast, toastResult } = useToast();
   const [claims, setClaims] = useState<ClubClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setClaims(await fetchClubClaims());
-    setLoading(false);
-  }, []);
+    try {
+      setClaims(await fetchClubClaims());
+    } catch (failure) {
+      toast(
+        failure instanceof Error ? failure.message : "Could not load claims.",
+        "error",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     void load();
@@ -65,7 +73,7 @@ export function ClubClaimSection() {
           res,
           approve
             ? `${claim.displayName ?? claim.email} now manages ${claim.clubName}.`
-            : 'Claim declined.',
+            : "Claim declined.",
         )
       ) {
         await load();
@@ -84,7 +92,9 @@ export function ClubClaimSection() {
       />
       <View className="mt-4">
         {loading ? (
-          <Text className="text-xs text-light-muted dark:text-dark-muted">Loading claims…</Text>
+          <Text className="text-xs text-light-muted dark:text-dark-muted">
+            Loading claims…
+          </Text>
         ) : claims.length === 0 ? (
           <EmptyState
             icon="ribbon-outline"
@@ -100,7 +110,9 @@ export function ClubClaimSection() {
                   <Avatar
                     size="md"
                     tone="info"
-                    initials={(claim.displayName ?? claim.email).slice(0, 2).toUpperCase()}
+                    initials={(claim.displayName ?? claim.email)
+                      .slice(0, 2)
+                      .toUpperCase()}
                   />
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
@@ -157,15 +169,24 @@ export function ClubClaimSection() {
 export function SchoolAnnouncementSection() {
   const { toast, toastResult } = useToast();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Announcement | null>(null);
 
   const load = useCallback(async () => {
-    setAnnouncements(await fetchSchoolAnnouncements());
-  }, []);
+    try {
+      setAnnouncements(await fetchSchoolAnnouncements());
+    } catch (failure) {
+      toast(
+        failure instanceof Error
+          ? failure.message
+          : "Could not load announcements.",
+        "error",
+      );
+    }
+  }, [toast]);
 
   useEffect(() => {
     void load();
@@ -173,15 +194,15 @@ export function SchoolAnnouncementSection() {
 
   const post = useCallback(async () => {
     if (!title.trim() || !body.trim()) {
-      toast('Add a title and a message.', 'error');
+      toast("Add a title and a message.", "error");
       return;
     }
     setBusy(true);
     const res = await createAnnouncement(null, title, body);
     setBusy(false);
-    if (toastResult(res, 'Posted to the whole school.')) {
-      setTitle('');
-      setBody('');
+    if (toastResult(res, "Posted to the whole school.")) {
+      setTitle("");
+      setBody("");
       setOpen(false);
       await load();
     }
@@ -199,7 +220,12 @@ export function SchoolAnnouncementSection() {
         {open ? (
           <Card elevation="ambient" className="mb-3 p-4">
             <View className="gap-3">
-              <Input label="Title" value={title} onChangeText={setTitle} placeholder="Club fair Friday" />
+              <Input
+                label="Title"
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Club fair Friday"
+              />
               <Input
                 label="Message"
                 value={body}
@@ -255,7 +281,7 @@ export function SchoolAnnouncementSection() {
             {announcements.map((a) => (
               <AnnouncementCard
                 key={a.id}
-                announcement={{ ...a, clubName: 'Tesla STEM' }}
+                announcement={{ ...a, clubName: "Tesla STEM" }}
                 showClub
                 onDelete={() => setPendingDelete(a)}
               />
@@ -267,7 +293,7 @@ export function SchoolAnnouncementSection() {
       <ConfirmDialog
         visible={!!pendingDelete}
         title="Delete announcement?"
-        message={`"${pendingDelete?.title ?? ''}" will be removed for every student.`}
+        message={`"${pendingDelete?.title ?? ""}" will be removed for every student.`}
         confirmLabel="Delete"
         destructive
         busy={busy}
@@ -277,7 +303,7 @@ export function SchoolAnnouncementSection() {
           const res = await deleteAnnouncement(pendingDelete.id);
           setBusy(false);
           setPendingDelete(null);
-          if (toastResult(res, 'Announcement deleted.')) await load();
+          if (toastResult(res, "Announcement deleted.")) await load();
         }}
         onCancel={() => setPendingDelete(null)}
       />
@@ -291,8 +317,8 @@ export function SchoolAnnouncementSection() {
 
 export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
   const { toast, toastResult } = useToast();
-  const [selectedId, setSelectedId] = useState('');
-  const [email, setEmail] = useState('');
+  const [selectedId, setSelectedId] = useState("");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Club | null>(null);
 
@@ -300,18 +326,18 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
 
   const transfer = useCallback(async () => {
     if (!selected) {
-      toast('Pick a club first.', 'error');
+      toast("Pick a club first.", "error");
       return;
     }
     if (!/@lwsd\.org$/i.test(email.trim())) {
-      toast('Enter the new president\'s @lwsd.org email.', 'error');
+      toast("Enter the new president's @lwsd.org email.", "error");
       return;
     }
     setBusy(true);
     const res = await transferClubOwnership(selected.id, email.trim());
     setBusy(false);
     if (toastResult(res, `${selected.name} transferred to ${email.trim()}.`)) {
-      setEmail('');
+      setEmail("");
     }
   }, [selected, email, toast, toastResult]);
 
@@ -338,15 +364,15 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
               scaleTo={0.96}
               className={`h-8 items-center justify-center rounded-full px-3 ${
                 selectedId === club.id
-                  ? 'bg-python-blue'
-                  : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
+                  ? "bg-python-blue"
+                  : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
               }`}
             >
               <Text
                 className={`text-2xs font-semibold ${
                   selectedId === club.id
-                    ? 'text-white'
-                    : 'text-light-secondary dark:text-dark-secondary'
+                    ? "text-white"
+                    : "text-light-secondary dark:text-dark-secondary"
                 }`}
                 numberOfLines={1}
               >
@@ -384,10 +410,14 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
               onPress={() => setArchiveTarget(selected)}
             />
             <View className="flex-row items-start gap-2">
-              <Ionicons name="information-circle-outline" size={13} color={brand.blue} />
+              <Ionicons
+                name="information-circle-outline"
+                size={13}
+                color={brand.blue}
+              />
               <Text className="flex-1 text-2xs leading-4 text-light-subtle dark:text-dark-subtle">
-                Archiving removes the club from the directory and the calendar. Its history and
-                audit trail are kept.
+                Archiving removes the club from the directory and the calendar.
+                Its history and audit trail are kept.
               </Text>
             </View>
           </View>
@@ -396,7 +426,7 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
 
       <ConfirmDialog
         visible={!!archiveTarget}
-        title={`Archive ${archiveTarget?.name ?? ''}?`}
+        title={`Archive ${archiveTarget?.name ?? ""}?`}
         message="Students will no longer see it in the directory, and it stops accepting new members. You can restore it from the database if needed."
         confirmLabel="Archive"
         destructive

@@ -1,6 +1,17 @@
-import { insforge } from '@/lib/insforge';
-import { callRpc, currentUserId, NOT_CONFIGURED, type RpcResult } from './result';
-import type { Announcement, ClubEvent, ClubFile, ClubNote, EventStatus } from '@/types/domain';
+import { insforge } from "@/lib/insforge";
+import {
+  callRpc,
+  currentUserId,
+  NOT_CONFIGURED,
+  type RpcResult,
+} from "./result";
+import type {
+  Announcement,
+  ClubEvent,
+  ClubFile,
+  ClubNote,
+  EventStatus,
+} from "@/types/domain";
 
 /**
  * Club content: announcements, events, files, and notes.
@@ -20,7 +31,7 @@ import type { Announcement, ClubEvent, ClubFile, ClubNote, EventStatus } from '@
 // updated_by), so the author embed has to name the constraint explicitly:
 // an unqualified `profiles(...)` embed would be ambiguous and fail.
 const ANNOUNCEMENT_COLUMNS =
-  'id, club_id, title, body, pinned, created_at, created_by, author:profiles!announcements_created_by_fkey(display_name, email)';
+  "id, club_id, title, body, pinned, created_at, created_by, author:profiles!announcements_created_by_fkey(display_name, email)";
 
 interface DbAnnouncement {
   id: string;
@@ -38,20 +49,23 @@ function toAnnouncement(row: DbAnnouncement): Announcement {
     clubId: row.club_id,
     title: row.title,
     body: row.body,
-    date: row.created_at ?? '',
+    date: row.created_at ?? "",
     author,
   };
 }
 
-export async function fetchClubAnnouncements(clubId: string): Promise<Announcement[]> {
+export async function fetchClubAnnouncements(
+  clubId: string,
+): Promise<Announcement[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('announcements')
+    .from("announcements")
     .select(ANNOUNCEMENT_COLUMNS)
-    .eq('club_id', clubId)
-    .order('created_at', { ascending: false })
+    .eq("club_id", clubId)
+    .order("created_at", { ascending: false })
     .limit(60);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as unknown as DbAnnouncement[]).map(toAnnouncement);
 }
 
@@ -59,12 +73,13 @@ export async function fetchClubAnnouncements(clubId: string): Promise<Announceme
 export async function fetchSchoolAnnouncements(): Promise<Announcement[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('announcements')
+    .from("announcements")
     .select(ANNOUNCEMENT_COLUMNS)
-    .is('club_id', null)
-    .order('created_at', { ascending: false })
+    .is("club_id", null)
+    .order("created_at", { ascending: false })
     .limit(30);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as unknown as DbAnnouncement[]).map(toAnnouncement);
 }
 
@@ -75,14 +90,21 @@ export async function createAnnouncement(
 ): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
-  if (!uid) return { ok: false, error: 'Sign in to post an announcement.' };
-  const { error } = await insforge.database.from('announcements').insert([
-    { club_id: clubId, title: title.trim(), body: body.trim(), created_by: uid },
-  ]);
+  if (!uid) return { ok: false, error: "Sign in to post an announcement." };
+  const { error } = await insforge.database
+    .from("announcements")
+    .insert([
+      {
+        club_id: clubId,
+        title: title.trim(),
+        body: body.trim(),
+        created_by: uid,
+      },
+    ]);
   if (error) return { ok: false, error: error.message };
-  await callRpc('log_audit', {
-    p_action: 'create_announcement',
-    p_entity: 'announcement',
+  await callRpc("log_audit", {
+    p_action: "create_announcement",
+    p_entity: "announcement",
     p_metadata: { club_id: clubId, title: title.trim() },
   });
   return { ok: true };
@@ -96,15 +118,18 @@ export async function updateAnnouncement(
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
   const { error } = await insforge.database
-    .from('announcements')
+    .from("announcements")
     .update({ title: title.trim(), body: body.trim(), updated_by: uid })
-    .eq('id', id);
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function deleteAnnouncement(id: string): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await insforge.database.from('announcements').delete().eq('id', id);
+  const { error } = await insforge.database
+    .from("announcements")
+    .delete()
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
@@ -113,7 +138,7 @@ export async function deleteAnnouncement(id: string): Promise<RpcResult> {
 // ---------------------------------------------------------------------------
 
 const EVENT_COLUMNS =
-  'id, club_id, title, description, event_type, starts_at, ends_at, location, organizer, status';
+  "id, club_id, title, description, event_type, starts_at, ends_at, location, organizer, status";
 
 interface DbEvent {
   id: string;
@@ -145,17 +170,26 @@ function toEvent(row: DbEvent): ClubEvent {
   };
 }
 
-export async function fetchClubEvents(clubId: string, includePast = false): Promise<ClubEvent[]> {
+export async function fetchClubEvents(
+  clubId: string,
+  includePast = false,
+): Promise<ClubEvent[]> {
   if (!insforge) return [];
   let query = insforge.database
-    .from('club_events')
+    .from("club_events")
     .select(EVENT_COLUMNS)
-    .eq('club_id', clubId);
+    .eq("club_id", clubId);
   if (!includePast) {
-    query = query.gte('starts_at', new Date(Date.now() - 2 * 3600 * 1000).toISOString());
+    query = query.gte(
+      "starts_at",
+      new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    );
   }
-  const { data, error } = await query.order('starts_at', { ascending: true }).limit(100);
-  if (error || !data) return [];
+  const { data, error } = await query
+    .order("starts_at", { ascending: true })
+    .limit(100);
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as unknown as DbEvent[]).map(toEvent);
 }
 
@@ -163,13 +197,14 @@ export async function fetchClubEvents(clubId: string, includePast = false): Prom
 export async function fetchUpcomingEvents(limit = 100): Promise<ClubEvent[]> {
   if (!insforge) throw new Error(NOT_CONFIGURED);
   const { data, error } = await insforge.database
-    .from('club_events')
+    .from("club_events")
     .select(`${EVENT_COLUMNS}, clubs:club_id(name)`)
-    .eq('status', 'scheduled')
-    .gte('starts_at', new Date(Date.now() - 12 * 3600 * 1000).toISOString())
-    .order('starts_at', { ascending: true })
+    .eq("status", "scheduled")
+    .gte("starts_at", new Date(Date.now() - 12 * 3600 * 1000).toISOString())
+    .order("starts_at", { ascending: true })
     .limit(limit);
-  if (error || !data) throw new Error(error?.message ?? 'Could not load calendar events.');
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load calendar events.");
   return (data as unknown as DbEvent[]).map(toEvent);
 }
 
@@ -183,11 +218,14 @@ export interface EventInput {
   organizer: string;
 }
 
-export async function createEvent(clubId: string, input: EventInput): Promise<RpcResult> {
+export async function createEvent(
+  clubId: string,
+  input: EventInput,
+): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
-  if (!uid) return { ok: false, error: 'Sign in to create an event.' };
-  const { error } = await insforge.database.from('club_events').insert([
+  if (!uid) return { ok: false, error: "Sign in to create an event." };
+  const { error } = await insforge.database.from("club_events").insert([
     {
       club_id: clubId,
       title: input.title.trim(),
@@ -203,11 +241,14 @@ export async function createEvent(clubId: string, input: EventInput): Promise<Rp
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
-export async function updateEvent(id: string, input: EventInput): Promise<RpcResult> {
+export async function updateEvent(
+  id: string,
+  input: EventInput,
+): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
   const { error } = await insforge.database
-    .from('club_events')
+    .from("club_events")
     .update({
       title: input.title.trim(),
       description: input.description.trim() || null,
@@ -218,7 +259,7 @@ export async function updateEvent(id: string, input: EventInput): Promise<RpcRes
       organizer: input.organizer.trim() || null,
       updated_by: uid,
     })
-    .eq('id', id);
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
@@ -226,15 +267,18 @@ export async function updateEvent(id: string, input: EventInput): Promise<RpcRes
 export async function cancelEvent(id: string): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await insforge.database
-    .from('club_events')
-    .update({ status: 'cancelled' })
-    .eq('id', id);
+    .from("club_events")
+    .update({ status: "cancelled" })
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function deleteEvent(id: string): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await insforge.database.from('club_events').delete().eq('id', id);
+  const { error } = await insforge.database
+    .from("club_events")
+    .delete()
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
@@ -258,12 +302,15 @@ interface DbFile {
 export async function fetchClubFiles(clubId: string): Promise<ClubFile[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('club_files')
-    .select('id, club_id, folder, title, description, file_url, file_key, mime_type, size_bytes, created_at')
-    .eq('club_id', clubId)
-    .order('created_at', { ascending: false })
+    .from("club_files")
+    .select(
+      "id, club_id, folder, title, description, file_url, file_key, mime_type, size_bytes, created_at",
+    )
+    .eq("club_id", clubId)
+    .order("created_at", { ascending: false })
     .limit(200);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as unknown as DbFile[]).map((r) => ({
     id: r.id,
     clubId: r.club_id,
@@ -291,9 +338,9 @@ export async function uploadClubFile(
 ): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
-  if (!uid) return { ok: false, error: 'Sign in to upload files.' };
+  if (!uid) return { ok: false, error: "Sign in to upload files." };
 
-  const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_').slice(-80);
+  const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-80);
   const key = `clubs/${clubId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
 
   let payload: Blob;
@@ -303,28 +350,33 @@ export async function uploadClubFile(
     const res = await fetch(file.uri);
     payload = await res.blob();
   } else {
-    return { ok: false, error: 'Nothing to upload.' };
+    return { ok: false, error: "Nothing to upload." };
   }
 
-  const { data, error } = await insforge.storage.from('club-files').upload(key, payload);
-  if (error || !data) return { ok: false, error: error?.message ?? 'Upload failed.' };
+  const { data, error } = await insforge.storage
+    .from("club-files")
+    .upload(key, payload);
+  if (error || !data)
+    return { ok: false, error: error?.message ?? "Upload failed." };
 
-  const { error: rowError } = await insforge.database.from('club_files').insert([
-    {
-      club_id: clubId,
-      folder: meta.folder.trim() || 'General',
-      title: meta.title.trim() || file.name,
-      description: meta.description?.trim() || null,
-      file_url: data.url,
-      file_key: data.key,
-      mime_type: file.mimeType ?? payload.type ?? null,
-      size_bytes: payload.size ?? null,
-      uploaded_by: uid,
-    },
-  ]);
+  const { error: rowError } = await insforge.database
+    .from("club_files")
+    .insert([
+      {
+        club_id: clubId,
+        folder: meta.folder.trim() || "General",
+        title: meta.title.trim() || file.name,
+        description: meta.description?.trim() || null,
+        file_url: data.url,
+        file_key: data.key,
+        mime_type: file.mimeType ?? payload.type ?? null,
+        size_bytes: payload.size ?? null,
+        uploaded_by: uid,
+      },
+    ]);
   if (rowError) {
     // The object is orphaned otherwise: the row is what makes it visible.
-    await insforge.storage.from('club-files').remove(data.key);
+    await insforge.storage.from("club-files").remove(data.key);
     return { ok: false, error: rowError.message };
   }
   return { ok: true };
@@ -332,10 +384,13 @@ export async function uploadClubFile(
 
 export async function deleteClubFile(file: ClubFile): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await insforge.database.from('club_files').delete().eq('id', file.id);
+  const { error } = await insforge.database
+    .from("club_files")
+    .delete()
+    .eq("id", file.id);
   if (error) return { ok: false, error: error.message };
   // Best effort: the row is gone, so the object is already invisible.
-  await insforge.storage.from('club-files').remove(file.fileKey);
+  await insforge.storage.from("club-files").remove(file.fileKey);
   return { ok: true };
 }
 
@@ -357,13 +412,16 @@ interface DbNote {
 export async function fetchClubNotes(clubId: string): Promise<ClubNote[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('club_notes')
-    .select('id, club_id, title, body, category, pinned, created_at, updated_at')
-    .eq('club_id', clubId)
-    .order('pinned', { ascending: false })
-    .order('updated_at', { ascending: false })
+    .from("club_notes")
+    .select(
+      "id, club_id, title, body, category, pinned, created_at, updated_at",
+    )
+    .eq("club_id", clubId)
+    .order("pinned", { ascending: false })
+    .order("updated_at", { ascending: false })
     .limit(120);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as unknown as DbNote[]).map((r) => ({
     id: r.id,
     clubId: r.club_id,
@@ -383,16 +441,19 @@ export interface NoteInput {
   pinned: boolean;
 }
 
-export async function createNote(clubId: string, input: NoteInput): Promise<RpcResult> {
+export async function createNote(
+  clubId: string,
+  input: NoteInput,
+): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
-  if (!uid) return { ok: false, error: 'Sign in to post notes.' };
-  const { error } = await insforge.database.from('club_notes').insert([
+  if (!uid) return { ok: false, error: "Sign in to post notes." };
+  const { error } = await insforge.database.from("club_notes").insert([
     {
       club_id: clubId,
       title: input.title.trim(),
       body: input.body.trim(),
-      category: input.category.trim() || 'General',
+      category: input.category.trim() || "General",
       pinned: input.pinned,
       created_by: uid,
     },
@@ -400,24 +461,30 @@ export async function createNote(clubId: string, input: NoteInput): Promise<RpcR
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
-export async function updateNote(id: string, input: NoteInput): Promise<RpcResult> {
+export async function updateNote(
+  id: string,
+  input: NoteInput,
+): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
   const { error } = await insforge.database
-    .from('club_notes')
+    .from("club_notes")
     .update({
       title: input.title.trim(),
       body: input.body.trim(),
-      category: input.category.trim() || 'General',
+      category: input.category.trim() || "General",
       pinned: input.pinned,
       updated_by: uid,
     })
-    .eq('id', id);
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function deleteNote(id: string): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await insforge.database.from('club_notes').delete().eq('id', id);
+  const { error } = await insforge.database
+    .from("club_notes")
+    .delete()
+    .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }

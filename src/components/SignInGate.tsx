@@ -31,7 +31,7 @@ interface SignInGateProps {
 /**
  * Wraps any screen that needs a signed-in @lwsd.org user.
  *
- *   backend not configured  -> renders children (local demo mode)
+ *   backend not configured  -> displays an unavailable message
  *   configured + signed out -> renders the LWSD sign-in / sign-up form
  *   configured + signed in  -> renders children
  *
@@ -70,8 +70,19 @@ export function SignInGate({
     return () => clearTimeout(id);
   }, [cooldown]);
 
-  // Demo mode (no backend) or an existing session: pass straight through.
-  if (!configured || session) return <>{children}</>;
+  if (!configured)
+    return (
+      <View className="flex-1 justify-center bg-light-bg px-5 dark:bg-dark-bg">
+        <Text className="text-xl font-bold text-light-text dark:text-dark-text">
+          Service unavailable
+        </Text>
+        <Text className="mt-3 text-light-muted dark:text-dark-muted">
+          Account features are unavailable until the app can connect to its
+          backend.
+        </Text>
+      </View>
+    );
+  if (session) return <>{children}</>;
   // Brief: the initial session restore is still in flight.
   if (loading) return <View className="flex-1 bg-light-bg dark:bg-dark-bg" />;
 

@@ -1,15 +1,32 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { SearchBar } from '@/components/SearchBar';
-import { Card, Chip, EmptyState, PressableScale, SkeletonRow, Tag } from '@/components/ui';
-import { AnnouncementCard, EventCard, FileRow, NoteCard } from '@/components/ClubContentCards';
-import { searchPlatform, searchResultCount, EMPTY_SEARCH, type SearchResults } from '@/data/feedRepo';
-import { clubInitials } from '@/types/domain';
-import { brand } from '@/theme/tokens';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { SearchBar } from "@/components/SearchBar";
+import {
+  Card,
+  Chip,
+  EmptyState,
+  PressableScale,
+  SkeletonRow,
+  Tag,
+} from "@/components/ui";
+import {
+  AnnouncementCard,
+  EventCard,
+  FileRow,
+  NoteCard,
+} from "@/components/ClubContentCards";
+import {
+  searchPlatform,
+  searchResultCount,
+  EMPTY_SEARCH,
+  type SearchResults,
+} from "@/data/feedRepo";
+import { clubInitials } from "@/types/domain";
+import { brand } from "@/theme/tokens";
 
 /**
  * Search across clubs, announcements, events, files, and notes.
@@ -19,16 +36,24 @@ import { brand } from '@/theme/tokens';
  * belongs to, and unapproved clubs never surface.
  */
 
-type Kind = 'All' | 'Clubs' | 'Announcements' | 'Events' | 'Files' | 'Notes';
-const KINDS: Kind[] = ['All', 'Clubs', 'Announcements', 'Events', 'Files', 'Notes'];
+type Kind = "All" | "Clubs" | "Announcements" | "Events" | "Files" | "Notes";
+const KINDS: Kind[] = [
+  "All",
+  "Clubs",
+  "Announcements",
+  "Events",
+  "Files",
+  "Notes",
+];
 
 export default function SearchScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState('');
-  const [kind, setKind] = useState<Kind>('All');
+  const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<Kind>("All");
   const [results, setResults] = useState<SearchResults>(EMPTY_SEARCH);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
 
   const run = useCallback(async (q: string) => {
@@ -36,22 +61,38 @@ export default function SearchScreen() {
     if (q.trim().length < 2) {
       setResults(EMPTY_SEARCH);
       setLoading(false);
+      setError(null);
       return;
     }
     setLoading(true);
-    const next = await searchPlatform(q, 10);
-    if (version === generation.current) { setResults(next); setLoading(false); }
+    setError(null);
+    try {
+      const next = await searchPlatform(q, 10);
+      if (version === generation.current) setResults(next);
+    } catch (failure) {
+      if (version === generation.current)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not search. Try again.",
+        );
+    } finally {
+      if (version === generation.current) setLoading(false);
+    }
   }, []);
 
   // Debounced: one request per pause in typing rather than one per keystroke.
   useEffect(() => {
     ++generation.current;
     const handle = setTimeout(() => void run(query), 280);
-    return () => { clearTimeout(handle); ++generation.current; };
+    return () => {
+      clearTimeout(handle);
+      ++generation.current;
+    };
   }, [query, run]);
 
   const total = useMemo(() => searchResultCount(results), [results]);
-  const show = (k: Kind) => kind === 'All' || kind === k;
+  const show = (k: Kind) => kind === "All" || kind === k;
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
@@ -85,7 +126,13 @@ export default function SearchScreen() {
           contentContainerStyle={{ gap: 6, paddingVertical: 10 }}
         >
           {KINDS.map((k) => (
-            <Chip key={k} label={k} active={kind === k} onPress={() => setKind(k)} size="sm" />
+            <Chip
+              key={k}
+              label={k}
+              active={kind === k}
+              onPress={() => setKind(k)}
+              size="sm"
+            />
           ))}
         </ScrollView>
       </View>
@@ -93,7 +140,10 @@ export default function SearchScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 60 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 60,
+        }}
       >
         {query.trim().length < 2 ? (
           <View className="pt-10">
@@ -108,6 +158,14 @@ export default function SearchScreen() {
           <View className="pt-4">
             <SkeletonRow count={3} />
           </View>
+        ) : error ? (
+          <EmptyState
+            icon="alert-circle-outline"
+            title="Search unavailable"
+            description={error}
+            actionLabel="Retry"
+            onAction={() => void run(query)}
+          />
         ) : total === 0 ? (
           <View className="pt-10">
             <EmptyState
@@ -119,7 +177,7 @@ export default function SearchScreen() {
           </View>
         ) : (
           <Animated.View entering={FadeIn.duration(220)} className="gap-5 pt-2">
-            {show('Clubs') && results.clubs.length > 0 ? (
+            {show("Clubs") && results.clubs.length > 0 ? (
               <View>
                 <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Clubs
@@ -133,7 +191,10 @@ export default function SearchScreen() {
                       accessibilityLabel={`Open ${club.name}`}
                       scaleTo={0.98}
                     >
-                      <Card elevation="ambient" className="flex-row items-center gap-4 p-5">
+                      <Card
+                        elevation="ambient"
+                        className="flex-row items-center gap-4 p-5"
+                      >
                         <View className="h-10 w-10 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
                           <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
                             {clubInitials(club.name)}
@@ -161,7 +222,7 @@ export default function SearchScreen() {
               </View>
             ) : null}
 
-            {show('Announcements') && results.announcements.length > 0 ? (
+            {show("Announcements") && results.announcements.length > 0 ? (
               <View>
                 <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Announcements
@@ -174,7 +235,7 @@ export default function SearchScreen() {
               </View>
             ) : null}
 
-            {show('Events') && results.events.length > 0 ? (
+            {show("Events") && results.events.length > 0 ? (
               <View>
                 <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Events
@@ -187,7 +248,7 @@ export default function SearchScreen() {
               </View>
             ) : null}
 
-            {show('Files') && results.files.length > 0 ? (
+            {show("Files") && results.files.length > 0 ? (
               <View>
                 <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Files
@@ -200,7 +261,7 @@ export default function SearchScreen() {
               </View>
             ) : null}
 
-            {show('Notes') && results.notes.length > 0 ? (
+            {show("Notes") && results.notes.length > 0 ? (
               <View>
                 <Text className="mb-2 text-xs font-medium text-light-muted dark:text-dark-muted">
                   Notes & resources

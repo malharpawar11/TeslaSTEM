@@ -1,5 +1,11 @@
-import { insforge } from '@/lib/insforge';
-import { callRpc, callRpcValue, NOT_CONFIGURED, type RpcResult, type ValueResult } from './result';
+import { insforge } from "@/lib/insforge";
+import {
+  callRpc,
+  callRpcValue,
+  NOT_CONFIGURED,
+  type RpcResult,
+  type ValueResult,
+} from "./result";
 import {
   NO_ACCESS,
   type ApprovalStatus,
@@ -9,7 +15,7 @@ import {
   type ClubPermission,
   type Membership,
   type MembershipStatus,
-} from '@/types/domain';
+} from "@/types/domain";
 
 /**
  * Memberships, board requests, and per-club permissions.
@@ -32,8 +38,11 @@ interface AccessJson {
 
 /** What the caller may do in one club, straight from the database. */
 export async function fetchClubAccess(clubId: string): Promise<ClubAccess> {
-  const res = await callRpcValue<AccessJson>('my_club_access', { p_club_id: clubId });
-  if (!res.ok || !res.value) return NO_ACCESS;
+  const res = await callRpcValue<AccessJson>("my_club_access", {
+    p_club_id: clubId,
+  });
+  if (!res.ok) throw new Error(res.error);
+  if (!res.value) throw new Error("Could not check club access.");
   const j = res.value;
   return {
     isMember: j.is_member === true,
@@ -47,14 +56,17 @@ export async function fetchClubAccess(clubId: string): Promise<ClubAccess> {
 }
 
 /** Every membership belonging to the signed-in user. */
-export async function fetchMyMemberships(userId: string): Promise<Membership[]> {
+export async function fetchMyMemberships(
+  userId: string,
+): Promise<Membership[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('club_members')
-    .select('club_id, role, status, board_status, position')
-    .eq('user_id', userId)
+    .from("club_members")
+    .select("club_id, role, status, board_status, position")
+    .eq("user_id", userId)
     .limit(200);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load memberships.");
   return (data as Record<string, unknown>[]).map((r) => ({
     clubId: r.club_id as string,
     role: r.role as ClubMemberRole,
@@ -65,12 +77,14 @@ export async function fetchMyMemberships(userId: string): Promise<Membership[]> 
 }
 
 /** Join a club. Resolves to 'active', or 'pending' when the club vets joins. */
-export async function joinClub(clubId: string): Promise<ValueResult<MembershipStatus>> {
-  return callRpcValue<MembershipStatus>('join_club', { p_club_id: clubId });
+export async function joinClub(
+  clubId: string,
+): Promise<ValueResult<MembershipStatus>> {
+  return callRpcValue<MembershipStatus>("join_club", { p_club_id: clubId });
 }
 
 export function leaveClub(clubId: string): Promise<RpcResult> {
-  return callRpc('leave_club', { p_club_id: clubId });
+  return callRpc("leave_club", { p_club_id: clubId });
 }
 
 /** Ask the club's president for board access. */
@@ -79,7 +93,7 @@ export function requestBoardRole(
   position: string,
   message?: string,
 ): Promise<RpcResult> {
-  return callRpc('request_board_role', {
+  return callRpc("request_board_role", {
     p_club_id: clubId,
     p_position: position,
     p_message: message ?? null,
@@ -87,10 +101,15 @@ export function requestBoardRole(
 }
 
 /** The full roster; only returns rows if the caller may manage members. */
-export async function fetchClubMembers(clubId: string): Promise<ClubMemberRow[]> {
+export async function fetchClubMembers(
+  clubId: string,
+): Promise<ClubMemberRow[]> {
   if (!insforge) return [];
-  const { data, error } = await insforge.database.rpc('list_club_members', { p_club_id: clubId });
-  if (error || !data) return [];
+  const { data, error } = await insforge.database.rpc("list_club_members", {
+    p_club_id: clubId,
+  });
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as Record<string, unknown>[]).map((r) => ({
     userId: r.user_id as string,
     email: r.email as string,
@@ -113,7 +132,7 @@ export function reviewJoinRequest(
   approve: boolean,
   reason?: string,
 ): Promise<RpcResult> {
-  return callRpc('review_join_request', {
+  return callRpc("review_join_request", {
     p_club_id: clubId,
     p_user_id: userId,
     p_approve: approve,
@@ -129,7 +148,7 @@ export function reviewBoardRequest(
   permissions?: ClubPermission[],
   reason?: string,
 ): Promise<RpcResult> {
-  return callRpc('review_board_request', {
+  return callRpc("review_board_request", {
     p_club_id: clubId,
     p_user_id: userId,
     p_approve: approve,
@@ -145,7 +164,7 @@ export function setMemberPermissions(
   position: string,
   permissions: ClubPermission[],
 ): Promise<RpcResult> {
-  return callRpc('set_member_permissions', {
+  return callRpc("set_member_permissions", {
     p_club_id: clubId,
     p_user_id: userId,
     p_position: position,
@@ -153,13 +172,23 @@ export function setMemberPermissions(
   });
 }
 
-export function removeClubMember(clubId: string, userId: string): Promise<RpcResult> {
-  return callRpc('remove_club_member', { p_club_id: clubId, p_user_id: userId });
+export function removeClubMember(
+  clubId: string,
+  userId: string,
+): Promise<RpcResult> {
+  return callRpc("remove_club_member", {
+    p_club_id: clubId,
+    p_user_id: userId,
+  });
 }
 
 /** Ask the school admin for administrative access to an existing club. */
-export function claimClub(clubId: string, position: string, message?: string): Promise<RpcResult> {
-  return callRpc('claim_club', {
+export function claimClub(
+  clubId: string,
+  position: string,
+  message?: string,
+): Promise<RpcResult> {
+  return callRpc("claim_club", {
     p_club_id: clubId,
     p_position: position,
     p_message: message ?? null,
@@ -167,14 +196,17 @@ export function claimClub(clubId: string, position: string, message?: string): P
 }
 
 /** The caller's own pending claims, so the UI can say "under review". */
-export async function fetchMyClaims(userId: string): Promise<{ clubId: string; status: ApprovalStatus }[]> {
+export async function fetchMyClaims(
+  userId: string,
+): Promise<{ clubId: string; status: ApprovalStatus }[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('club_claims')
-    .select('club_id, status')
-    .eq('user_id', userId)
+    .from("club_claims")
+    .select("club_id, status")
+    .eq("user_id", userId)
     .limit(50);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as Record<string, unknown>[]).map((r) => ({
     clubId: r.club_id as string,
     status: r.status as ApprovalStatus,

@@ -1,7 +1,7 @@
-import { insforge, isInsforgeConfigured } from '@/lib/insforge';
-import { currentUserId, NOT_CONFIGURED, type RpcResult } from './result';
-import { Club, ClubCategory, CATEGORIES } from '@/types/domain';
-import { validateMeeting } from '@/lib/discovery';
+import { insforge, isInsforgeConfigured } from "@/lib/insforge";
+import { currentUserId, NOT_CONFIGURED, type RpcResult } from "./result";
+import { Club, ClubCategory, CATEGORIES } from "@/types/domain";
+import { validateMeeting } from "@/lib/discovery";
 
 export type ClubsResult =
   | { clubs: Club[]; error: null }
@@ -29,11 +29,13 @@ interface DbClub {
 }
 
 const CLUB_COLUMNS =
-  'id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,' +
-  'instagram,website,logo_url,banner_url,join_policy,member_count,president_id,created_at,career_tags';
+  "id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email," +
+  "instagram,website,logo_url,banner_url,join_policy,member_count,president_id,created_at,career_tags";
 
 function toCategory(value: string): ClubCategory {
-  return (CATEGORIES as string[]).includes(value) ? (value as ClubCategory) : 'STEM';
+  return (CATEGORIES as string[]).includes(value)
+    ? (value as ClubCategory)
+    : "STEM";
 }
 
 /**
@@ -45,19 +47,19 @@ function fromDb(row: DbClub): Club {
   return {
     id: row.id,
     name: row.name,
-    advisor: row.advisor ?? 'TBD',
-    location: row.location ?? 'TBD',
-    day: row.meeting_day ?? 'TBD',
-    time: row.meeting_time ?? 'TBD',
+    advisor: row.advisor ?? "TBD",
+    location: row.location ?? "TBD",
+    day: row.meeting_day ?? "TBD",
+    time: row.meeting_time ?? "TBD",
     category: toCategory(row.category),
     careerTags: row.career_tags ?? [],
     description: row.description,
-    contactEmail: row.contact_email ?? '',
+    contactEmail: row.contact_email ?? "",
     instagram: row.instagram ?? undefined,
     website: row.website ?? undefined,
     logoUrl: row.logo_url ?? undefined,
     bannerUrl: row.banner_url ?? undefined,
-    joinPolicy: row.join_policy === 'approval' ? 'approval' : 'open',
+    joinPolicy: row.join_policy === "approval" ? "approval" : "open",
     memberCount: row.member_count ?? 0,
     presidentId: row.president_id,
     officers: [],
@@ -76,18 +78,21 @@ export async function fetchClubs(): Promise<ClubsResult> {
     return {
       clubs: [],
       error:
-        'Backend not configured. Set EXPO_PUBLIC_INSFORGE_URL and EXPO_PUBLIC_INSFORGE_ANON_KEY.',
+        "Backend not configured. Set EXPO_PUBLIC_INSFORGE_URL and EXPO_PUBLIC_INSFORGE_ANON_KEY.",
     };
   }
   const { data, error } = await insforge.database
-    .from('clubs')
+    .from("clubs")
     .select(CLUB_COLUMNS)
-    .eq('status', 'approved')
-    .eq('is_active', true)
-    .order('name')
+    .eq("status", "approved")
+    .eq("is_active", true)
+    .order("name")
     .limit(500);
   if (error || !data) {
-    return { clubs: [], error: error?.message ?? 'Could not load clubs. Pull to retry.' };
+    return {
+      clubs: [],
+      error: error?.message ?? "Could not load clubs. Pull to retry.",
+    };
   }
   return { clubs: (data as unknown as DbClub[]).map(fromDb), error: null };
 }
@@ -98,13 +103,14 @@ export async function fetchClubOfficers(
 ): Promise<{ role: string; name: string; userId: string }[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('club_members')
-    .select('user_id, role, position, profiles(display_name, email)')
-    .eq('club_id', clubId)
-    .eq('status', 'active')
-    .in('role', ['president', 'board'])
+    .from("club_members")
+    .select("user_id, role, position, profiles(display_name, email)")
+    .eq("club_id", clubId)
+    .eq("status", "active")
+    .in("role", ["president", "board"])
     .limit(40);
-  if (error || !data) return [];
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (
     data as unknown as {
       user_id: string;
@@ -115,10 +121,16 @@ export async function fetchClubOfficers(
   )
     .map((r) => ({
       userId: r.user_id,
-      role: r.position ?? (r.role === 'president' ? 'President' : 'Board Member'),
-      name: r.profiles?.display_name ?? r.profiles?.email?.split('@')[0] ?? 'Member',
+      role:
+        r.position ?? (r.role === "president" ? "President" : "Board Member"),
+      name:
+        r.profiles?.display_name ??
+        r.profiles?.email?.split("@")[0] ??
+        "Member",
     }))
-    .sort((a, b) => (a.role === 'President' ? -1 : b.role === 'President' ? 1 : 0));
+    .sort((a, b) =>
+      a.role === "President" ? -1 : b.role === "President" ? 1 : 0,
+    );
 }
 
 export interface NewClubInput {
@@ -130,7 +142,7 @@ export interface NewClubInput {
   location: string;
   advisor: string;
   contactEmail: string;
-  joinPolicy: 'open' | 'approval';
+  joinPolicy: "open" | "approval";
 }
 
 /**
@@ -139,12 +151,16 @@ export interface NewClubInput {
  * student cannot self-approve a club by sending `status: 'approved'`.
  */
 export async function submitClub(input: NewClubInput): Promise<RpcResult> {
-  const scheduleError = validateMeeting(input.meetingDay, input.meetingTime, input.location);
+  const scheduleError = validateMeeting(
+    input.meetingDay,
+    input.meetingTime,
+    input.location,
+  );
   if (scheduleError) return { ok: false, error: scheduleError };
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
-  if (!uid) return { ok: false, error: 'Sign in to submit a club.' };
-  const { error } = await insforge.database.from('clubs').insert([
+  if (!uid) return { ok: false, error: "Sign in to submit a club." };
+  const { error } = await insforge.database.from("clubs").insert([
     {
       name: input.name.trim(),
       category: input.category,
@@ -155,7 +171,7 @@ export async function submitClub(input: NewClubInput): Promise<RpcResult> {
       advisor: input.advisor.trim() || null,
       contact_email: input.contactEmail.trim() || null,
       join_policy: input.joinPolicy,
-      status: 'pending',
+      status: "pending",
       created_by: uid,
     },
   ]);
@@ -172,7 +188,7 @@ export interface ClubSettingsInput {
   contactEmail: string;
   instagram: string;
   website: string;
-  joinPolicy: 'open' | 'approval';
+  joinPolicy: "open" | "approval";
 }
 
 /**
@@ -184,11 +200,15 @@ export async function updateClubSettings(
   clubId: string,
   input: ClubSettingsInput,
 ): Promise<RpcResult> {
-  const scheduleError = validateMeeting(input.meetingDay, input.meetingTime, input.location);
+  const scheduleError = validateMeeting(
+    input.meetingDay,
+    input.meetingTime,
+    input.location,
+  );
   if (scheduleError) return { ok: false, error: scheduleError };
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await insforge.database
-    .from('clubs')
+    .from("clubs")
     .update({
       career_tags: input.careerTags,
       description: input.description.trim(),
@@ -201,18 +221,18 @@ export async function updateClubSettings(
       website: input.website.trim() || null,
       join_policy: input.joinPolicy,
     })
-    .eq('id', clubId);
+    .eq("id", clubId);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 /** Uploads a logo or banner to the public club-assets bucket. */
 export async function uploadClubImage(
   clubId: string,
-  kind: 'logo' | 'banner',
+  kind: "logo" | "banner",
   file: { uri?: string; name: string; blob?: Blob },
 ): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_').slice(-60);
+  const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-60);
   const key = `clubs/${clubId}/${kind}-${Date.now()}-${safeName}`;
   let payload: Blob;
   if (file.blob) {
@@ -220,16 +240,22 @@ export async function uploadClubImage(
   } else if (file.uri) {
     payload = await (await fetch(file.uri)).blob();
   } else {
-    return { ok: false, error: 'Nothing to upload.' };
+    return { ok: false, error: "Nothing to upload." };
   }
-  const { data, error } = await insforge.storage.from('club-assets').upload(key, payload);
-  if (error || !data) return { ok: false, error: error?.message ?? 'Upload failed.' };
+  const { data, error } = await insforge.storage
+    .from("club-assets")
+    .upload(key, payload);
+  if (error || !data)
+    return { ok: false, error: error?.message ?? "Upload failed." };
   const patch =
-    kind === 'logo'
+    kind === "logo"
       ? { logo_url: data.url, logo_key: data.key }
       : { banner_url: data.url, banner_key: data.key };
-  const { error: rowError } = await insforge.database.from('clubs').update(patch).eq('id', clubId);
-  if (rowError) await insforge.storage.from('club-assets').remove(data.key);
+  const { error: rowError } = await insforge.database
+    .from("clubs")
+    .update(patch)
+    .eq("id", clubId);
+  if (rowError) await insforge.storage.from("club-assets").remove(data.key);
   return rowError ? { ok: false, error: rowError.message } : { ok: true };
 }
 

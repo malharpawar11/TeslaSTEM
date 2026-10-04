@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, Share, Platform, Linking, ScrollView } from 'react-native';
-import { ClubReviews } from '@/components/ClubReviews';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { View, Text, Share, Platform, Linking, ScrollView } from "react-native";
+import { ClubReviews } from "@/components/ClubReviews";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import {
   Avatar,
   Button,
@@ -17,24 +17,33 @@ import {
   PressableScale,
   SkeletonRow,
   Tag,
-} from '@/components/ui';
-import { AnnouncementCard, EventCard, FileRow, NoteCard } from '@/components/ClubContentCards';
-import { ClubProfileHeader } from '@/components/ClubProfileHeader';
-import { useClubs } from '@/context/ClubsContext';
-import { useMemberships } from '@/context/MembershipContext';
-import { useNotifications } from '@/context/NotificationsContext';
-import { useTheme } from '@/context/ThemeContext';
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/context/ToastContext';
+} from "@/components/ui";
+import {
+  AnnouncementCard,
+  EventCard,
+  FileRow,
+  NoteCard,
+} from "@/components/ClubContentCards";
+import { ClubProfileHeader } from "@/components/ClubProfileHeader";
+import { useClubs } from "@/context/ClubsContext";
+import { useMemberships } from "@/context/MembershipContext";
+import { useNotifications } from "@/context/NotificationsContext";
+import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import {
   fetchClubAnnouncements,
   fetchClubEvents,
   fetchClubFiles,
   fetchClubNotes,
-} from '@/data/contentRepo';
-import { fetchClubOfficers } from '@/data/clubsRepo';
-import { fetchClubAccess, requestBoardRole, claimClub } from '@/data/membershipRepo';
-import { downloadIcs } from '@/lib/calendar';
+} from "@/data/contentRepo";
+import { fetchClubOfficers } from "@/data/clubsRepo";
+import {
+  fetchClubAccess,
+  requestBoardRole,
+  claimClub,
+} from "@/data/membershipRepo";
+import { downloadIcs } from "@/lib/calendar";
 import {
   BOARD_POSITIONS,
   NO_ACCESS,
@@ -45,8 +54,8 @@ import {
   type ClubNote,
   type NotificationPrefs,
   type Officer,
-} from '@/types/domain';
-import { brand, palette, semantic } from '@/theme/tokens';
+} from "@/types/domain";
+import { brand, palette, semantic } from "@/theme/tokens";
 
 /**
  * A club's public profile and, once a student joins, its member area.
@@ -57,10 +66,23 @@ import { brand, palette, semantic } from '@/theme/tokens';
  * calls the API directly gets an empty result, not the data with a hidden UI.
  */
 
-type Tab = 'About' | 'Announcements' | 'Events' | 'Files' | 'Notes' | 'Leadership';
+type Tab =
+  | "About"
+  | "Announcements"
+  | "Events"
+  | "Files"
+  | "Notes"
+  | "Leadership";
 
-const PUBLIC_TABS: Tab[] = ['About', 'Announcements', 'Events', 'Leadership'];
-const MEMBER_TABS: Tab[] = ['About', 'Announcements', 'Events', 'Files', 'Notes', 'Leadership'];
+const PUBLIC_TABS: Tab[] = ["About", "Announcements", "Events", "Leadership"];
+const MEMBER_TABS: Tab[] = [
+  "About",
+  "Announcements",
+  "Events",
+  "Files",
+  "Notes",
+  "Leadership",
+];
 
 function SegmentedTabs({
   tabs,
@@ -72,7 +94,11 @@ function SegmentedTabs({
   onChange: (t: Tab) => void;
 }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 6 }}
+    >
       {tabs.map((t) => {
         const active = t === value;
         return (
@@ -84,13 +110,15 @@ function SegmentedTabs({
             scaleTo={0.97}
             className={`h-9 items-center justify-center rounded-full px-3.5 ${
               active
-                ? 'bg-python-blue'
-                : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
+                ? "bg-python-blue"
+                : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
             }`}
           >
             <Text
               className={`text-sm font-medium ${
-                active ? 'text-white' : 'text-light-secondary dark:text-dark-secondary'
+                active
+                  ? "text-white"
+                  : "text-light-secondary dark:text-dark-secondary"
               }`}
             >
               {t}
@@ -111,7 +139,7 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
   const toggle = async (key: keyof NotificationPrefs) => {
     const next = { ...prefs, [key]: !prefs[key] };
     const res = await savePrefs(clubId, next);
-    if (!res.ok) toast(res.error ?? 'Could not save that preference.', 'error');
+    if (!res.ok) toast(res.error ?? "Could not save that preference.", "error");
   };
 
   const ROWS: {
@@ -119,10 +147,10 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
   }[] = [
-    { key: 'announcements', label: 'Announcements', icon: 'megaphone-outline' },
-    { key: 'events', label: 'Events', icon: 'calendar-outline' },
-    { key: 'files', label: 'New files', icon: 'document-outline' },
-    { key: 'notes', label: 'Notes & resources', icon: 'reader-outline' },
+    { key: "announcements", label: "Announcements", icon: "megaphone-outline" },
+    { key: "events", label: "Events", icon: "calendar-outline" },
+    { key: "files", label: "New files", icon: "document-outline" },
+    { key: "notes", label: "Notes & resources", icon: "reader-outline" },
   ];
 
   return (
@@ -136,7 +164,9 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
           accessibilityLabel={`${row.label} notifications`}
           scaleTo={0.99}
           className={`flex-row items-center gap-3 py-3 ${
-            i === ROWS.length - 1 ? '' : 'border-b border-light-hairline dark:border-dark-border'
+            i === ROWS.length - 1
+              ? ""
+              : "border-b border-light-hairline dark:border-dark-border"
           }`}
         >
           <Ionicons name={row.icon} size={16} color={brand.blue} />
@@ -145,12 +175,14 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
           </Text>
           <View
             className={`h-6 w-10 justify-center rounded-full px-0.5 ${
-              prefs[row.key] ? 'bg-python-green' : 'bg-light-border dark:bg-dark-border'
+              prefs[row.key]
+                ? "bg-python-green"
+                : "bg-light-border dark:bg-dark-border"
             }`}
           >
             <View
               className={`h-5 w-5 rounded-full bg-white ${
-                prefs[row.key] ? 'self-end' : 'self-start'
+                prefs[row.key] ? "self-end" : "self-start"
               }`}
             />
           </View>
@@ -166,12 +198,18 @@ export default function ClubProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getClub, refresh: refreshClubs } = useClubs();
-  const { isMember, membershipFor, join, leave, refresh: refreshMemberships } = useMemberships();
+  const {
+    isMember,
+    membershipFor,
+    join,
+    leave,
+    refresh: refreshMemberships,
+  } = useMemberships();
   const { isDark } = useTheme();
   const { session } = useAuth();
   const { toast, toastResult } = useToast();
 
-  const [tab, setTab] = useState<Tab>('About');
+  const [tab, setTab] = useState<Tab>("About");
   const [access, setAccess] = useState<ClubAccess>(NO_ACCESS);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [events, setEvents] = useState<ClubEvent[]>([]);
@@ -179,13 +217,17 @@ export default function ClubProfileScreen() {
   const [notes, setNotes] = useState<ClubNote[]>([]);
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadGeneration = useRef(0);
   const [busy, setBusy] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
 
   // Leadership request composer.
   const [requestOpen, setRequestOpen] = useState(false);
-  const [requestPosition, setRequestPosition] = useState<string>(BOARD_POSITIONS[0]);
-  const [requestMessage, setRequestMessage] = useState('');
+  const [requestPosition, setRequestPosition] = useState<string>(
+    BOARD_POSITIONS[0],
+  );
+  const [requestMessage, setRequestMessage] = useState("");
 
   const club = getClub(clubId);
   const membership = membershipFor(clubId);
@@ -193,46 +235,71 @@ export default function ClubProfileScreen() {
 
   const load = useCallback(async () => {
     if (!clubId) return;
-    const [nextAccess, nextAnnouncements, nextEvents, nextOfficers] = await Promise.all([
-      session ? fetchClubAccess(clubId) : Promise.resolve(NO_ACCESS),
-      fetchClubAnnouncements(clubId),
-      fetchClubEvents(clubId, true),
-      fetchClubOfficers(clubId),
-    ]);
-    setAccess(nextAccess);
-    setAnnouncements(nextAnnouncements);
-    setEvents(nextEvents);
-    setOfficers(nextOfficers);
-    // Member-only content is only requested once the server says we're a
-    // member, so a visitor never fires a query that can only come back empty.
-    if (nextAccess.isMember) {
-      const [nextFiles, nextNotes] = await Promise.all([
-        fetchClubFiles(clubId),
-        fetchClubNotes(clubId),
-      ]);
-      setFiles(nextFiles);
-      setNotes(nextNotes);
-    } else {
-      setFiles([]);
-      setNotes([]);
+    const generation = ++loadGeneration.current;
+    try {
+      const [nextAccess, nextAnnouncements, nextEvents, nextOfficers] =
+        await Promise.all([
+          session ? fetchClubAccess(clubId) : Promise.resolve(NO_ACCESS),
+          fetchClubAnnouncements(clubId),
+          fetchClubEvents(clubId, true),
+          fetchClubOfficers(clubId),
+        ]);
+      if (generation !== loadGeneration.current) return;
+      setAccess(nextAccess);
+      setAnnouncements(nextAnnouncements);
+      setEvents(nextEvents);
+      setOfficers(nextOfficers);
+      // Member-only content is only requested once the server says we're a
+      // member, so a visitor never fires a query that can only come back empty.
+      if (nextAccess.isMember) {
+        const [nextFiles, nextNotes] = await Promise.all([
+          fetchClubFiles(clubId),
+          fetchClubNotes(clubId),
+        ]);
+        if (generation !== loadGeneration.current) return;
+        setFiles(nextFiles);
+        setNotes(nextNotes);
+      } else {
+        setFiles([]);
+        setNotes([]);
+      }
+      if (generation === loadGeneration.current) setLoadError(null);
+    } catch (failure) {
+      if (generation === loadGeneration.current)
+        setLoadError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not load club details.",
+        );
+    } finally {
+      if (generation === loadGeneration.current) setLoading(false);
     }
-    setLoading(false);
   }, [clubId, session]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    ++loadGeneration.current;
+    setAccess(NO_ACCESS);
+    setFiles([]);
+    setNotes([]);
+    setLoading(true);
+  }, [clubId, session?.user.id]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
+      return () => {
+        ++loadGeneration.current;
+      };
     }, [load]),
   );
 
-  const tabs = useMemo(() => (access.isMember ? MEMBER_TABS : PUBLIC_TABS), [access.isMember]);
+  const tabs = useMemo(
+    () => (access.isMember ? MEMBER_TABS : PUBLIC_TABS),
+    [access.isMember],
+  );
 
   useEffect(() => {
-    if (!tabs.includes(tab)) setTab('About');
+    if (!tabs.includes(tab)) setTab("About");
   }, [tabs, tab]);
 
   const handleJoin = useCallback(async () => {
@@ -240,13 +307,13 @@ export default function ClubProfileScreen() {
     const res = await join(clubId);
     setBusy(false);
     if (!res.ok) {
-      toast(res.error, 'error');
+      toast(res.error, "error");
       return;
     }
     toast(
-      res.status === 'pending'
-        ? 'Request sent: a club leader will review it.'
-        : `Joined ${club?.name ?? 'the club'}`,
+      res.status === "pending"
+        ? "Request sent: a club leader will review it."
+        : `Joined ${club?.name ?? "the club"}`,
     );
     await Promise.all([load(), refreshClubs()]);
   }, [join, clubId, toast, club, load, refreshClubs]);
@@ -257,10 +324,10 @@ export default function ClubProfileScreen() {
     setBusy(false);
     setLeaveOpen(false);
     if (!res.ok) {
-      toast(res.error ?? 'Could not leave the club.', 'error');
+      toast(res.error ?? "Could not leave the club.", "error");
       return;
     }
-    toast(`Left ${club?.name ?? 'the club'}`, 'info');
+    toast(`Left ${club?.name ?? "the club"}`, "info");
     await Promise.all([load(), refreshClubs()]);
   }, [leave, clubId, toast, club, load, refreshClubs]);
 
@@ -268,20 +335,27 @@ export default function ClubProfileScreen() {
     setBusy(true);
     const res = await requestBoardRole(clubId, requestPosition, requestMessage);
     setBusy(false);
-    if (toastResult(res, 'Request sent to the club president.')) {
+    if (toastResult(res, "Request sent to the club president.")) {
       setRequestOpen(false);
-      setRequestMessage('');
+      setRequestMessage("");
       await Promise.all([load(), refreshMemberships()]);
     }
-  }, [clubId, requestPosition, requestMessage, toastResult, load, refreshMemberships]);
+  }, [
+    clubId,
+    requestPosition,
+    requestMessage,
+    toastResult,
+    load,
+    refreshMemberships,
+  ]);
 
   const submitClubClaim = useCallback(async () => {
     setBusy(true);
-    const res = await claimClub(clubId, 'President', requestMessage);
+    const res = await claimClub(clubId, "President", requestMessage);
     setBusy(false);
-    if (toastResult(res, 'Claim submitted: the school admin will review it.')) {
+    if (toastResult(res, "Claim submitted: the school admin will review it.")) {
       setRequestOpen(false);
-      setRequestMessage('');
+      setRequestMessage("");
     }
   }, [clubId, requestMessage, toastResult]);
 
@@ -301,7 +375,7 @@ export default function ClubProfileScreen() {
 
   const handleShare = async () => {
     try {
-      if (Platform.OS === 'web') return;
+      if (Platform.OS === "web") return;
       await Share.share({
         message: `Check out ${club.name} at Tesla STEM: ${club.description}`,
         title: club.name,
@@ -312,7 +386,9 @@ export default function ClubProfileScreen() {
   };
 
   const upcoming = events.filter(
-    (e) => e.status === 'scheduled' && new Date(e.startsAt).getTime() > Date.now() - 2 * 3600 * 1000,
+    (e) =>
+      e.status === "scheduled" &&
+      new Date(e.startsAt).getTime() > Date.now() - 2 * 3600 * 1000,
   );
   const past = events.filter((e) => !upcoming.includes(e));
   const folders = [...new Set(files.map((f) => f.folder))];
@@ -323,6 +399,12 @@ export default function ClubProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 112 }}
       >
+        {loadError ? (
+          <View className="px-5 py-4">
+            <Text className="text-danger">{loadError}</Text>
+            <Button label="Retry" onPress={() => void load()} />
+          </View>
+        ) : null}
         <ClubProfileHeader
           club={club}
           onBack={() => router.back()}
@@ -331,14 +413,16 @@ export default function ClubProfileScreen() {
 
         {/* Role badges + the entry point to the management area */}
         <View className="flex-row flex-wrap items-center gap-2 px-5 pt-4">
-          {membership?.status === 'pending' ? <Tag label="Approval pending" tone="warn" /> : null}
-          {membership?.role === 'president' ? (
+          {membership?.status === "pending" ? (
+            <Tag label="Approval pending" tone="warn" />
+          ) : null}
+          {membership?.role === "president" ? (
             <Tag label="You're the president" tone="brand" />
           ) : null}
-          {membership?.role === 'board' ? (
-            <Tag label={membership.position ?? 'Board member'} tone="info" />
+          {membership?.role === "board" ? (
+            <Tag label={membership.position ?? "Board member"} tone="info" />
           ) : null}
-          {membership?.boardStatus === 'pending' ? (
+          {membership?.boardStatus === "pending" ? (
             <Tag label="Board request pending" tone="warn" />
           ) : null}
           {access.permissions.length > 0 ? (
@@ -353,7 +437,12 @@ export default function ClubProfileScreen() {
         </View>
 
         <View className="px-5 pt-4">
-          <Button label="Message club board" variant="secondary" icon="chatbubbles-outline" onPress={() => router.push(`/club/${clubId}/messages`)} />
+          <Button
+            label="Message club board"
+            variant="secondary"
+            icon="chatbubbles-outline"
+            onPress={() => router.push(`/club/${clubId}/messages`)}
+          />
           <View className="h-3" />
           <SegmentedTabs tabs={tabs} value={tab} onChange={setTab} />
         </View>
@@ -361,7 +450,7 @@ export default function ClubProfileScreen() {
         <View className="px-5 pt-5">
           {loading ? (
             <SkeletonRow count={3} />
-          ) : tab === 'About' ? (
+          ) : tab === "About" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               <Text className="rounded-2xl bg-light-surface p-5 text-base leading-6 text-light-secondary dark:bg-dark-surface dark:text-dark-secondary">
                 {club.description}
@@ -391,15 +480,19 @@ export default function ClubProfileScreen() {
                   <MetaRow
                     icon="people-outline"
                     label="Members"
-                    value={`${club.memberCount} member${club.memberCount === 1 ? '' : 's'}`}
+                    value={`${club.memberCount} member${club.memberCount === 1 ? "" : "s"}`}
                   />
                   <MetaRow
-                    icon={club.joinPolicy === 'approval' ? 'lock-closed-outline' : 'lock-open-outline'}
+                    icon={
+                      club.joinPolicy === "approval"
+                        ? "lock-closed-outline"
+                        : "lock-open-outline"
+                    }
                     label="Joining"
                     value={
-                      club.joinPolicy === 'approval'
-                        ? 'A club leader approves new members'
-                        : 'Open to every student'
+                      club.joinPolicy === "approval"
+                        ? "A club leader approves new members"
+                        : "Open to every student"
                     }
                     divider={false}
                   />
@@ -417,7 +510,9 @@ export default function ClubProfileScreen() {
                       label="Contact"
                       value={club.contactEmail}
                       divider={!!club.instagram || !!club.website}
-                      onPress={() => Linking.openURL(`mailto:${club.contactEmail}`)}
+                      onPress={() =>
+                        Linking.openURL(`mailto:${club.contactEmail}`)
+                      }
                     />
                   ) : null}
                   {club.instagram ? (
@@ -427,7 +522,7 @@ export default function ClubProfileScreen() {
                       value={club.instagram}
                       divider={!!club.website}
                       onPress={() => {
-                        const handle = club.instagram!.replace(/^@/, '');
+                        const handle = club.instagram!.replace(/^@/, "");
                         Linking.openURL(`https://instagram.com/${handle}`);
                       }}
                     />
@@ -455,7 +550,7 @@ export default function ClubProfileScreen() {
 
               {joined ? <NotificationSwitches clubId={clubId} /> : null}
             </Animated.View>
-          ) : tab === 'Announcements' ? (
+          ) : tab === "Announcements" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {announcements.length === 0 ? (
                 <EmptyState
@@ -474,7 +569,7 @@ export default function ClubProfileScreen() {
                 </View>
               )}
             </Animated.View>
-          ) : tab === 'Events' ? (
+          ) : tab === "Events" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {events.length === 0 ? (
                 <EmptyState
@@ -501,7 +596,10 @@ export default function ClubProfileScreen() {
                     />
                   ) : null}
                   {upcoming.map((event) => (
-                    <EventCard key={event.id} event={{ ...event, clubName: club.name }} />
+                    <EventCard
+                      key={event.id}
+                      event={{ ...event, clubName: club.name }}
+                    />
                   ))}
                   {past.length > 0 ? (
                     <>
@@ -509,14 +607,17 @@ export default function ClubProfileScreen() {
                         Past & cancelled
                       </Text>
                       {past.map((event) => (
-                        <EventCard key={event.id} event={{ ...event, clubName: club.name }} />
+                        <EventCard
+                          key={event.id}
+                          event={{ ...event, clubName: club.name }}
+                        />
                       ))}
                     </>
                   ) : null}
                 </View>
               )}
             </Animated.View>
-          ) : tab === 'Files' ? (
+          ) : tab === "Files" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {files.length === 0 ? (
                 <EmptyState
@@ -542,7 +643,7 @@ export default function ClubProfileScreen() {
                 </View>
               )}
             </Animated.View>
-          ) : tab === 'Notes' ? (
+          ) : tab === "Notes" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {notes.length === 0 ? (
                 <EmptyState
@@ -578,7 +679,7 @@ export default function ClubProfileScreen() {
                     >
                       <Avatar
                         size="md"
-                        tone={i === 0 ? 'brand' : 'info'}
+                        tone={i === 0 ? "brand" : "info"}
                         initials={o.name.slice(0, 2).toUpperCase()}
                       />
                       <View className="flex-1">
@@ -601,12 +702,15 @@ export default function ClubProfileScreen() {
                   {requestOpen ? (
                     <Card elevation="ambient" className="p-4">
                       <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                        {club.presidentId ? 'Request board access' : 'Claim this club'}
+                        {club.presidentId
+                          ? "Request board access"
+                          : "Claim this club"}
                       </Text>
                       {club.presidentId ? (
                         <>
                           <Text className="mt-1.5 text-xs text-light-muted dark:text-dark-muted">
-                            Pick your position. The president decides what you can manage.
+                            Pick your position. The president decides what you
+                            can manage.
                           </Text>
                           <View className="mt-3 flex-row flex-wrap gap-2">
                             {BOARD_POSITIONS.map((position) => (
@@ -614,19 +718,21 @@ export default function ClubProfileScreen() {
                                 key={position}
                                 onPress={() => setRequestPosition(position)}
                                 accessibilityRole="button"
-                                accessibilityState={{ selected: requestPosition === position }}
+                                accessibilityState={{
+                                  selected: requestPosition === position,
+                                }}
                                 scaleTo={0.96}
                                 className={`h-8 items-center justify-center rounded-full px-3 ${
                                   requestPosition === position
-                                    ? 'bg-python-blue'
-                                    : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
+                                    ? "bg-python-blue"
+                                    : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
                                 }`}
                               >
                                 <Text
                                   className={`text-2xs font-semibold ${
                                     requestPosition === position
-                                      ? 'text-white'
-                                      : 'text-light-secondary dark:text-dark-secondary'
+                                      ? "text-white"
+                                      : "text-light-secondary dark:text-dark-secondary"
                                   }`}
                                 >
                                   {position}
@@ -637,7 +743,8 @@ export default function ClubProfileScreen() {
                         </>
                       ) : (
                         <Text className="mt-1.5 text-xs text-light-muted dark:text-dark-muted">
-                          The school admin verifies club presidents before granting access.
+                          The school admin verifies club presidents before
+                          granting access.
                         </Text>
                       )}
                       <View className="mt-3">
@@ -667,22 +774,35 @@ export default function ClubProfileScreen() {
                             fullWidth
                             loading={busy}
                             onPress={() =>
-                              void (club.presidentId ? submitBoardRequest() : submitClubClaim())
+                              void (club.presidentId
+                                ? submitBoardRequest()
+                                : submitClubClaim())
                             }
                           />
                         </View>
                       </View>
                     </Card>
-                  ) : membership?.boardStatus === 'pending' ? (
-                    <Card elevation="ambient" className="flex-row items-center gap-2.5 p-4">
-                      <Ionicons name="hourglass-outline" size={16} color={semantic.warn} />
+                  ) : membership?.boardStatus === "pending" ? (
+                    <Card
+                      elevation="ambient"
+                      className="flex-row items-center gap-2.5 p-4"
+                    >
+                      <Ionicons
+                        name="hourglass-outline"
+                        size={16}
+                        color={semantic.warn}
+                      />
                       <Text className="flex-1 text-xs text-light-muted dark:text-dark-muted">
                         Your board request is waiting for the president.
                       </Text>
                     </Card>
-                  ) : membership?.role === 'president' ? null : (
+                  ) : membership?.role === "president" ? null : (
                     <Button
-                      label={club.presidentId ? "I'm on the board" : 'I run this club'}
+                      label={
+                        club.presidentId
+                          ? "I'm on the board"
+                          : "I run this club"
+                      }
                       variant="outline"
                       size="md"
                       icon="ribbon-outline"
@@ -697,18 +817,22 @@ export default function ClubProfileScreen() {
         </View>
       </ScrollView>
 
-
       {/* Sticky join / leave bar */}
-      <View pointerEvents="box-none" className="absolute bottom-0 left-0 right-0">
+      <View
+        pointerEvents="box-none"
+        className="absolute bottom-0 left-0 right-0"
+      >
         <BlurView
           intensity={isDark ? 40 : 60}
-          tint={isDark ? 'dark' : 'light'}
+          tint={isDark ? "dark" : "light"}
           style={{
             paddingHorizontal: 20,
             paddingTop: 12,
             paddingBottom: insets.bottom + 12,
             borderTopWidth: 1,
-            borderTopColor: isDark ? 'rgba(30,33,40,0.7)' : 'rgba(238,240,243,0.9)',
+            borderTopColor: isDark
+              ? "rgba(30,33,40,0.7)"
+              : "rgba(238,240,243,0.9)",
           }}
         >
           <View className="flex-row items-center gap-3">
@@ -720,9 +844,9 @@ export default function ClubProfileScreen() {
                   variant="primary"
                   icon="log-in-outline"
                   label="Sign in to join"
-                  onPress={() => router.push('/account')}
+                  onPress={() => router.push("/account")}
                 />
-              ) : membership?.status === 'pending' ? (
+              ) : membership?.status === "pending" ? (
                 <Button
                   size="xl"
                   fullWidth
@@ -748,7 +872,11 @@ export default function ClubProfileScreen() {
                   fullWidth
                   variant="primary"
                   icon="add-circle-outline"
-                  label={club.joinPolicy === 'approval' ? 'Request to join' : 'Join club'}
+                  label={
+                    club.joinPolicy === "approval"
+                      ? "Request to join"
+                      : "Join club"
+                  }
                   loading={busy}
                   onPress={() => void handleJoin()}
                 />

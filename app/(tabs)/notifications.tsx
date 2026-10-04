@@ -174,7 +174,7 @@ type Filter = "All" | "Unread" | "Requests";
 function NotificationsInbox() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { notifications, unreadCount, loading, markRead, refresh } =
+  const { notifications, unreadCount, loading, error, markRead, refresh } =
     useNotifications();
   const { clubs } = useClubs();
   const [filter, setFilter] = useState<Filter>("All");
@@ -232,7 +232,11 @@ function NotificationsInbox() {
             Notifications
           </Text>
           <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
-            {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+            {error
+              ? "Updates unavailable"
+              : unreadCount > 0
+                ? `${unreadCount} unread`
+                : "All caught up"}
           </Text>
         </View>
         <View className="pt-1">
@@ -269,7 +273,12 @@ function NotificationsInbox() {
         ) : null}
       </View>
 
-      {loading && notifications.length === 0 ? (
+      {error ? (
+        <View className="px-5 pt-6">
+          <Text className="text-danger">{error}</Text>
+          <Button label="Retry" onPress={() => void refresh()} />
+        </View>
+      ) : loading && notifications.length === 0 ? (
         <View className="px-5 pt-6">
           <SkeletonRow count={4} />
         </View>

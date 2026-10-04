@@ -1,6 +1,6 @@
-import { insforge } from '@/lib/insforge';
-import { callRpc } from './result';
-import type { ApprovalStatus } from '@/types/domain';
+import { insforge } from "@/lib/insforge";
+import { callRpc } from "./result";
+import type { ApprovalStatus } from "@/types/domain";
 
 /**
  * Typed wrappers around the workflow RPCs and review queries from the
@@ -50,13 +50,14 @@ export interface ClubAdminRow {
 export async function fetchPendingClubs(): Promise<PendingClub[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('clubs')
+    .from("clubs")
     .select(
-      'id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,president_email,status,rejection_reason,created_at',
+      "id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,president_email,status,rejection_reason,created_at",
     )
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true });
-  if (error || !data) return [];
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load the review queue.");
   return data.map((r) => ({
     id: r.id as string,
     name: r.name as string,
@@ -78,11 +79,12 @@ export async function fetchPendingClubs(): Promise<PendingClub[]> {
 export async function fetchPendingPresidents(): Promise<PendingPresident[]> {
   if (!insforge) return [];
   const { data, error } = await insforge.database
-    .from('profiles')
-    .select('id,email,display_name,president_status,president_requested_at')
-    .eq('president_status', 'pending')
-    .order('president_requested_at', { ascending: true });
-  if (error || !data) return [];
+    .from("profiles")
+    .select("id,email,display_name,president_status,president_requested_at")
+    .eq("president_status", "pending")
+    .order("president_requested_at", { ascending: true });
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load the review queue.");
   return data.map((r) => ({
     id: r.id as string,
     email: r.email as string,
@@ -95,9 +97,14 @@ export async function fetchPendingPresidents(): Promise<PendingPresident[]> {
 /** The admin roster of a club, via the list_club_admins RPC. */
 export async function fetchClubAdmins(clubId: string): Promise<ClubAdminRow[]> {
   if (!insforge) return [];
-  const { data, error } = await insforge.database.rpc('list_club_admins', { p_club_id: clubId });
-  if (error || !data) return [];
-  return (data as { user_id: string; email: string; display_name: string | null }[]).map((r) => ({
+  const { data, error } = await insforge.database.rpc("list_club_admins", {
+    p_club_id: clubId,
+  });
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
+  return (
+    data as { user_id: string; email: string; display_name: string | null }[]
+  ).map((r) => ({
     userId: r.user_id,
     email: r.email,
     displayName: r.display_name,
@@ -111,37 +118,46 @@ export async function fetchClubAdmins(clubId: string): Promise<ClubAdminRow[]> {
 
 /** Student-initiated: ask the special admin to verify you as a president. */
 export function requestPresidentVerification(): Promise<RpcResult> {
-  return callRpc('request_president_verification');
+  return callRpc("request_president_verification");
 }
 
 /** Special-admin only: approve a club (also verifies its submitting president). */
 export function approveClub(clubId: string): Promise<RpcResult> {
-  return callRpc('approve_club', { p_club_id: clubId });
+  return callRpc("approve_club", { p_club_id: clubId });
 }
 
 /** Special-admin only: reject a club with a reason the submitter can see. */
 export function rejectClub(clubId: string, reason: string): Promise<RpcResult> {
-  return callRpc('reject_club', { p_club_id: clubId, p_reason: reason });
+  return callRpc("reject_club", { p_club_id: clubId, p_reason: reason });
 }
 
 /** Special-admin only: verify a president (lifts their role). */
 export function verifyPresident(userId: string): Promise<RpcResult> {
-  return callRpc('verify_president', { p_user_id: userId });
+  return callRpc("verify_president", { p_user_id: userId });
 }
 
 /** Special-admin only: reject a president verification request. */
-export function rejectPresident(userId: string, reason: string): Promise<RpcResult> {
-  return callRpc('reject_president', { p_user_id: userId, p_reason: reason });
+export function rejectPresident(
+  userId: string,
+  reason: string,
+): Promise<RpcResult> {
+  return callRpc("reject_president", { p_user_id: userId, p_reason: reason });
 }
 
 /** Special-admin only: assign a club admin by their @lwsd.org email. */
-export function assignClubAdmin(clubId: string, email: string): Promise<RpcResult> {
-  return callRpc('assign_club_admin', { p_club_id: clubId, p_email: email });
+export function assignClubAdmin(
+  clubId: string,
+  email: string,
+): Promise<RpcResult> {
+  return callRpc("assign_club_admin", { p_club_id: clubId, p_email: email });
 }
 
 /** Special-admin only: remove a club admin. */
-export function removeClubAdmin(clubId: string, userId: string): Promise<RpcResult> {
-  return callRpc('remove_club_admin', { p_club_id: clubId, p_user_id: userId });
+export function removeClubAdmin(
+  clubId: string,
+  userId: string,
+): Promise<RpcResult> {
+  return callRpc("remove_club_admin", { p_club_id: clubId, p_user_id: userId });
 }
 
 // ---------------------------------------------------------------------------
@@ -163,8 +179,9 @@ export interface ClubClaim {
 /** Pending claims awaiting school-admin review. */
 export async function fetchClubClaims(): Promise<ClubClaim[]> {
   if (!insforge) return [];
-  const { data, error } = await insforge.database.rpc('list_club_claims', {});
-  if (error || !data) return [];
+  const { data, error } = await insforge.database.rpc("list_club_claims", {});
+  if (error || !data)
+    throw new Error(error?.message ?? "Could not load data. Try again.");
   return (data as Record<string, unknown>[]).map((r) => ({
     id: r.id as string,
     clubId: r.club_id as string,
@@ -173,7 +190,7 @@ export async function fetchClubClaims(): Promise<ClubClaim[]> {
     email: r.email as string,
     displayName: (r.display_name as string | null) ?? null,
     // `member_position`, not `position`; see list_club_members for why.
-    position: (r.member_position as string | null) ?? 'President',
+    position: (r.member_position as string | null) ?? "President",
     message: (r.message as string | null) ?? null,
     createdAt: (r.created_at as string | null) ?? null,
   }));
@@ -185,7 +202,7 @@ export function reviewClubClaim(
   approve: boolean,
   reason?: string,
 ): Promise<RpcResult> {
-  return callRpc('review_club_claim', {
+  return callRpc("review_club_claim", {
     p_claim_id: claimId,
     p_approve: approve,
     p_reason: reason ?? null,
@@ -193,11 +210,20 @@ export function reviewClubClaim(
 }
 
 /** Special-admin only: hand a club to a different president. */
-export function transferClubOwnership(clubId: string, email: string): Promise<RpcResult> {
-  return callRpc('transfer_club_ownership', { p_club_id: clubId, p_email: email });
+export function transferClubOwnership(
+  clubId: string,
+  email: string,
+): Promise<RpcResult> {
+  return callRpc("transfer_club_ownership", {
+    p_club_id: clubId,
+    p_email: email,
+  });
 }
 
 /** Special-admin only: archive an inactive club (or bring it back). */
-export function setClubActive(clubId: string, active: boolean): Promise<RpcResult> {
-  return callRpc('set_club_active', { p_club_id: clubId, p_active: active });
+export function setClubActive(
+  clubId: string,
+  active: boolean,
+): Promise<RpcResult> {
+  return callRpc("set_club_active", { p_club_id: clubId, p_active: active });
 }

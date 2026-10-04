@@ -1,9 +1,9 @@
-import { PageIntro } from '@/components/CampusVisual';
-import { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import { PageIntro } from "@/components/CampusVisual";
+import { useCallback, useEffect, useState } from "react";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 import {
   Avatar,
   Badge,
@@ -16,14 +16,14 @@ import {
   PressableScale,
   Skeleton,
   StatTile,
-} from '@/components/ui';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { SignInGate } from '@/components/SignInGate';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
-import { brand, semantic, surface, surfaces } from '@/theme/tokens';
-import type { Club } from '@/types/domain';
+} from "@/components/ui";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { SignInGate } from "@/components/SignInGate";
+import { useRouter } from "expo-router";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { brand, semantic, surface, surfaces } from "@/theme/tokens";
+import type { Club } from "@/types/domain";
 import {
   fetchPendingClubs,
   fetchPendingPresidents,
@@ -37,33 +37,45 @@ import {
   type PendingClub,
   type PendingPresident,
   type ClubAdminRow,
-} from '@/data/adminRepo';
-import { fetchClubs } from '@/data/clubsRepo';
+} from "@/data/adminRepo";
+import { fetchClubs } from "@/data/clubsRepo";
 import {
   ClubClaimSection,
   SchoolAnnouncementSection,
   ClubLifecycleSection,
-} from '@/components/SchoolAdminSections';
+} from "@/components/SchoolAdminSections";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '.';
+  if (!iso) return ".";
   const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Inline error banner
 // ---------------------------------------------------------------------------
 
-function ErrorBanner({ message, onDismiss }: { message: string; onDismiss?: () => void }) {
+function ErrorBanner({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss?: () => void;
+}) {
   return (
     <View className="mt-3 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/10 dark:bg-danger/20 p-3">
       <Ionicons name="alert-circle" size={15} color={semantic.danger} />
-      <Text className="flex-1 text-xs font-semibold leading-5 text-danger">{message}</Text>
+      <Text className="flex-1 text-xs font-semibold leading-5 text-danger">
+        {message}
+      </Text>
       {onDismiss ? (
         <Button
           label=""
@@ -95,7 +107,7 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectReason, setRejectReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const busy = approving || rejecting;
 
@@ -113,7 +125,7 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      setError('Please enter a rejection reason.');
+      setError("Please enter a rejection reason.");
       return;
     }
     setError(null);
@@ -129,13 +141,14 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
 
   return (
     <Animated.View entering={FadeIn.duration(180)}>
-      <Card
-        elevation="ambient"
-        className="mb-3 p-4"
-      >
+      <Card elevation="ambient" className="mb-3 p-4">
         {/* Club header */}
         <View className="flex-row items-start gap-3">
-          <Avatar size="md" tone="brand" initials={club.name.slice(0, 2).toUpperCase()} />
+          <Avatar
+            size="md"
+            tone="brand"
+            initials={club.name.slice(0, 2).toUpperCase()}
+          />
           <View className="flex-1">
             <Text
               className="text-base font-semibold text-light-text dark:text-dark-text"
@@ -170,8 +183,10 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
             <View className="flex-row items-center gap-2">
               <Ionicons name="calendar-outline" size={13} color={s.muted} />
               <Text className="text-xs text-light-muted dark:text-dark-muted">
-                {[club.meetingDay, club.meetingTime].filter(Boolean).join(' · ')}
-                {club.location ? `  ·  ${club.location}` : ''}
+                {[club.meetingDay, club.meetingTime]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {club.location ? `  ·  ${club.location}` : ""}
               </Text>
             </View>
           ) : null}
@@ -210,7 +225,9 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
         ) : null}
 
         {/* Error */}
-        {error ? <ErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
+        {error ? (
+          <ErrorBanner message={error} onDismiss={() => setError(null)} />
+        ) : null}
 
         {/* Actions */}
         <View className="mt-3 flex-row gap-2">
@@ -243,7 +260,7 @@ function ClubQueueRow({ club, onRefresh, index }: ClubRowProps) {
                 disabled={busy}
                 onPress={() => {
                   setShowRejectForm(false);
-                  setRejectReason('');
+                  setRejectReason("");
                   setError(null);
                 }}
               />
@@ -272,7 +289,12 @@ interface ClubQueueSectionProps {
   onRefresh: () => void;
 }
 
-function ClubQueueSection({ pendingClubs, loading, error, onRefresh }: ClubQueueSectionProps) {
+function ClubQueueSection({
+  pendingClubs,
+  loading,
+  error,
+  onRefresh,
+}: ClubQueueSectionProps) {
   return (
     <View className="mt-7">
       <SectionHeader
@@ -316,7 +338,12 @@ function ClubQueueSection({ pendingClubs, loading, error, onRefresh }: ClubQueue
           </Card>
         ) : (
           pendingClubs.map((club, i) => (
-            <ClubQueueRow key={club.id} club={club} onRefresh={onRefresh} index={i} />
+            <ClubQueueRow
+              key={club.id}
+              club={club}
+              onRefresh={onRefresh}
+              index={i}
+            />
           ))
         )}
       </View>
@@ -338,7 +365,7 @@ function PresidentQueueRow({ president, onRefresh, index }: PresidentRowProps) {
   const [verifying, setVerifying] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectReason, setRejectReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const busy = verifying || rejecting;
 
@@ -356,7 +383,7 @@ function PresidentQueueRow({ president, onRefresh, index }: PresidentRowProps) {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      setError('Please enter a rejection reason.');
+      setError("Please enter a rejection reason.");
       return;
     }
     setError(null);
@@ -376,7 +403,7 @@ function PresidentQueueRow({ president, onRefresh, index }: PresidentRowProps) {
         .split(/\s+/)
         .map((w) => w[0])
         .slice(0, 2)
-        .join('')
+        .join("")
         .toUpperCase()
     : president.email.slice(0, 2).toUpperCase();
 
@@ -417,7 +444,9 @@ function PresidentQueueRow({ president, onRefresh, index }: PresidentRowProps) {
           </View>
         ) : null}
 
-        {error ? <ErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
+        {error ? (
+          <ErrorBanner message={error} onDismiss={() => setError(null)} />
+        ) : null}
 
         <View className="mt-2.5 flex-row gap-2">
           <Button
@@ -448,7 +477,7 @@ function PresidentQueueRow({ president, onRefresh, index }: PresidentRowProps) {
                 disabled={busy}
                 onPress={() => {
                   setShowRejectForm(false);
-                  setRejectReason('');
+                  setRejectReason("");
                   setError(null);
                 }}
               />
@@ -524,8 +553,14 @@ function PresidentQueueSection({
         ) : (
           pendingPresidents.map((p, i) => (
             <View key={p.id}>
-              <PresidentQueueRow president={p} onRefresh={onRefresh} index={i} />
-              {i < pendingPresidents.length - 1 ? <Divider variant="hairline" /> : null}
+              <PresidentQueueRow
+                president={p}
+                onRefresh={onRefresh}
+                index={i}
+              />
+              {i < pendingPresidents.length - 1 ? (
+                <Divider variant="hairline" />
+              ) : null}
             </View>
           ))
         )}
@@ -543,9 +578,12 @@ interface ClubAdminSectionProps {
   clubsLoading: boolean;
 }
 
-function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps) {
-  const [selectedClubId, setSelectedClubId] = useState<string>('');
-  const [adminEmail, setAdminEmail] = useState('');
+function ClubAdminSection({
+  approvedClubs,
+  clubsLoading,
+}: ClubAdminSectionProps) {
+  const [selectedClubId, setSelectedClubId] = useState<string>("");
+  const [adminEmail, setAdminEmail] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
 
@@ -559,10 +597,17 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
   const loadAdmins = useCallback(async (clubId: string) => {
     setAdminsLoading(true);
     setAdminsError(null);
-    const rows = await fetchClubAdmins(clubId);
-    setAdminsLoading(false);
-    // fetchClubAdmins returns [] on error; tolerate gracefully
-    setAdmins(rows);
+    try {
+      setAdmins(await fetchClubAdmins(clubId));
+    } catch (failure) {
+      setAdminsError(
+        failure instanceof Error
+          ? failure.message
+          : "Could not load administrators.",
+      );
+    } finally {
+      setAdminsLoading(false);
+    }
   }, []);
 
   // Simple club picker: a scrollable horizontal chip strip
@@ -578,12 +623,12 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
 
   const handleAssign = async () => {
     if (!selectedClubId) {
-      setAssignError('Select a club first.');
+      setAssignError("Select a club first.");
       return;
     }
     const email = adminEmail.trim().toLowerCase();
-    if (!email.endsWith('@lwsd.org')) {
-      setAssignError('Email must be an @lwsd.org address.');
+    if (!email.endsWith("@lwsd.org")) {
+      setAssignError("Email must be an @lwsd.org address.");
       return;
     }
     setAssignError(null);
@@ -593,7 +638,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
     if (!res.ok) {
       setAssignError(res.error);
     } else {
-      setAdminEmail('');
+      setAdminEmail("");
       void loadAdmins(selectedClubId);
     }
   };
@@ -612,7 +657,11 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
 
   return (
     <View className="mt-7">
-      <SectionHeader eyebrow="MANAGEMENT" title="Manage club admins" size="md" />
+      <SectionHeader
+        eyebrow="MANAGEMENT"
+        title="Manage club admins"
+        size="md"
+      />
 
       <Card elevation="ambient" className="mt-4 p-4">
         {/* Club picker trigger */}
@@ -620,9 +669,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
           <Text className="mb-2 text-xs font-semibold tracking-wide text-light-secondary dark:text-dark-secondary">
             Club
           </Text>
-          <View
-            className="flex-row items-center justify-between rounded-2xl border border-light-border bg-light-surface px-3.5 py-3 dark:border-dark-border dark:bg-dark-surface-2"
-          >
+          <View className="flex-row items-center justify-between rounded-2xl border border-light-border bg-light-surface px-3.5 py-3 dark:border-dark-border dark:bg-dark-surface-2">
             {clubsLoading ? (
               <ActivityIndicator size="small" color={brand.blue} />
             ) : (
@@ -630,15 +677,15 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
                 <Text
                   className={`flex-1 text-base ${
                     selectedClub
-                      ? 'text-light-text dark:text-dark-text'
-                      : 'text-light-subtle dark:text-dark-subtle'
+                      ? "text-light-text dark:text-dark-text"
+                      : "text-light-subtle dark:text-dark-subtle"
                   }`}
                   numberOfLines={1}
                 >
-                  {selectedClub ? selectedClub.name : 'Select a club…'}
+                  {selectedClub ? selectedClub.name : "Select a club…"}
                 </Text>
                 <Ionicons
-                  name={pickerOpen ? 'chevron-up' : 'chevron-down'}
+                  name={pickerOpen ? "chevron-up" : "chevron-down"}
                   size={16}
                   color={surfaces.light.muted}
                   onPress={() => setPickerOpen((o) => !o)}
@@ -649,7 +696,10 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
           {/* Inline dropdown when open */}
           {pickerOpen && !clubsLoading ? (
             <View className="mt-1 max-h-56 overflow-hidden rounded-2xl border border-light-border bg-light-surface shadow-ambient dark:border-dark-border dark:bg-dark-surface">
-              <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+              >
                 {approvedClubs.map((club, i) => (
                   <View key={club.id}>
                     <Text
@@ -658,7 +708,9 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
                     >
                       {club.name}
                     </Text>
-                    {i < approvedClubs.length - 1 ? <Divider variant="hairline" /> : null}
+                    {i < approvedClubs.length - 1 ? (
+                      <Divider variant="hairline" />
+                    ) : null}
                   </View>
                 ))}
                 {approvedClubs.length === 0 ? (
@@ -685,7 +737,10 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
             onSubmitEditing={handleAssign}
           />
           {assignError ? (
-            <ErrorBanner message={assignError} onDismiss={() => setAssignError(null)} />
+            <ErrorBanner
+              message={assignError}
+              onDismiss={() => setAssignError(null)}
+            />
           ) : null}
           <Button
             label="Add admin"
@@ -704,7 +759,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
           <View className="mt-5">
             <Divider variant="hairline" className="mb-4" />
             <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
-              Current admins for {selectedClub?.name ?? '…'}
+              Current admins for {selectedClub?.name ?? "…"}
             </Text>
             {adminsLoading ? (
               <View className="gap-2">
@@ -712,10 +767,17 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
                 <Skeleton height={44} radius="lg" />
               </View>
             ) : adminsError ? (
-              <ErrorBanner message={adminsError} onDismiss={() => setAdminsError(null)} />
+              <ErrorBanner
+                message={adminsError}
+                onDismiss={() => setAdminsError(null)}
+              />
             ) : admins.length === 0 ? (
               <View className="items-center py-6">
-                <Ionicons name="people-outline" size={28} color={surfaces.light.subtle} />
+                <Ionicons
+                  name="people-outline"
+                  size={28}
+                  color={surfaces.light.subtle}
+                />
                 <Text className="mt-2 text-sm text-light-muted dark:text-dark-muted">
                   No admins assigned yet.
                 </Text>
@@ -728,7 +790,7 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
                       .split(/\s+/)
                       .map((w) => w[0])
                       .slice(0, 2)
-                      .join('')
+                      .join("")
                       .toUpperCase()
                   : admin.email.slice(0, 2).toUpperCase();
                 return (
@@ -760,7 +822,9 @@ function ClubAdminSection({ approvedClubs, clubsLoading }: ClubAdminSectionProps
                         className="h-auto px-1 py-1"
                       />
                     </View>
-                    {i < admins.length - 1 ? <Divider variant="hairline" /> : null}
+                    {i < admins.length - 1 ? (
+                      <Divider variant="hairline" />
+                    ) : null}
                   </View>
                 );
               })
@@ -780,20 +844,24 @@ function NotConfiguredNotice() {
   return (
     <View className="flex-1 items-center justify-center px-8 py-20">
       <View className="h-14 w-14 items-center justify-center rounded-xl bg-warn/10 dark:bg-warn/20">
-        <Ionicons name="cloud-offline-outline" size={32} color={semantic.warn} />
+        <Ionicons
+          name="cloud-offline-outline"
+          size={32}
+          color={semantic.warn}
+        />
       </View>
       <Text className="mt-5 text-center text-lg font-semibold text-light-text dark:text-dark-text">
         Backend not configured
       </Text>
       <Text className="mt-2 max-w-xs text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
-        Admin tools require a live InsForge backend. Set{' '}
+        Admin tools require a live InsForge backend. Set{" "}
         <Text className="font-bold text-light-secondary dark:text-dark-secondary">
           EXPO_PUBLIC_INSFORGE_URL
-        </Text>{' '}
-        and{' '}
+        </Text>{" "}
+        and{" "}
         <Text className="font-bold text-light-secondary dark:text-dark-secondary">
           EXPO_PUBLIC_INSFORGE_ANON_KEY
-        </Text>{' '}
+        </Text>{" "}
         in your environment, then reload.
       </Text>
     </View>
@@ -814,8 +882,8 @@ function RestrictedNotice() {
         Restricted
       </Text>
       <Text className="mt-2 max-w-xs text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
-        This dashboard is only accessible to the school's special admin. If you believe this is a
-        mistake, contact your system administrator.
+        This dashboard is only accessible to the school's special admin. If you
+        believe this is a mistake, contact your system administrator.
       </Text>
     </View>
   );
@@ -842,13 +910,15 @@ function AdminDashboard() {
       const data = await fetchPendingClubs();
       setPendingClubs(data);
     } catch {
-      setClubsError('Failed to load pending clubs.');
+      setClubsError("Failed to load pending clubs.");
     }
     setClubsLoading(false);
   }, []);
 
   // --- Pending presidents ---
-  const [pendingPresidents, setPendingPresidents] = useState<PendingPresident[]>([]);
+  const [pendingPresidents, setPendingPresidents] = useState<
+    PendingPresident[]
+  >([]);
   const [presidentsLoading, setPresidentsLoading] = useState(true);
   const [presidentsError, setPresidentsError] = useState<string | null>(null);
 
@@ -859,7 +929,7 @@ function AdminDashboard() {
       const data = await fetchPendingPresidents();
       setPendingPresidents(data);
     } catch {
-      setPresidentsError('Failed to load pending presidents.');
+      setPresidentsError("Failed to load pending presidents.");
     }
     setPresidentsLoading(false);
   }, []);
@@ -883,7 +953,7 @@ function AdminDashboard() {
 
   const totalPending = pendingClubs.length + pendingPresidents.length;
 
-  const displayName = profile?.display_name ?? profile?.email ?? 'Admin';
+  const displayName = profile?.display_name ?? profile?.email ?? "Admin";
 
   return (
     <ScrollView
@@ -910,16 +980,26 @@ function AdminDashboard() {
             Admin dashboard
           </Text>
           <Text className="mt-1 text-sm leading-5 text-light-muted dark:text-dark-muted">
-            Approve clubs, verify presidents, transfer ownership, and post school-wide.
+            Approve clubs, verify presidents, transfer ownership, and post
+            school-wide.
           </Text>
         </View>
         <ThemeToggle />
       </View>
 
-      <View className="mt-5"><PageIntro eyebrow="SCHOOL / ADMINISTRATION" title="Keep campus connected." description="Review requests, manage club ownership, and share school-wide updates." /></View>
+      <View className="mt-5">
+        <PageIntro
+          eyebrow="SCHOOL / ADMINISTRATION"
+          title="Keep campus connected."
+          description="Review requests, manage club ownership, and share school-wide updates."
+        />
+      </View>
 
       {/* Profile chip */}
-      <Card elevation="ambient" className="mt-5 flex-row items-center gap-3 rounded-2xl p-2.5 pr-4">
+      <Card
+        elevation="ambient"
+        className="mt-5 flex-row items-center gap-3 rounded-2xl p-2.5 pr-4"
+      >
         <Avatar
           size="md"
           tone="brand"
@@ -929,7 +1009,10 @@ function AdminDashboard() {
           <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
             Signed in as
           </Text>
-          <Text className="mt-0.5 text-sm font-semibold text-light-text dark:text-dark-text" numberOfLines={1}>
+          <Text
+            className="mt-0.5 text-sm font-semibold text-light-text dark:text-dark-text"
+            numberOfLines={1}
+          >
             {displayName}
           </Text>
         </View>
@@ -945,19 +1028,19 @@ function AdminDashboard() {
       <View className="mt-4 flex-row gap-3">
         <StatTile
           icon="hourglass-outline"
-          value={clubsLoading ? '…' : String(pendingClubs.length)}
+          value={clubsLoading ? "…" : String(pendingClubs.length)}
           label="Clubs pending"
           tone="brand"
         />
         <StatTile
           icon="shield-half-outline"
-          value={presidentsLoading ? '…' : String(pendingPresidents.length)}
+          value={presidentsLoading ? "…" : String(pendingPresidents.length)}
           label="Presidents pending"
           tone="info"
         />
         <StatTile
           icon="albums-outline"
-          value={approvedClubsLoading ? '…' : String(approvedClubs.length)}
+          value={approvedClubsLoading ? "…" : String(approvedClubs.length)}
           label="Approved clubs"
           tone="neutral"
         />
@@ -968,7 +1051,8 @@ function AdminDashboard() {
         <View className="mt-4 flex-row items-center gap-2 rounded-xl bg-warn/10 dark:bg-warn/20 px-3 py-2.5">
           <Ionicons name="alert-circle" size={15} color={semantic.warn} />
           <Text className="flex-1 text-xs font-semibold text-warn">
-            {totalPending} item{totalPending === 1 ? '' : 's'} need your attention.
+            {totalPending} item{totalPending === 1 ? "" : "s"} need your
+            attention.
           </Text>
         </View>
       ) : null}
@@ -1027,7 +1111,7 @@ export default function AdminScreen() {
           </View>
         ) : !configured ? (
           <NotConfiguredNotice />
-        ) : profile?.role !== 'special_admin' ? (
+        ) : profile?.role !== "special_admin" ? (
           <RestrictedNotice />
         ) : (
           <AdminDashboard />

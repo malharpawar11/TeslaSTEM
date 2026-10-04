@@ -1,4 +1,4 @@
-import { PageIntro } from '@/components/CampusVisual';
+import { PageIntro } from "@/components/CampusVisual";
 import {
   toSchoolInput as toLocalInput,
   fromSchoolInput as fromLocalInput,
@@ -213,6 +213,7 @@ function ManageClubScreen() {
 
   const [access, setAccess] = useState<ClubAccess>(NO_ACCESS);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [section, setSection] = useState<Section>("Overview");
   const [busy, setBusy] = useState(false);
 
@@ -272,32 +273,43 @@ function ManageClubScreen() {
   } | null>(null);
 
   const load = useCallback(async () => {
-    const nextAccess = await fetchClubAccess(clubId);
-    setAccess(nextAccess);
-    const jobs: Promise<void>[] = [];
-    if (
-      nextAccess.permissions.includes("announcements") ||
-      nextAccess.canAdmin
-    ) {
-      jobs.push(fetchClubAnnouncements(clubId).then(setAnnouncements));
+    setLoading(true);
+    try {
+      const nextAccess = await fetchClubAccess(clubId);
+      setAccess(nextAccess);
+      const jobs: Promise<void>[] = [];
+      if (
+        nextAccess.permissions.includes("announcements") ||
+        nextAccess.canAdmin
+      ) {
+        jobs.push(fetchClubAnnouncements(clubId).then(setAnnouncements));
+      }
+      if (nextAccess.permissions.includes("events") || nextAccess.canAdmin) {
+        jobs.push(fetchClubEvents(clubId, true).then(setEvents));
+      }
+      if (
+        nextAccess.permissions.includes("members") ||
+        nextAccess.permissions.includes("board")
+      ) {
+        jobs.push(fetchClubMembers(clubId).then(setMembers));
+      }
+      if (nextAccess.permissions.includes("files")) {
+        jobs.push(fetchClubFiles(clubId).then(setFiles));
+      }
+      if (nextAccess.permissions.includes("notes")) {
+        jobs.push(fetchClubNotes(clubId).then(setNotes));
+      }
+      await Promise.all(jobs);
+      setLoadError(null);
+    } catch (failure) {
+      setLoadError(
+        failure instanceof Error
+          ? failure.message
+          : "Could not load club management.",
+      );
+    } finally {
+      setLoading(false);
     }
-    if (nextAccess.permissions.includes("events") || nextAccess.canAdmin) {
-      jobs.push(fetchClubEvents(clubId, true).then(setEvents));
-    }
-    if (
-      nextAccess.permissions.includes("members") ||
-      nextAccess.permissions.includes("board")
-    ) {
-      jobs.push(fetchClubMembers(clubId).then(setMembers));
-    }
-    if (nextAccess.permissions.includes("files")) {
-      jobs.push(fetchClubFiles(clubId).then(setFiles));
-    }
-    if (nextAccess.permissions.includes("notes")) {
-      jobs.push(fetchClubNotes(clubId).then(setNotes));
-    }
-    await Promise.all(jobs);
-    setLoading(false);
   }, [clubId]);
 
   useEffect(() => {
@@ -376,7 +388,16 @@ function ManageClubScreen() {
       setAnnId(null);
       setAnnTitle("");
       setAnnBody("");
-      setAnnouncements(await fetchClubAnnouncements(clubId));
+      await fetchClubAnnouncements(clubId)
+        .then(setAnnouncements)
+        .catch((failure) =>
+          toast(
+            failure instanceof Error
+              ? failure.message
+              : "Could not refresh data.",
+            "error",
+          ),
+        );
     }
   }, [annId, annTitle, annBody, clubId, toast, toastResult]);
 
@@ -422,7 +443,16 @@ function ManageClubScreen() {
     ) {
       setEventOpen(false);
       setEventId(null);
-      setEvents(await fetchClubEvents(clubId, true));
+      await fetchClubEvents(clubId, true)
+        .then(setEvents)
+        .catch((failure) =>
+          toast(
+            failure instanceof Error
+              ? failure.message
+              : "Could not refresh data.",
+            "error",
+          ),
+        );
     }
   }, [eventForm, eventId, clubId, toast, toastResult]);
 
@@ -440,7 +470,16 @@ function ManageClubScreen() {
       setNoteOpen(false);
       setNoteId(null);
       setNoteForm({ title: "", body: "", category: "General", pinned: false });
-      setNotes(await fetchClubNotes(clubId));
+      await fetchClubNotes(clubId)
+        .then(setNotes)
+        .catch((failure) =>
+          toast(
+            failure instanceof Error
+              ? failure.message
+              : "Could not refresh data.",
+            "error",
+          ),
+        );
     }
   }, [noteForm, noteId, clubId, toast, toastResult]);
 
@@ -459,7 +498,16 @@ function ManageClubScreen() {
     setBusy(false);
     if (toastResult(res, "File uploaded; members were notified.")) {
       setFileTitle("");
-      setFiles(await fetchClubFiles(clubId));
+      await fetchClubFiles(clubId)
+        .then(setFiles)
+        .catch((failure) =>
+          toast(
+            failure instanceof Error
+              ? failure.message
+              : "Could not refresh data.",
+            "error",
+          ),
+        );
     }
   }, [clubId, fileFolder, fileTitle, toastResult]);
 
@@ -495,7 +543,16 @@ function ManageClubScreen() {
             : "Board request declined.",
         )
       ) {
-        setMembers(await fetchClubMembers(clubId));
+        await fetchClubMembers(clubId)
+          .then(setMembers)
+          .catch((failure) =>
+            toast(
+              failure instanceof Error
+                ? failure.message
+                : "Could not refresh data.",
+              "error",
+            ),
+          );
       }
     },
     [clubId, toastResult],
@@ -509,7 +566,16 @@ function ManageClubScreen() {
       if (
         toastResult(res, approve ? "Member approved." : "Request declined.")
       ) {
-        setMembers(await fetchClubMembers(clubId));
+        await fetchClubMembers(clubId)
+          .then(setMembers)
+          .catch((failure) =>
+            toast(
+              failure instanceof Error
+                ? failure.message
+                : "Could not refresh data.",
+              "error",
+            ),
+          );
         await refreshClubs();
       }
     },
@@ -528,7 +594,16 @@ function ManageClubScreen() {
     setBusy(false);
     if (toastResult(res, "Permissions updated.")) {
       setEditingMember(null);
-      setMembers(await fetchClubMembers(clubId));
+      await fetchClubMembers(clubId)
+        .then(setMembers)
+        .catch((failure) =>
+          toast(
+            failure instanceof Error
+              ? failure.message
+              : "Could not refresh data.",
+            "error",
+          ),
+        );
     }
   }, [editingMember, clubId, editPosition, editPermissions, toastResult]);
 
@@ -556,6 +631,14 @@ function ManageClubScreen() {
       </View>
     );
   }
+
+  if (loadError)
+    return (
+      <View className="flex-1 justify-center px-5">
+        <Text className="text-danger">{loadError}</Text>
+        <Button label="Retry" onPress={() => void load()} />
+      </View>
+    );
 
   // The server decides: no permissions, no management area.
   if (access.permissions.length === 0) {
@@ -618,7 +701,13 @@ function ManageClubScreen() {
           </View>
         </View>
 
-        <View className="px-5 pt-5"><PageIntro eyebrow="LEADERSHIP / WORKSPACE" title="Bring your club to life." description="Publish updates, plan events, and support your members. Your permissions control which tools are available." /></View>
+        <View className="px-5 pt-5">
+          <PageIntro
+            eyebrow="LEADERSHIP / WORKSPACE"
+            title="Bring your club to life."
+            description="Publish updates, plan events, and support your members. Your permissions control which tools are available."
+          />
+        </View>
 
         <View className="px-5 pt-4">
           <SectionTabs
@@ -786,9 +875,16 @@ function ManageClubScreen() {
                           action: async () => {
                             const res = await deleteAnnouncement(a.id);
                             if (toastResult(res, "Announcement deleted.")) {
-                              setAnnouncements(
-                                await fetchClubAnnouncements(clubId),
-                              );
+                              await fetchClubAnnouncements(clubId)
+                                .then(setAnnouncements)
+                                .catch((failure) =>
+                                  toast(
+                                    failure instanceof Error
+                                      ? failure.message
+                                      : "Could not refresh announcements.",
+                                    "error",
+                                  ),
+                                );
                             }
                           },
                         })
@@ -990,7 +1086,16 @@ function ManageClubScreen() {
                                 "Event cancelled; members notified.",
                               )
                             ) {
-                              setEvents(await fetchClubEvents(clubId, true));
+                              await fetchClubEvents(clubId, true)
+                                .then(setEvents)
+                                .catch((failure) =>
+                                  toast(
+                                    failure instanceof Error
+                                      ? failure.message
+                                      : "Could not refresh data.",
+                                    "error",
+                                  ),
+                                );
                             }
                           },
                         })
@@ -1003,7 +1108,16 @@ function ManageClubScreen() {
                           action: async () => {
                             const res = await deleteEvent(event.id);
                             if (toastResult(res, "Event deleted.")) {
-                              setEvents(await fetchClubEvents(clubId, true));
+                              await fetchClubEvents(clubId, true)
+                                .then(setEvents)
+                                .catch((failure) =>
+                                  toast(
+                                    failure instanceof Error
+                                      ? failure.message
+                                      : "Could not refresh data.",
+                                    "error",
+                                  ),
+                                );
                             }
                           },
                         })
@@ -1146,7 +1260,16 @@ function ManageClubScreen() {
                                     member.userId,
                                   );
                                   if (toastResult(res, "Member removed.")) {
-                                    setMembers(await fetchClubMembers(clubId));
+                                    await fetchClubMembers(clubId)
+                                      .then(setMembers)
+                                      .catch((failure) =>
+                                        toast(
+                                          failure instanceof Error
+                                            ? failure.message
+                                            : "Could not refresh data.",
+                                          "error",
+                                        ),
+                                      );
                                     await refreshClubs();
                                   }
                                 },
@@ -1440,7 +1563,16 @@ function ManageClubScreen() {
                           action: async () => {
                             const res = await deleteClubFile(file);
                             if (toastResult(res, "File deleted.")) {
-                              setFiles(await fetchClubFiles(clubId));
+                              await fetchClubFiles(clubId)
+                                .then(setFiles)
+                                .catch((failure) =>
+                                  toast(
+                                    failure instanceof Error
+                                      ? failure.message
+                                      : "Could not refresh data.",
+                                    "error",
+                                  ),
+                                );
                             }
                           },
                         })
@@ -1582,7 +1714,16 @@ function ManageClubScreen() {
                           action: async () => {
                             const res = await deleteNote(note.id);
                             if (toastResult(res, "Note deleted.")) {
-                              setNotes(await fetchClubNotes(clubId));
+                              await fetchClubNotes(clubId)
+                                .then(setNotes)
+                                .catch((failure) =>
+                                  toast(
+                                    failure instanceof Error
+                                      ? failure.message
+                                      : "Could not refresh data.",
+                                    "error",
+                                  ),
+                                );
                             }
                           },
                         })

@@ -237,13 +237,24 @@ function DashboardScreen() {
   const { refresh: refreshMemberships } = useMemberships();
   const { unreadCount, refresh: refreshNotifications } = useNotifications();
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const data = await fetchDashboard(8);
-    setDashboard(data);
-    setLoading(false);
+    try {
+      const data = await fetchDashboard(8);
+      setDashboard(data);
+      setError(null);
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Could not load your dashboard.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -300,6 +311,12 @@ function DashboardScreen() {
           <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
             Updates from your clubs
           </Text>
+          {error ? (
+            <>
+              <Text className="mt-2 text-danger">{error}</Text>
+              <Button label="Retry" onPress={() => void load()} />
+            </>
+          ) : null}
         </View>
         <View className="flex-row items-center gap-2 pt-1">
           <PressableScale

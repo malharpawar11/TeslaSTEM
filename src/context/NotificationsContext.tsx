@@ -10,8 +10,10 @@ import {
 } from "react";
 import { AppState } from "react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import {
   fetchNotifications,
+  fetchUnreadCount,
   fetchNotificationPrefs,
   markNotificationsRead,
   saveNotificationPrefs,
@@ -33,6 +35,7 @@ interface NotificationsContextValue {
   notifications: AppNotification[];
   unreadCount: number;
   loading: boolean;
+  error: string | null;
   prefs: PrefsRow[];
   /** Effective settings for a club (its override, else the global default). */
   prefsFor: (clubId: string | null) => NotificationPrefs;
@@ -50,30 +53,44 @@ const NotificationsContext = createContext<
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const { toast } = useToast();
   const userId = session?.user?.id ?? null;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [prefs, setPrefs] = useState<PrefsRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const currentUser = useRef(userId);
   currentUser.current = userId;
 
   const refresh = useCallback(async () => {
     if (!userId) {
+      setLoading(false);
+      setError(null);
       setNotifications([]);
+      setUnreadCount(0);
       setPrefs([]);
       return;
     }
     setLoading(true);
     try {
-      const [rows, prefRows] = await Promise.all([
+      const [rows, prefRows, count] = await Promise.all([
         fetchNotifications(60),
         fetchNotificationPrefs(userId),
+        fetchUnreadCount(),
       ]);
       if (currentUser.current !== userId) return;
       setNotifications(rows);
+      setUnreadCount(count);
       setPrefs(prefRows);
-    } catch {
-      /* Keep the last known inbox during transient network failures. */
+      setError(null);
+    } catch (failure) {
+      if (currentUser.current === userId)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not load notifications.",
+        );
     } finally {
       if (currentUser.current === userId) setLoading(false);
     }
@@ -81,7 +98,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setNotifications([]);
+    setUnreadCount(0);
     setPrefs([]);
+    setError(null);
     void refresh();
   }, [refresh]);
 
@@ -95,11 +114,6 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => sub.remove();
   }, [userId, refresh]);
 
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.readAt).length,
-    [notifications],
-  );
-
   useEffect(() => {
     void setBadgeCount(unreadCount);
   }, [unreadCount]);
@@ -107,15 +121,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const markRead = useCallback(
     async (ids?: number[]) => {
       const result = await markNotificationsRead(ids);
-      if (!result.ok || currentUser.current !== userId) return;
+      if (currentUser.current !== userId) return;
+      if (!result.ok) {
+        toast(result.error, "error");
+        return;
+      }
       const now = new Date().toISOString();
       setNotifications((prev) =>
         prev.map((n) =>
           !n.readAt && (!ids || ids.includes(n.id)) ? { ...n, readAt: now } : n,
         ),
       );
+      void refresh();
     },
-    [userId],
+    [userId, toast, refresh],
   );
 
   const prefsFor = useCallback(
@@ -126,6 +145,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const savePrefs = useCallback(
     async (clubId: string | null, next: NotificationPrefs) => {
       const res = await saveNotificationPrefs(clubId, next);
+      if (currentUser.current !== userId)
+        return { ok: false, error: "Your account changed. Try again." };
       if (!res.ok) return { ok: false, error: res.error };
       setPrefs((prev) => {
         const others = prev.filter((p) => p.clubId !== clubId);
@@ -133,7 +154,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       });
       return { ok: true };
     },
-    [],
+    [userId],
   );
 
   return (
@@ -142,6 +163,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         notifications,
         unreadCount,
         loading,
+        error,
         prefs,
         prefsFor,
         savePrefs,

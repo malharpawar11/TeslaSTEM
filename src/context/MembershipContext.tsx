@@ -29,6 +29,7 @@ import type { Membership, MembershipStatus } from "@/types/domain";
 interface MembershipContextValue {
   memberships: Map<string, Membership>;
   loading: boolean;
+  error: string | null;
   isMember: (clubId: string) => boolean;
   membershipFor: (clubId: string) => Membership | undefined;
   /** Number of clubs the student has actually joined (pending excluded). */
@@ -53,21 +54,31 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
     new Map(),
   );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const currentUser = useRef(userId);
   currentUser.current = userId;
 
   const refresh = useCallback(async () => {
     if (!userId) {
+      setLoading(false);
+      setError(null);
       setMemberships(new Map());
       return;
     }
     setLoading(true);
     try {
       const rows = await fetchMyMemberships(userId);
-      if (currentUser.current === userId)
+      if (currentUser.current === userId) {
         setMemberships(new Map(rows.map((m) => [m.clubId, m])));
-    } catch {
-      /* Keep the last known memberships during a network failure. */
+        setError(null);
+      }
+    } catch (failure) {
+      if (currentUser.current === userId)
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not load your memberships.",
+        );
     } finally {
       if (currentUser.current === userId) setLoading(false);
     }
@@ -75,6 +86,7 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMemberships(new Map());
+    setError(null);
     void refresh();
   }, [refresh]);
 
@@ -137,6 +149,7 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
       value={{
         memberships,
         loading,
+        error,
         isMember,
         membershipFor,
         joinedCount,

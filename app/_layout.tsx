@@ -86,11 +86,11 @@ export default function RootLayout() {
             <PreferencesProvider>
               <ClubsProvider>
                 <MembershipProvider>
-                  <NotificationsProvider>
-                    <ToastProvider>
+                  <ToastProvider>
+                    <NotificationsProvider>
                       <RootStack />
-                    </ToastProvider>
-                  </NotificationsProvider>
+                    </NotificationsProvider>
+                  </ToastProvider>
                 </MembershipProvider>
               </ClubsProvider>
             </PreferencesProvider>

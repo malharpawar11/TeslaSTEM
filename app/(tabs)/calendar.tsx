@@ -1,7 +1,7 @@
 import { PageIntro } from "@/components/CampusVisual";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Platform } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -199,6 +199,7 @@ export default function CalendarScreen() {
           <View className="flex-1">
             <Button
               label="Remind me"
+              disabled={Platform.OS === "web"}
               variant="secondary"
               size="sm"
               icon="alarm-outline"
@@ -207,6 +208,12 @@ export default function CalendarScreen() {
             />
           </View>
         </View>
+        {Platform.OS === "web" ? (
+          <Text className="px-5 pt-2 text-xs text-light-muted dark:text-dark-muted">
+            Device reminders require the installed app. Export events to your
+            calendar to set reminders on the web.
+          </Text>
+        ) : null}
 
         <View className="px-5 pt-5">
           <MonthCalendar
