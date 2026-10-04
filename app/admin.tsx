@@ -1,3 +1,4 @@
+import { PageIntro } from '@/components/CampusVisual';
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -900,12 +901,12 @@ function AdminDashboard() {
           accessibilityRole="button"
           accessibilityLabel="Back"
           scaleTo={0.9}
-          className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+          className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-2xl border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
         >
           <Ionicons name="chevron-back" size={18} color={brand.blue} />
         </PressableScale>
         <View className="flex-1 pr-3">
-          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+          <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
             Admin dashboard
           </Text>
           <Text className="mt-1 text-sm leading-5 text-light-muted dark:text-dark-muted">
@@ -914,6 +915,8 @@ function AdminDashboard() {
         </View>
         <ThemeToggle />
       </View>
+
+      <View className="mt-5"><PageIntro eyebrow="SCHOOL / ADMINISTRATION" title="Keep campus connected." description="Review requests, manage club ownership, and share school-wide updates." /></View>
 
       {/* Profile chip */}
       <Card elevation="ambient" className="mt-5 flex-row items-center gap-3 rounded-2xl p-2.5 pr-4">

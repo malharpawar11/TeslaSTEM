@@ -99,7 +99,7 @@ export function ClubReviews({
               : "No reviews yet. Share your experience after joining."}
           </Text>
           {reviews.map((review) => (
-            <Card key={review.user_id} className="p-4">
+            <Card key={review.user_id} className="p-5">
               <Text className="font-semibold text-light-text dark:text-dark-text">
                 {review.author} · {review.rating}/5
               </Text>
@@ -114,11 +114,11 @@ export function ClubReviews({
         </>
       )}
       {isMember ? (
-        <Card className="gap-3 p-4">
+        <Card className="gap-4 p-5">
           <Text className="font-semibold text-light-text dark:text-dark-text">
             {own ? "Edit your review" : "Write a review"}
           </Text>
-          <View className="flex-row gap-2">
+          <View className="flex-row flex-wrap gap-2">
             {[1, 2, 3, 4, 5].map((value) => (
               <Chip
                 key={value}

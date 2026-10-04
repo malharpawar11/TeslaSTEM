@@ -363,13 +363,13 @@ export default function ClubProfileScreen() {
             <SkeletonRow count={3} />
           ) : tab === 'About' ? (
             <Animated.View entering={FadeIn.duration(240)}>
-              <Text className="text-base leading-6 text-light-secondary dark:text-dark-secondary">
+              <Text className="rounded-2xl bg-light-surface p-5 text-base leading-6 text-light-secondary dark:bg-dark-surface dark:text-dark-secondary">
                 {club.description}
               </Text>
               <ClubReviews clubId={clubId} isMember={joined} />
 
               <View className="mt-6">
-                <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-sm font-bold text-light-muted dark:text-dark-muted">
                   Meeting info
                 </Text>
                 <Card elevation="ambient" className="px-4">
@@ -407,7 +407,7 @@ export default function ClubProfileScreen() {
               </View>
 
               <View className="mt-4">
-                <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
+                <Text className="mb-2 text-sm font-bold text-light-muted dark:text-dark-muted">
                   Connect
                 </Text>
                 <Card elevation="ambient" className="px-4">
@@ -505,7 +505,7 @@ export default function ClubProfileScreen() {
                   ))}
                   {past.length > 0 ? (
                     <>
-                      <Text className="mt-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
+                      <Text className="mt-3 text-sm font-bold text-light-muted dark:text-dark-muted">
                         Past & cancelled
                       </Text>
                       {past.map((event) => (
@@ -529,7 +529,7 @@ export default function ClubProfileScreen() {
                 <View className="gap-2.5">
                   {folders.map((folder) => (
                     <View key={folder} className="gap-2.5">
-                      <Text className="mt-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
+                      <Text className="mt-2 text-sm font-bold text-light-muted dark:text-dark-muted">
                         {folder}
                       </Text>
                       {files
@@ -582,7 +582,7 @@ export default function ClubProfileScreen() {
                         initials={o.name.slice(0, 2).toUpperCase()}
                       />
                       <View className="flex-1">
-                        <Text className="text-xs font-semibold text-light-muted dark:text-dark-muted">
+                        <Text className="text-sm font-bold text-light-muted dark:text-dark-muted">
                           {o.role}
                         </Text>
                         <Text className="mt-0.5 text-base font-semibold text-light-text dark:text-dark-text">

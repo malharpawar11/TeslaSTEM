@@ -60,13 +60,13 @@ export function AnnouncementCard({
   onDelete?: () => void;
 }) {
   return (
-    <Card elevation="ambient" className="p-4">
+    <Card elevation="ambient" className="p-5">
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-xs font-medium text-light-muted dark:text-dark-muted">
             {showClub && announcement.clubName ? announcement.clubName : 'Announcement'}
           </Text>
-          <Text className="mt-1 text-base font-semibold text-light-text dark:text-dark-text">
+          <Text className="mt-1 text-lg font-bold text-light-text dark:text-dark-text">
             {announcement.title}
           </Text>
         </View>
@@ -78,7 +78,7 @@ export function AnnouncementCard({
                 accessibilityRole="button"
                 accessibilityLabel="Edit announcement"
                 scaleTo={0.9}
-                className="h-8 w-8 items-center justify-center rounded-md bg-light-surface-2 dark:bg-dark-surface-2"
+                className="h-10 w-10 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2"
               >
                 <Ionicons name="create-outline" size={15} color={surfaces.light.muted} />
               </PressableScale>
@@ -89,7 +89,7 @@ export function AnnouncementCard({
                 accessibilityRole="button"
                 accessibilityLabel="Delete announcement"
                 scaleTo={0.9}
-                className="h-8 w-8 items-center justify-center rounded-md bg-danger/10 dark:bg-danger/20"
+                className="h-10 w-10 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
               >
                 <Ionicons name="trash-outline" size={15} color={semantic.danger} />
               </PressableScale>
@@ -139,7 +139,7 @@ export function EventCard({
   const icon = EVENT_ICON[event.eventType] ?? 'calendar-outline';
 
   return (
-    <Card elevation="ambient" className="p-4">
+    <Card elevation="ambient" className="p-5">
       <View className="flex-row items-start gap-3">
         <View
           className={`h-9 w-9 items-center justify-center rounded-lg ${
@@ -159,7 +159,7 @@ export function EventCard({
             ) : null}
           </View>
           <Text
-            className={`mt-1.5 text-base font-semibold text-light-text dark:text-dark-text ${
+            className={`mt-1.5 text-lg font-bold text-light-text dark:text-dark-text ${
               cancelled ? 'line-through' : ''
             }`}
           >
@@ -206,7 +206,7 @@ export function EventCard({
               accessibilityRole="button"
               accessibilityLabel="Add to Google Calendar"
               scaleTo={0.95}
-              className="h-8 flex-row items-center gap-1.5 rounded-md bg-python-blue/10 px-2.5 dark:bg-python-blue/20"
+              className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-python-blue/10 px-2.5 dark:bg-python-blue/20"
             >
               <Ionicons name="logo-google" size={13} color={brand.blue} />
               <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
@@ -218,7 +218,7 @@ export function EventCard({
               accessibilityRole="button"
               accessibilityLabel="Add to Apple or device calendar"
               scaleTo={0.95}
-              className="h-8 flex-row items-center gap-1.5 rounded-md border border-light-border px-2.5 dark:border-dark-border"
+              className="min-h-10 flex-row items-center gap-1.5 rounded-full border border-light-border px-2.5 dark:border-dark-border"
             >
               <Ionicons name="calendar-outline" size={13} color={isDark ? surfaces.dark.secondary : surfaces.light.secondary} />
               <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
@@ -233,7 +233,7 @@ export function EventCard({
             accessibilityRole="button"
             accessibilityLabel="Edit event"
             scaleTo={0.95}
-            className="h-8 flex-row items-center gap-1.5 rounded-md bg-light-surface-2 px-2.5 dark:bg-dark-surface-2"
+            className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-light-surface-2 px-2.5 dark:bg-dark-surface-2"
           >
             <Ionicons name="create-outline" size={13} color={surfaces.light.muted} />
             <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
@@ -247,7 +247,7 @@ export function EventCard({
             accessibilityRole="button"
             accessibilityLabel="Cancel event"
             scaleTo={0.95}
-            className="h-8 flex-row items-center gap-1.5 rounded-md bg-warn/10 px-2.5 dark:bg-warn/20"
+            className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-warn/10 px-2.5 dark:bg-warn/20"
           >
             <Ionicons name="close-circle-outline" size={13} color={semantic.warn} />
             <Text className="text-2xs font-semibold text-warn">Cancel</Text>
@@ -259,7 +259,7 @@ export function EventCard({
             accessibilityRole="button"
             accessibilityLabel="Delete event"
             scaleTo={0.95}
-            className="h-8 flex-row items-center gap-1.5 rounded-md bg-danger/10 px-2.5 dark:bg-danger/20"
+            className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-danger/10 px-2.5 dark:bg-danger/20"
           >
             <Ionicons name="trash-outline" size={13} color={semantic.danger} />
             <Text className="text-2xs font-semibold text-danger">Delete</Text>
@@ -339,7 +339,7 @@ export function FileRow({
           accessibilityRole="button"
           accessibilityLabel={`Delete ${file.title}`}
           scaleTo={0.9}
-          className="h-8 w-8 items-center justify-center rounded-md bg-danger/10 dark:bg-danger/20"
+          className="h-10 w-10 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
         >
           <Ionicons name="trash-outline" size={15} color={semantic.danger} />
         </PressableScale>
@@ -364,7 +364,7 @@ export function NoteCard({
   onDelete?: () => void;
 }) {
   return (
-    <Card elevation="ambient" className="p-4">
+    <Card elevation="ambient" className="p-5">
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 flex-row flex-wrap items-center gap-1.5">
           <Tag label={note.category} tone="brand" />
@@ -383,7 +383,7 @@ export function NoteCard({
                 accessibilityRole="button"
                 accessibilityLabel="Edit note"
                 scaleTo={0.9}
-                className="h-8 w-8 items-center justify-center rounded-md bg-light-surface-2 dark:bg-dark-surface-2"
+                className="h-10 w-10 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2"
               >
                 <Ionicons name="create-outline" size={15} color={surfaces.light.muted} />
               </PressableScale>
@@ -394,7 +394,7 @@ export function NoteCard({
                 accessibilityRole="button"
                 accessibilityLabel="Delete note"
                 scaleTo={0.9}
-                className="h-8 w-8 items-center justify-center rounded-md bg-danger/10 dark:bg-danger/20"
+                className="h-10 w-10 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
               >
                 <Ionicons name="trash-outline" size={15} color={semantic.danger} />
               </PressableScale>
@@ -402,7 +402,7 @@ export function NoteCard({
           </View>
         ) : null}
       </View>
-      <Text className="mt-2 text-base font-semibold text-light-text dark:text-dark-text">
+      <Text className="mt-2 text-lg font-bold text-light-text dark:text-dark-text">
         {note.title}
       </Text>
       <Text className="mt-1.5 text-sm leading-5 text-light-secondary dark:text-dark-secondary">

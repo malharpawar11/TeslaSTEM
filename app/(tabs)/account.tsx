@@ -1,3 +1,4 @@
+import { PageIntro } from '@/components/CampusVisual';
 import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -152,12 +153,14 @@ function AccountDashboard() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-1 pr-3">
-          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+          <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
             My account
           </Text>
         </View>
         <ThemeToggle />
       </View>
+
+      <View className="mt-5"><PageIntro eyebrow="PROFILE / PREFERENCES" title="Your campus, your way." description="Manage your memberships, school profile, and notification preferences." /></View>
 
       <Animated.View entering={FadeIn.duration(180)}>
         <Card elevation="ambient" className="mt-5 flex-row items-center gap-3 rounded-2xl p-4">

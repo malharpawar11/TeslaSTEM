@@ -1,3 +1,4 @@
+import { PageIntro } from '@/components/CampusVisual';
 import { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -95,16 +96,18 @@ function NewClubForm() {
           accessibilityRole="button"
           accessibilityLabel="Back"
           scaleTo={0.9}
-          className="mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+          className="mt-1 h-9 w-9 items-center justify-center rounded-2xl border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
         >
           <Ionicons name="chevron-back" size={18} color={brand.blue} />
         </PressableScale>
         <View className="flex-1">
-          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+          <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
             Start a club
           </Text>
         </View>
       </View>
+
+      <View className="mt-5"><PageIntro eyebrow="CREATE / COMMUNITY" title="Start something great." description="Tell students what your club is about, when you meet, and where to find you. School administrators review every submission." /></View>
 
       <Animated.View entering={FadeIn.duration(180)} className="mt-5 gap-3">
         <Input label="Club name" value={name} onChangeText={setName} placeholder="Rocketry Club" />

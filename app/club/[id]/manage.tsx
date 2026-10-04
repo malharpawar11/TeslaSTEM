@@ -1,3 +1,4 @@
+import { PageIntro } from '@/components/CampusVisual';
 import {
   toSchoolInput as toLocalInput,
   fromSchoolInput as fromLocalInput,
@@ -586,7 +587,7 @@ function ManageClubScreen() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             scaleTo={0.9}
-            className="mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+            className="mt-1 h-9 w-9 items-center justify-center rounded-2xl border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
           >
             <Ionicons name="chevron-back" size={18} color={brand.blue} />
           </PressableScale>
@@ -616,6 +617,8 @@ function ManageClubScreen() {
             </View>
           </View>
         </View>
+
+        <View className="px-5 pt-5"><PageIntro eyebrow="LEADERSHIP / WORKSPACE" title="Bring your club to life." description="Publish updates, plan events, and support your members. Your permissions control which tools are available." /></View>
 
         <View className="px-5 pt-4">
           <SectionTabs

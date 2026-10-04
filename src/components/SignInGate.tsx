@@ -1,5 +1,6 @@
+import { PageIntro } from '@/components/CampusVisual';
 import { ReactNode, useEffect, useState } from 'react';
-import { View, Text, Platform } from 'react-native';
+import { View, Text, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -150,7 +151,7 @@ export function SignInGate({
   };
 
   return (
-    <View
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 36 }}
       className="flex-1 bg-light-bg px-6 dark:bg-dark-bg"
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
@@ -158,7 +159,8 @@ export function SignInGate({
         <ThemeToggle />
       </View>
 
-      <View className="flex-1 justify-center">
+      <View className="flex-1 justify-center py-6">
+        <PageIntro eyebrow="WELCOME TO YOUR CAMPUS" title="Good things start together." description="A school account connects you to your clubs and your community." />
         <Animated.View entering={FadeIn.duration(180)} className="items-center">
           <View className="h-14 w-14 items-center justify-center rounded-xl bg-python-blue/10 dark:bg-python-blue/20">
             <Ionicons name="shield-checkmark-outline" size={26} color={brand.blue} />
@@ -354,6 +356,6 @@ export function SignInGate({
           Access is verified by the server on every request.
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
