@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import {
   ScrollView,
-  Text,
   View,
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Card, Input, SkeletonRow } from "@/components/ui";

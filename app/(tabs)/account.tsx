@@ -1,6 +1,7 @@
 import { PageIntro } from "@/components/CampusVisual";
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, Platform } from "react-native";
+import { View, ScrollView, Platform } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -183,6 +184,12 @@ function AccountDashboard() {
       </View>
 
       <View className="mt-5">
+        <Button
+          label="Settings"
+          icon="settings-outline"
+          variant="secondary"
+          onPress={() => router.push("/settings")}
+        />
         <PageIntro
           eyebrow="PROFILE / PREFERENCES"
           title="Your campus, your way."
@@ -440,8 +447,21 @@ function AccountDashboard() {
 }
 
 export default function AccountScreen() {
+  const router = useRouter();
+  const { session } = useAuth();
+  const insets = useSafeAreaInsets();
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+      {!session ? (
+        <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
+          <Button
+            label="Settings"
+            icon="settings-outline"
+            variant="ghost"
+            onPress={() => router.push("/settings")}
+          />
+        </View>
+      ) : null}
       <SignInGate
         title="Sign in or sign up"
         subtitle="Access your Tesla STEM Clubs account."

@@ -1,0 +1,7 @@
+OpenDyslexic 3 by Abelardo Gonzalez. Bundled unmodified.
+Source: https://github.com/antijingoist/open-dyslexic/tree/master/ttf
+
+SIL Open Font License, 1.1
+
+â¡2012 by Abelardo Gonzalez. Copying is an act of love. Please copy.
+SIL Open Font License, 1.1

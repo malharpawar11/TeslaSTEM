@@ -1,142 +1,143 @@
-import { useRef } from 'react';
-import { View, Text, ScrollView, Linking, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { Card, PressableScale, Chip, Divider } from '@/components/ui';
-import { brand } from '@/theme/tokens';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { useRef } from "react";
+import { View, ScrollView, Linking, Image } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { Card, PressableScale, Chip, Divider } from "@/components/ui";
+import { brand } from "@/theme/tokens";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Section = {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   eyebrow: string;
-  tone: 'green' | 'blue';
+  tone: "green" | "blue";
   body: string[];
 };
 
 const SECTIONS: Section[] = [
   {
-    icon: 'school-outline',
-    title: 'Who Can Use This App',
-    eyebrow: 'Access',
-    tone: 'green',
+    icon: "school-outline",
+    title: "Who Can Use This App",
+    eyebrow: "Access",
+    tone: "green",
     body: [
-      'Access is limited to Lake Washington School District accounts. You sign in with a one-time code sent to your @lwsd.org school email: no password required.',
-      'Non-LWSD accounts are blocked at sign-in. Every subsequent request is verified server-side, so there is no way to bypass this restriction from the app.',
+      "Access is limited to Lake Washington School District accounts. You sign in with a one-time code sent to your @lwsd.org school email: no password required.",
+      "Non-LWSD accounts are blocked at sign-in. Every subsequent request is verified server-side, so there is no way to bypass this restriction from the app.",
     ],
   },
   {
-    icon: 'shield-checkmark-outline',
-    title: 'Roles & Permissions',
-    eyebrow: 'Roles',
-    tone: 'blue',
+    icon: "shield-checkmark-outline",
+    title: "Roles & Permissions",
+    eyebrow: "Roles",
+    tone: "blue",
     body: [
-      'The app has four roles. Each one is assigned by the system, never chosen by the user, and enforced by the server on every request.',
-      'The Special Admin is a single school-wide administrator who approves clubs, verifies presidents, and assigns club admins. This role is granted by the system only and cannot be self-assigned.',
-      'A Verified President is a student who has been approved by the special admin to run a club. They can update their club page and post announcements for it.',
-      'A Club Admin is assigned by the special admin to help manage announcements for one specific club.',
-      'Inside a club there is a second ladder: Member, Board Member, and President. A president approves board requests and grants each board member an exact set of permissions (announcements, events, files, notes, members, board, settings).',
-      'Any signed-in LWSD user is a Student. Students can browse the full directory and join any club they choose.',
+      "The app has four roles. Each one is assigned by the system, never chosen by the user, and enforced by the server on every request.",
+      "The Special Admin is a single school-wide administrator who approves clubs, verifies presidents, and assigns club admins. This role is granted by the system only and cannot be self-assigned.",
+      "A Verified President is a student who has been approved by the special admin to run a club. They can update their club page and post announcements for it.",
+      "A Club Admin is assigned by the special admin to help manage announcements for one specific club.",
+      "Inside a club there is a second ladder: Member, Board Member, and President. A president approves board requests and grants each board member an exact set of permissions (announcements, events, files, notes, members, board, settings).",
+      "Any signed-in LWSD user is a Student. Students can browse the full directory and join any club they choose.",
     ],
   },
   {
-    icon: 'checkmark-circle-outline',
-    title: 'Club Approval Workflow',
-    eyebrow: 'Club approval',
-    tone: 'green',
+    icon: "checkmark-circle-outline",
+    title: "Club Approval Workflow",
+    eyebrow: "Club approval",
+    tone: "green",
     body: [
-      'Any signed-in student can submit a new club. Submitted clubs are not visible to other users until reviewed by the special admin.',
-      'Clubs move through one of three states: pending (under review), approved (live in the directory), or rejected (returned with a reason). When a club is approved, its submitter is automatically verified as president.',
-      'The admin may request changes before approving, or reject a submission that does not meet school guidelines.',
+      "Any signed-in student can submit a new club. Submitted clubs are not visible to other users until reviewed by the special admin.",
+      "Clubs move through one of three states: pending (under review), approved (live in the directory), or rejected (returned with a reason). When a club is approved, its submitter is automatically verified as president.",
+      "The admin may request changes before approving, or reject a submission that does not meet school guidelines.",
     ],
   },
   {
-    icon: 'person-circle-outline',
-    title: 'President Verification',
-    eyebrow: 'Verification',
-    tone: 'blue',
+    icon: "person-circle-outline",
+    title: "President Verification",
+    eyebrow: "Verification",
+    tone: "blue",
     body: [
-      'A club only goes live once its president has been verified by the special admin. Verification happens automatically when the admin approves a club submission.',
-      'Students can also request verification separately, for example, if leadership changes after a club is already listed. Verification requests are reviewed manually.',
+      "A club only goes live once its president has been verified by the special admin. Verification happens automatically when the admin approves a club submission.",
+      "Students can also request verification separately, for example, if leadership changes after a club is already listed. Verification requests are reviewed manually.",
     ],
   },
   {
-    icon: 'megaphone-outline',
-    title: 'Announcements',
-    eyebrow: 'Announcements',
-    tone: 'green',
+    icon: "megaphone-outline",
+    title: "Announcements",
+    eyebrow: "Announcements",
+    tone: "green",
     body: [
-      'Announcements, events, files, and notes can only be posted by the special admin, a club’s verified president, or a board member the president granted that specific permission.',
-      'These restrictions are enforced by the server on every write: the UI hides controls you cannot use, but access is ultimately decided by the database, not the client.',
+      "Announcements, events, files, and notes can only be posted by the special admin, a club’s verified president, or a board member the president granted that specific permission.",
+      "These restrictions are enforced by the server on every write: the UI hides controls you cannot use, but access is ultimately decided by the database, not the client.",
     ],
   },
   {
-    icon: 'people-outline',
-    title: 'Membership & Club Content',
-    eyebrow: 'Membership',
-    tone: 'blue',
+    icon: "people-outline",
+    title: "Membership & Club Content",
+    eyebrow: "Membership",
+    tone: "blue",
     body: [
-      'Joining a club is a server-side membership, not a local bookmark. Clubs can be open to everyone or require a leader to approve each request; either way the decision is recorded with who made it and when.',
-      'A club’s files and notes are visible only to its members. Announcements and events stay public so the directory and the school calendar remain useful before you join.',
-      'You can leave a club at any time from its page. Leaving removes your membership and your notification settings for that club.',
+      "Joining a club is a server-side membership, not a local bookmark. Clubs can be open to everyone or require a leader to approve each request; either way the decision is recorded with who made it and when.",
+      "A club’s files and notes are visible only to its members. Announcements and events stay public so the directory and the school calendar remain useful before you join.",
+      "You can leave a club at any time from its page. Leaving removes your membership and your notification settings for that club.",
     ],
   },
   {
-    icon: 'notifications-outline',
-    title: 'Notifications & Calendar',
-    eyebrow: 'Notifications',
-    tone: 'green',
+    icon: "notifications-outline",
+    title: "Notifications & Calendar",
+    eyebrow: "Notifications",
+    tone: "green",
     body: [
-      'You choose what you hear about: announcements, events, new files, notes, and meeting reminders, globally, and per club. New notifications are generated by the database when leaders post, and are only ever written to your own inbox.',
-      'Device push is optional. If you enable it, only an anonymous Expo push token is stored so a trusted backend job can deliver notifications; the app never holds push credentials.',
-      'Adding an event to Google Calendar or Apple Calendar uses a public calendar link or a standard .ics file, so the app never asks for access to your calendar.',
+      "You choose what you hear about: announcements, events, new files, notes, and meeting reminders, globally, and per club. New notifications are generated by the database when leaders post, and are only ever written to your own inbox.",
+      "Device push is optional. If you enable it, only an anonymous Expo push token is stored so a trusted backend job can deliver notifications; the app never holds push credentials.",
+      "Adding an event to Google Calendar or Apple Calendar uses a public calendar link or a standard .ics file, so the app never asks for access to your calendar.",
     ],
   },
   {
-    icon: 'lock-closed-outline',
-    title: 'Privacy & Security',
-    eyebrow: 'Privacy and security',
-    tone: 'blue',
+    icon: "lock-closed-outline",
+    title: "Privacy & Security",
+    eyebrow: "Privacy and security",
+    tone: "blue",
     body: [
-      'The app stores the minimum data needed to run the platform: your school email and display name (for authentication and attribution), the clubs you joined and your role in them, your notification preferences, and, if you enable push, a device push token. Your theme preference stays on your device.',
-      'We do not sell, share, or transmit personal information to third parties. No tracking or advertising SDKs are used.',
-      'Security is enforced in the database using Row-Level Security (RLS). Your role and any approval checks are evaluated by the server on every request: the client is never trusted to decide what you can access.',
+      "The app stores the minimum data needed to run the platform: your school email and display name (for authentication and attribution), the clubs you joined and your role in them, your notification preferences, and, if you enable push, a device push token. Your theme preference stays on your device.",
+      "We do not sell, share, or transmit personal information to third parties. No tracking or advertising SDKs are used.",
+      "Security is enforced in the database using Row-Level Security (RLS). Your role and any approval checks are evaluated by the server on every request: the client is never trusted to decide what you can access.",
     ],
   },
   {
-    icon: 'document-text-outline',
-    title: 'Terms of Use',
-    eyebrow: 'Terms of use',
-    tone: 'green',
+    icon: "document-text-outline",
+    title: "Terms of Use",
+    eyebrow: "Terms of use",
+    tone: "green",
     body: [
-      'This app is provided for Tesla STEM High School students and staff to discover, join, and run school clubs.',
-      'Misuse of club submission, admin, or announcement tools, including submitting false information or attempting to circumvent role restrictions, may result in access being revoked.',
+      "This app is provided for Tesla STEM High School students and staff to discover, join, and run school clubs.",
+      "Misuse of club submission, admin, or announcement tools, including submitting false information or attempting to circumvent role restrictions, may result in access being revoked.",
     ],
   },
   {
-    icon: 'mail-outline',
-    title: 'Contact',
-    eyebrow: 'Contact',
-    tone: 'blue',
+    icon: "mail-outline",
+    title: "Contact",
+    eyebrow: "Contact",
+    tone: "blue",
     body: [
-      'Questions, corrections, or accessibility feedback can be sent to the Tesla STEM Pythons admin team at clubs@lwsd.org.',
+      "Questions, corrections, or accessibility feedback can be sent to the Tesla STEM Pythons admin team at clubs@lwsd.org.",
     ],
   },
 ];
 
 const TOC_LABELS = [
-  'Access',
-  'Roles',
-  'Club Approval',
-  'Verification',
-  'Announcements',
-  'Membership',
-  'Notifications',
-  'Privacy',
-  'Terms',
-  'Contact',
+  "Access",
+  "Roles",
+  "Club Approval",
+  "Verification",
+  "Announcements",
+  "Membership",
+  "Notifications",
+  "Privacy",
+  "Terms",
+  "Contact",
 ];
 
 export default function PoliciesScreen() {
@@ -181,9 +182,10 @@ export default function PoliciesScreen() {
         </View>
 
         <Text className="mt-4 text-base leading-6 text-light-secondary dark:text-dark-secondary">
-          Tesla STEM Pythons Club Directory is built on a role-based, approval-driven system so the
-          right people manage the right clubs while everyone else can browse safely. The details
-          below are plain and current as of August 14, 2026.
+          Tesla STEM Pythons Club Directory is built on a role-based,
+          approval-driven system so the right people manage the right clubs
+          while everyone else can browse safely. The details below are plain and
+          current as of August 14, 2026.
         </Text>
 
         <Text className="mt-4 text-xs text-light-muted dark:text-dark-muted">
@@ -212,10 +214,12 @@ export default function PoliciesScreen() {
         {/* Sections */}
         <View className="mt-10">
           {SECTIONS.map((s, i) => {
-            const isBlue = s.tone === 'blue';
+            const isBlue = s.tone === "blue";
             const iconColor = isBlue ? brand.blue : brand.green;
-            const iconBg = isBlue ? 'bg-python-blue/10 dark:bg-python-blue/20' : 'bg-python-green/10 dark:bg-python-green/20';
-            const eyebrowColor = 'text-light-muted dark:text-dark-muted';
+            const iconBg = isBlue
+              ? "bg-python-blue/10 dark:bg-python-blue/20"
+              : "bg-python-green/10 dark:bg-python-green/20";
+            const eyebrowColor = "text-light-muted dark:text-dark-muted";
 
             return (
               <Animated.View
@@ -224,7 +228,7 @@ export default function PoliciesScreen() {
                 onLayout={(e) => {
                   sectionYs.current[i] = e.nativeEvent.layout.y;
                 }}
-                className={i === 0 ? '' : 'mt-12'}
+                className={i === 0 ? "" : "mt-12"}
               >
                 <Divider variant="soft" />
 
@@ -237,17 +241,13 @@ export default function PoliciesScreen() {
 
                 {/* Eyebrow with index + dot */}
                 <View className="mt-4 flex-row items-center gap-2">
-                  <Text
-                    className={`text-xs font-semibold ${eyebrowColor}`}
-                  >
-                    {String(i + 1).padStart(2, '0')}
+                  <Text className={`text-xs font-semibold ${eyebrowColor}`}>
+                    {String(i + 1).padStart(2, "0")}
                   </Text>
                   <View
-                    className={`h-1 w-1 rounded-full ${isBlue ? 'bg-python-blue' : 'bg-python-green'}`}
+                    className={`h-1 w-1 rounded-full ${isBlue ? "bg-python-blue" : "bg-python-green"}`}
                   />
-                  <Text
-                    className={`text-xs font-semibold ${eyebrowColor}`}
-                  >
+                  <Text className={`text-xs font-semibold ${eyebrowColor}`}>
                     {s.eyebrow}
                   </Text>
                 </View>
@@ -273,10 +273,10 @@ export default function PoliciesScreen() {
                 ))}
 
                 {/* Contact-only email pill */}
-                {s.title === 'Contact' ? (
+                {s.title === "Contact" ? (
                   <View className="mt-5 flex-row">
                     <PressableScale
-                      onPress={() => Linking.openURL('mailto:clubs@lwsd.org')}
+                      onPress={() => Linking.openURL("mailto:clubs@lwsd.org")}
                       accessibilityRole="link"
                       accessibilityLabel="Email clubs@lwsd.org"
                       scaleTo={0.97}
@@ -299,7 +299,7 @@ export default function PoliciesScreen() {
         <Card elevation="ambient" className="mt-12 p-5">
           <View className="flex-row items-center">
             <Image
-              source={require('../assets/teslastemlogo.png')}
+              source={require("../assets/teslastemlogo.png")}
               className="h-10 w-10"
               resizeMode="contain"
             />
@@ -338,7 +338,11 @@ export default function PoliciesScreen() {
               pressedOpacity={0.85}
               className="h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-full border border-light-border bg-light-surface px-3 dark:border-dark-border dark:bg-dark-surface"
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={13} color={brand.blue} />
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={13}
+                color={brand.blue}
+              />
               <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
                 Feedback
               </Text>

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { cssInterop } from "nativewind";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import {
   PreferencesProvider,
@@ -70,6 +71,7 @@ function RootStack() {
         <Stack.Screen name="search" />
         <Stack.Screen name="admin" />
         <Stack.Screen name="policies" />
+        <Stack.Screen name="settings" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="club/[id]/messages" />
       </Stack>
@@ -82,19 +84,21 @@ export default function RootLayout() {
     <GestureHandlerRootView className="flex-1 bg-light-surface-2 dark:bg-dark-surface-3">
       <SafeAreaProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <PreferencesProvider>
-              <ClubsProvider>
-                <MembershipProvider>
-                  <ToastProvider>
-                    <NotificationsProvider>
-                      <RootStack />
-                    </NotificationsProvider>
-                  </ToastProvider>
-                </MembershipProvider>
-              </ClubsProvider>
-            </PreferencesProvider>
-          </AuthProvider>
+          <AccessibilityProvider>
+            <AuthProvider>
+              <PreferencesProvider>
+                <ClubsProvider>
+                  <MembershipProvider>
+                    <ToastProvider>
+                      <NotificationsProvider>
+                        <RootStack />
+                      </NotificationsProvider>
+                    </ToastProvider>
+                  </MembershipProvider>
+                </ClubsProvider>
+              </PreferencesProvider>
+            </AuthProvider>
+          </AccessibilityProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

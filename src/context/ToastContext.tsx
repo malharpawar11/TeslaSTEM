@@ -6,11 +6,12 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from 'react';
-import { View, Text } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react";
+import { View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * App-wide toasts for the result of an action ("Announcement posted",
@@ -18,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  * next to the control; a toast is for confirmation, not for recovery.
  */
 
-type ToastTone = 'success' | 'error' | 'info';
+type ToastTone = "success" | "error" | "info";
 
 interface ToastState {
   id: number;
@@ -37,10 +38,13 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
-const TONE_META: Record<ToastTone, { icon: keyof typeof Ionicons.glyphMap; bg: string }> = {
-  success: { icon: 'checkmark-circle', bg: 'bg-python-green' },
-  error: { icon: 'alert-circle', bg: 'bg-danger' },
-  info: { icon: 'information-circle', bg: 'bg-python-blue' },
+const TONE_META: Record<
+  ToastTone,
+  { icon: keyof typeof Ionicons.glyphMap; bg: string }
+> = {
+  success: { icon: "checkmark-circle", bg: "bg-python-green" },
+  error: { icon: "alert-circle", bg: "bg-danger" },
+  info: { icon: "information-circle", bg: "bg-python-blue" },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -48,27 +52,33 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const toast = useCallback((message: string, tone: ToastTone = 'success') => {
+  const toast = useCallback((message: string, tone: ToastTone = "success") => {
     if (timer.current) clearTimeout(timer.current);
     setCurrent({ id: Date.now(), message, tone });
-    timer.current = setTimeout(() => setCurrent(null), tone === 'error' ? 4200 : 2600);
+    timer.current = setTimeout(
+      () => setCurrent(null),
+      tone === "error" ? 4200 : 2600,
+    );
   }, []);
 
-  const toastResult = useCallback<ToastContextValue['toastResult']>(
+  const toastResult = useCallback<ToastContextValue["toastResult"]>(
     (res, successMessage) => {
       if (res.ok) {
-        toast(successMessage, 'success');
+        toast(successMessage, "success");
         return true;
       }
-      toast(res.error, 'error');
+      toast(res.error, "error");
       return false;
     },
     [toast],
   );
 
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const meta = current ? TONE_META[current.tone] : null;
 
@@ -78,7 +88,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {current && meta ? (
         <View
           pointerEvents="none"
-          style={{ position: 'absolute', left: 16, right: 16, bottom: insets.bottom + 76 }}
+          style={{
+            position: "absolute",
+            left: 16,
+            right: 16,
+            bottom: insets.bottom + 76,
+          }}
         >
           <Animated.View
             key={current.id}
@@ -87,7 +102,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className={`flex-row items-center gap-2.5 rounded-lg px-4 py-3 shadow-floating ${meta.bg}`}
           >
             <Ionicons name={meta.icon} size={18} color="#FFFFFF" />
-            <Text className="flex-1 text-sm font-semibold text-white" numberOfLines={3}>
+            <Text
+              className="flex-1 text-sm font-semibold text-white"
+              numberOfLines={3}
+            >
               {current.message}
             </Text>
           </Animated.View>
@@ -99,6 +117,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
+  if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }

@@ -1,6 +1,7 @@
 import { PageIntro } from "@/components/CampusVisual";
 import { ReactNode, useEffect, useState } from "react";
-import { View, Text, Platform, ScrollView } from "react-native";
+import { View, Platform, ScrollView } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";

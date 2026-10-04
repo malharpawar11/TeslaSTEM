@@ -1,6 +1,7 @@
 import { PageIntro } from "@/components/CampusVisual";
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Card, Chip, Input, SkeletonRow } from "@/components/ui";

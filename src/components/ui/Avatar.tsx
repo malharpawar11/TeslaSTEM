@@ -1,9 +1,10 @@
-import { Text, View, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/tokens';
+import { View, Image } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Ionicons } from "@expo/vector-icons";
+import { brand } from "@/theme/tokens";
 
-type Size = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-type Tone = 'brand' | 'info' | 'neutral';
+type Size = "sm" | "md" | "lg" | "xl" | "2xl";
+type Tone = "brand" | "info" | "neutral";
 
 interface Props {
   initials?: string;
@@ -11,45 +12,45 @@ interface Props {
   size?: Size;
   tone?: Tone;
   icon?: keyof typeof Ionicons.glyphMap;
-  rounded?: 'square' | 'circle';
+  rounded?: "square" | "circle";
 }
 
 const SIZE: Record<Size, { box: string; text: string; icon: number }> = {
-  sm: { box: 'h-9 w-9', text: 'text-xs', icon: 15 },
-  md: { box: 'h-11 w-11', text: 'text-sm', icon: 18 },
-  lg: { box: 'h-14 w-14', text: 'text-base', icon: 22 },
-  xl: { box: 'h-18 w-18', text: 'text-xl', icon: 28 },
-  '2xl': { box: 'h-22 w-22', text: 'text-2xl', icon: 32 },
+  sm: { box: "h-9 w-9", text: "text-xs", icon: 15 },
+  md: { box: "h-11 w-11", text: "text-sm", icon: 18 },
+  lg: { box: "h-14 w-14", text: "text-base", icon: 22 },
+  xl: { box: "h-18 w-18", text: "text-xl", icon: 28 },
+  "2xl": { box: "h-22 w-22", text: "text-2xl", icon: 32 },
 };
 
 const TONE_BG: Record<Tone, string> = {
-  brand: 'bg-python-green',
-  info: 'bg-python-blue',
-  neutral: 'bg-light-surface-2 dark:bg-dark-surface-2',
+  brand: "bg-python-green",
+  info: "bg-python-blue",
+  neutral: "bg-light-surface-2 dark:bg-dark-surface-2",
 };
 
 const TONE_TEXT: Record<Tone, string> = {
-  brand: 'text-white',
-  info: 'text-white',
-  neutral: 'text-light-secondary dark:text-dark-secondary',
+  brand: "text-white",
+  info: "text-white",
+  neutral: "text-light-secondary dark:text-dark-secondary",
 };
 
 const TONE_ICON: Record<Tone, string> = {
-  brand: '#FFFFFF',
-  info: '#FFFFFF',
+  brand: "#FFFFFF",
+  info: "#FFFFFF",
   neutral: brand.blue,
 };
 
 export function Avatar({
   initials,
   source,
-  size = 'md',
-  tone = 'info',
+  size = "md",
+  tone = "info",
   icon,
-  rounded = 'square',
+  rounded = "square",
 }: Props) {
   const s = SIZE[size];
-  const radius = rounded === 'circle' ? 'rounded-full' : 'rounded-lg';
+  const radius = rounded === "circle" ? "rounded-full" : "rounded-lg";
 
   if (source) {
     return (

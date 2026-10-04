@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Text, Share, Platform, Linking, ScrollView } from "react-native";
+import { View, Share, Platform, Linking, ScrollView } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { ClubReviews } from "@/components/ClubReviews";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

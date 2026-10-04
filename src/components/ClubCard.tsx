@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Ionicons } from "@expo/vector-icons";
 import { Club, clubInitials } from "@/types/domain";
 import {

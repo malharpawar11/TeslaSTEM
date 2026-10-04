@@ -1,6 +1,7 @@
-import { Modal, View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Button } from './Button';
+import { Modal, View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Ionicons } from "@expo/vector-icons";
+import { Button } from "./Button";
 
 interface Props {
   visible: boolean;
@@ -25,29 +26,34 @@ export function ConfirmDialog({
   visible,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   destructive = false,
   busy = false,
   onConfirm,
   onCancel,
 }: Props) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
       <View className="flex-1 items-center justify-center bg-black/50 px-6">
         <View className="w-full max-w-[420px] rounded-xl border border-light-border bg-light-surface p-5 shadow-floating dark:border-dark-border dark:bg-dark-surface">
           <View className="flex-row items-center gap-2.5">
             <View
               className={`h-9 w-9 items-center justify-center rounded-lg ${
                 destructive
-                  ? 'bg-danger/10 dark:bg-danger/20'
-                  : 'bg-python-blue/10 dark:bg-python-blue/20'
+                  ? "bg-danger/10 dark:bg-danger/20"
+                  : "bg-python-blue/10 dark:bg-python-blue/20"
               }`}
             >
               <Ionicons
-                name={destructive ? 'warning-outline' : 'help-circle-outline'}
+                name={destructive ? "warning-outline" : "help-circle-outline"}
                 size={18}
-                color={destructive ? '#B42318' : '#0E5AA8'}
+                color={destructive ? "#B42318" : "#0E5AA8"}
               />
             </View>
             <Text className="flex-1 text-base font-semibold text-light-text dark:text-dark-text">
@@ -71,7 +77,7 @@ export function ConfirmDialog({
             <View className="flex-1">
               <Button
                 label={confirmLabel}
-                variant={destructive ? 'destructive' : 'primary'}
+                variant={destructive ? "destructive" : "primary"}
                 size="md"
                 fullWidth
                 loading={busy}

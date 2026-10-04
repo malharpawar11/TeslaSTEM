@@ -1,10 +1,11 @@
-import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { PressableScale } from './Pressable';
-import { brand } from '@/theme/tokens';
+import { View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Ionicons } from "@expo/vector-icons";
+import { PressableScale } from "./Pressable";
+import { brand } from "@/theme/tokens";
 
-type Variant = 'filter' | 'toggle' | 'static';
-type Tone = 'neutral' | 'brand' | 'info';
+type Variant = "filter" | "toggle" | "static";
+type Tone = "neutral" | "brand" | "info";
 
 interface Props {
   label: string;
@@ -14,7 +15,7 @@ interface Props {
   count?: number;
   variant?: Variant;
   tone?: Tone;
-  size?: 'sm' | 'md';
+  size?: "sm" | "md";
 }
 
 export function Chip({
@@ -23,27 +24,27 @@ export function Chip({
   onPress,
   icon,
   count,
-  variant = 'filter',
-  tone = 'info',
-  size = 'md',
+  variant = "filter",
+  tone = "info",
+  size = "md",
 }: Props) {
-  const h = size === 'sm' ? 'h-8' : 'h-9';
-  const text = size === 'sm' ? 'text-xs' : 'text-sm';
-  const padding = count != null ? 'pl-3 pr-1.5' : 'px-3';
-  const iconSize = size === 'sm' ? 13 : 15;
+  const h = size === "sm" ? "h-8" : "h-9";
+  const text = size === "sm" ? "text-xs" : "text-sm";
+  const padding = count != null ? "pl-3 pr-1.5" : "px-3";
+  const iconSize = size === "sm" ? 13 : 15;
 
-  const palette = tone === 'brand' ? brand.green : brand.blue;
+  const palette = tone === "brand" ? brand.green : brand.blue;
 
   // Selection is blue by default; green is reserved for membership filters.
   const activeContainer =
-    tone === 'brand'
-      ? 'border-python-green bg-python-green'
-      : 'border-python-blue bg-python-blue';
+    tone === "brand"
+      ? "border-python-green bg-python-green"
+      : "border-python-blue bg-python-blue";
   const inactiveContainer =
-    'border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface';
+    "border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface";
 
-  const inactiveText = 'text-light-secondary dark:text-dark-secondary';
-  const activeText = 'text-white';
+  const inactiveText = "text-light-secondary dark:text-dark-secondary";
+  const activeText = "text-white";
 
   const content = (
     <>
@@ -51,7 +52,7 @@ export function Chip({
         <Ionicons
           name={icon}
           size={iconSize}
-          color={active ? '#FFFFFF' : palette}
+          color={active ? "#FFFFFF" : palette}
         />
       ) : null}
       <Text
@@ -63,12 +64,12 @@ export function Chip({
       {count != null ? (
         <View
           className={`min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 ${
-            active ? 'bg-white/25' : 'bg-light-surface-2 dark:bg-dark-surface-2'
+            active ? "bg-white/25" : "bg-light-surface-2 dark:bg-dark-surface-2"
           }`}
         >
           <Text
             className={`text-[10px] font-bold ${
-              active ? 'text-white' : 'text-light-muted dark:text-dark-muted'
+              active ? "text-white" : "text-light-muted dark:text-dark-muted"
             }`}
           >
             {count}
@@ -78,7 +79,7 @@ export function Chip({
     </>
   );
 
-  if (variant === 'static' || !onPress) {
+  if (variant === "static" || !onPress) {
     return (
       <View
         className={`${h} ${padding} flex-row items-center justify-center gap-1.5 rounded-full border ${

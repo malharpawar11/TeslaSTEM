@@ -1,17 +1,23 @@
-import { View, Text, Linking, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Card, PressableScale, Tag } from '@/components/ui';
-import { useTheme } from '@/context/ThemeContext';
-import { formatEventDate, formatEventTime, downloadIcs, openGoogleCalendar } from '@/lib/calendar';
-import { roleLabel } from '@/types/domain';
+import { View, Linking, Platform } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Ionicons } from "@expo/vector-icons";
+import { Card, PressableScale, Tag } from "@/components/ui";
+import { useTheme } from "@/context/ThemeContext";
+import {
+  formatEventDate,
+  formatEventTime,
+  downloadIcs,
+  openGoogleCalendar,
+} from "@/lib/calendar";
+import { roleLabel } from "@/types/domain";
 import type {
   Announcement,
   ClubEvent,
   ClubFile,
   ClubMemberRole,
   ClubNote,
-} from '@/types/domain';
-import { brand, semantic, surfaces } from '@/theme/tokens';
+} from "@/types/domain";
+import { brand, semantic, surfaces } from "@/theme/tokens";
 
 /**
  * The cards that render club content wherever it appears: inside a club, on
@@ -21,16 +27,20 @@ import { brand, semantic, surfaces } from '@/theme/tokens';
 
 function relativeDate(iso: string): string {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
+  if (isNaN(d.getTime())) return "";
   const diff = Date.now() - d.getTime();
   const mins = Math.round(diff / 60000);
-  if (mins < 1) return 'Just now';
+  if (mins < 1) return "Just now";
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.round(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.round(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export function RoleBadge({
@@ -40,8 +50,13 @@ export function RoleBadge({
   role: ClubMemberRole;
   position?: string | null;
 }) {
-  if (role === 'member') return <Tag label="Member" tone="neutral" />;
-  return <Tag label={roleLabel(role, position)} tone={role === 'president' ? 'brand' : 'info'} />;
+  if (role === "member") return <Tag label="Member" tone="neutral" />;
+  return (
+    <Tag
+      label={roleLabel(role, position)}
+      tone={role === "president" ? "brand" : "info"}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +79,9 @@ export function AnnouncementCard({
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-xs font-medium text-light-muted dark:text-dark-muted">
-            {showClub && announcement.clubName ? announcement.clubName : 'Announcement'}
+            {showClub && announcement.clubName
+              ? announcement.clubName
+              : "Announcement"}
           </Text>
           <Text className="mt-1 text-lg font-bold text-light-text dark:text-dark-text">
             {announcement.title}
@@ -80,7 +97,11 @@ export function AnnouncementCard({
                 scaleTo={0.9}
                 className="h-10 w-10 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2"
               >
-                <Ionicons name="create-outline" size={15} color={surfaces.light.muted} />
+                <Ionicons
+                  name="create-outline"
+                  size={15}
+                  color={surfaces.light.muted}
+                />
               </PressableScale>
             ) : null}
             {onDelete ? (
@@ -91,7 +112,11 @@ export function AnnouncementCard({
                 scaleTo={0.9}
                 className="h-10 w-10 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
               >
-                <Ionicons name="trash-outline" size={15} color={semantic.danger} />
+                <Ionicons
+                  name="trash-outline"
+                  size={15}
+                  color={semantic.danger}
+                />
               </PressableScale>
             ) : null}
           </View>
@@ -101,7 +126,7 @@ export function AnnouncementCard({
         {announcement.body}
       </Text>
       <Text className="mt-2.5 text-2xs text-light-subtle dark:text-dark-subtle">
-        {announcement.author ? `${announcement.author} · ` : ''}
+        {announcement.author ? `${announcement.author} · ` : ""}
         {relativeDate(announcement.date)}
       </Text>
     </Card>
@@ -113,12 +138,12 @@ export function AnnouncementCard({
 // ---------------------------------------------------------------------------
 
 const EVENT_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Meeting: 'people-outline',
-  Competition: 'trophy-outline',
-  Conference: 'business-outline',
-  Workshop: 'construct-outline',
-  Deadline: 'alarm-outline',
-  Social: 'sparkles-outline',
+  Meeting: "people-outline",
+  Competition: "trophy-outline",
+  Conference: "business-outline",
+  Workshop: "construct-outline",
+  Deadline: "alarm-outline",
+  Social: "sparkles-outline",
 };
 
 export function EventCard({
@@ -135,18 +160,24 @@ export function EventCard({
   onDelete?: () => void;
 }) {
   const { isDark } = useTheme();
-  const cancelled = event.status === 'cancelled';
-  const icon = EVENT_ICON[event.eventType] ?? 'calendar-outline';
+  const cancelled = event.status === "cancelled";
+  const icon = EVENT_ICON[event.eventType] ?? "calendar-outline";
 
   return (
     <Card elevation="ambient" className="p-5">
       <View className="flex-row items-start gap-3">
         <View
           className={`h-9 w-9 items-center justify-center rounded-lg ${
-            cancelled ? 'bg-danger/10 dark:bg-danger/20' : 'bg-python-blue/10 dark:bg-python-blue/20'
+            cancelled
+              ? "bg-danger/10 dark:bg-danger/20"
+              : "bg-python-blue/10 dark:bg-python-blue/20"
           }`}
         >
-          <Ionicons name={icon} size={18} color={cancelled ? semantic.danger : brand.blue} />
+          <Ionicons
+            name={icon}
+            size={18}
+            color={cancelled ? semantic.danger : brand.blue}
+          />
         </View>
         <View className="flex-1">
           <View className="flex-row flex-wrap items-center gap-1.5">
@@ -160,21 +191,29 @@ export function EventCard({
           </View>
           <Text
             className={`mt-1.5 text-lg font-bold text-light-text dark:text-dark-text ${
-              cancelled ? 'line-through' : ''
+              cancelled ? "line-through" : ""
             }`}
           >
             {event.title}
           </Text>
           <View className="mt-1.5 gap-1">
             <View className="flex-row items-center gap-1.5">
-              <Ionicons name="time-outline" size={13} color={isDark ? surfaces.dark.muted : surfaces.light.subtle} />
+              <Ionicons
+                name="time-outline"
+                size={13}
+                color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
+              />
               <Text className="text-xs text-light-muted dark:text-dark-muted">
                 {formatEventDate(event.startsAt)} · {formatEventTime(event)}
               </Text>
             </View>
             {event.location ? (
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="location-outline" size={13} color={isDark ? surfaces.dark.muted : surfaces.light.subtle} />
+                <Ionicons
+                  name="location-outline"
+                  size={13}
+                  color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
+                />
                 <Text className="text-xs text-light-muted dark:text-dark-muted">
                   {event.location}
                 </Text>
@@ -182,7 +221,11 @@ export function EventCard({
             ) : null}
             {event.organizer ? (
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="person-outline" size={13} color={isDark ? surfaces.dark.muted : surfaces.light.subtle} />
+                <Ionicons
+                  name="person-outline"
+                  size={13}
+                  color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
+                />
                 <Text className="text-xs text-light-muted dark:text-dark-muted">
                   {event.organizer}
                 </Text>
@@ -220,9 +263,15 @@ export function EventCard({
               scaleTo={0.95}
               className="min-h-10 flex-row items-center gap-1.5 rounded-full border border-light-border px-2.5 dark:border-dark-border"
             >
-              <Ionicons name="calendar-outline" size={13} color={isDark ? surfaces.dark.secondary : surfaces.light.secondary} />
+              <Ionicons
+                name="calendar-outline"
+                size={13}
+                color={
+                  isDark ? surfaces.dark.secondary : surfaces.light.secondary
+                }
+              />
               <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
-                {Platform.OS === 'web' ? 'Download .ics' : 'Apple / other'}
+                {Platform.OS === "web" ? "Download .ics" : "Apple / other"}
               </Text>
             </PressableScale>
           </>
@@ -235,7 +284,11 @@ export function EventCard({
             scaleTo={0.95}
             className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-light-surface-2 px-2.5 dark:bg-dark-surface-2"
           >
-            <Ionicons name="create-outline" size={13} color={surfaces.light.muted} />
+            <Ionicons
+              name="create-outline"
+              size={13}
+              color={surfaces.light.muted}
+            />
             <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
               Edit
             </Text>
@@ -249,7 +302,11 @@ export function EventCard({
             scaleTo={0.95}
             className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-warn/10 px-2.5 dark:bg-warn/20"
           >
-            <Ionicons name="close-circle-outline" size={13} color={semantic.warn} />
+            <Ionicons
+              name="close-circle-outline"
+              size={13}
+              color={semantic.warn}
+            />
             <Text className="text-2xs font-semibold text-warn">Cancel</Text>
           </PressableScale>
         ) : null}
@@ -275,17 +332,18 @@ export function EventCard({
 // ---------------------------------------------------------------------------
 
 function fileIcon(mime: string | null): keyof typeof Ionicons.glyphMap {
-  if (!mime) return 'document-outline';
-  if (mime.startsWith('image/')) return 'image-outline';
-  if (mime.includes('pdf')) return 'document-text-outline';
-  if (mime.includes('presentation') || mime.includes('powerpoint')) return 'easel-outline';
-  if (mime.includes('sheet') || mime.includes('excel')) return 'grid-outline';
-  if (mime.includes('zip')) return 'archive-outline';
-  return 'document-outline';
+  if (!mime) return "document-outline";
+  if (mime.startsWith("image/")) return "image-outline";
+  if (mime.includes("pdf")) return "document-text-outline";
+  if (mime.includes("presentation") || mime.includes("powerpoint"))
+    return "easel-outline";
+  if (mime.includes("sheet") || mime.includes("excel")) return "grid-outline";
+  if (mime.includes("zip")) return "archive-outline";
+  return "document-outline";
 }
 
 function fileSize(bytes: number | null): string {
-  if (!bytes) return '';
+  if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -302,7 +360,7 @@ export function FileRow({
 }) {
   const { isDark } = useTheme();
   const open = () => {
-    if (Platform.OS === 'web') window.open(file.fileUrl, '_blank', 'noopener');
+    if (Platform.OS === "web") window.open(file.fileUrl, "_blank", "noopener");
     else void Linking.openURL(file.fileUrl);
   };
 
@@ -316,7 +374,11 @@ export function FileRow({
         className="flex-1 flex-row items-center gap-3"
       >
         <View className="h-10 w-10 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
-          <Ionicons name={fileIcon(file.mimeType)} size={18} color={brand.blue} />
+          <Ionicons
+            name={fileIcon(file.mimeType)}
+            size={18}
+            color={brand.blue}
+          />
         </View>
         <View className="flex-1">
           <Text
@@ -325,13 +387,24 @@ export function FileRow({
           >
             {file.title}
           </Text>
-          <Text className="mt-0.5 text-2xs text-light-muted dark:text-dark-muted" numberOfLines={1}>
-            {[showClub ? file.clubName : file.folder, fileSize(file.sizeBytes), relativeDate(file.createdAt)]
+          <Text
+            className="mt-0.5 text-2xs text-light-muted dark:text-dark-muted"
+            numberOfLines={1}
+          >
+            {[
+              showClub ? file.clubName : file.folder,
+              fileSize(file.sizeBytes),
+              relativeDate(file.createdAt),
+            ]
               .filter(Boolean)
-              .join(' · ')}
+              .join(" · ")}
           </Text>
         </View>
-        <Ionicons name="open-outline" size={16} color={isDark ? surfaces.dark.muted : surfaces.light.subtle} />
+        <Ionicons
+          name="open-outline"
+          size={16}
+          color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
+        />
       </PressableScale>
       {onDelete ? (
         <PressableScale
@@ -385,7 +458,11 @@ export function NoteCard({
                 scaleTo={0.9}
                 className="h-10 w-10 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-2"
               >
-                <Ionicons name="create-outline" size={15} color={surfaces.light.muted} />
+                <Ionicons
+                  name="create-outline"
+                  size={15}
+                  color={surfaces.light.muted}
+                />
               </PressableScale>
             ) : null}
             {onDelete ? (
@@ -396,7 +473,11 @@ export function NoteCard({
                 scaleTo={0.9}
                 className="h-10 w-10 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
               >
-                <Ionicons name="trash-outline" size={15} color={semantic.danger} />
+                <Ionicons
+                  name="trash-outline"
+                  size={15}
+                  color={semantic.danger}
+                />
               </PressableScale>
             ) : null}
           </View>

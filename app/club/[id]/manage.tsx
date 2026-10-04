@@ -4,7 +4,8 @@ import {
   fromSchoolInput as fromLocalInput,
 } from "@/lib/calendar";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, ScrollView, ActivityIndicator } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";

@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
-import { View, Text } from 'react-native';
+import { ReactNode } from "react";
+import { View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 
 interface Props {
   /** Rarely needed. Only use it when it says something the title doesn't. */
@@ -7,15 +8,21 @@ interface Props {
   title: string;
   description?: string;
   trailing?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'display';
+  size?: "sm" | "md" | "lg" | "display";
   className?: string;
 }
 
-const SIZE: Record<NonNullable<Props['size']>, { title: string; description: string }> = {
-  sm: { title: 'text-base font-bold', description: 'text-sm' },
-  md: { title: 'text-xl font-bold tracking-tight', description: 'text-sm' },
-  lg: { title: 'text-2xl font-bold tracking-tight', description: 'text-base' },
-  display: { title: 'text-3xl font-bold tracking-tight', description: 'text-base' },
+const SIZE: Record<
+  NonNullable<Props["size"]>,
+  { title: string; description: string }
+> = {
+  sm: { title: "text-base font-bold", description: "text-sm" },
+  md: { title: "text-xl font-bold tracking-tight", description: "text-sm" },
+  lg: { title: "text-2xl font-bold tracking-tight", description: "text-base" },
+  display: {
+    title: "text-3xl font-bold tracking-tight",
+    description: "text-base",
+  },
 };
 
 export function SectionHeader({
@@ -23,21 +30,27 @@ export function SectionHeader({
   title,
   description,
   trailing,
-  size = 'md',
+  size = "md",
   className,
 }: Props) {
   const s = SIZE[size];
   return (
-    <View className={`flex-row items-center justify-between gap-3 ${className ?? ''}`}>
+    <View
+      className={`flex-row items-center justify-between gap-3 ${className ?? ""}`}
+    >
       <View className="flex-1">
         {eyebrow ? (
           <Text className="mb-1 text-xs font-medium text-light-muted dark:text-dark-muted">
             {eyebrow}
           </Text>
         ) : null}
-        <Text className={`text-light-text dark:text-dark-text ${s.title}`}>{title}</Text>
+        <Text className={`text-light-text dark:text-dark-text ${s.title}`}>
+          {title}
+        </Text>
         {description ? (
-          <Text className={`mt-1 text-light-muted dark:text-dark-muted ${s.description}`}>
+          <Text
+            className={`mt-1 text-light-muted dark:text-dark-muted ${s.description}`}
+          >
             {description}
           </Text>
         ) : null}

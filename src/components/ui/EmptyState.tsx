@@ -1,7 +1,8 @@
-import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { brand, surfaces } from '@/theme/tokens';
-import { Button } from './Button';
+import { View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Ionicons } from "@expo/vector-icons";
+import { brand, surfaces } from "@/theme/tokens";
+import { Button } from "./Button";
 
 interface Props {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -9,29 +10,35 @@ interface Props {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
-  tone?: 'brand' | 'info' | 'neutral';
+  tone?: "brand" | "info" | "neutral";
 }
 
 export function EmptyState({
-  icon = 'search',
+  icon = "search",
   title,
   description,
   actionLabel,
   onAction,
-  tone = 'info',
+  tone = "info",
 }: Props) {
   const iconColor =
-    tone === 'brand' ? brand.green : tone === 'neutral' ? surfaces.light.subtle : brand.blue;
+    tone === "brand"
+      ? brand.green
+      : tone === "neutral"
+        ? surfaces.light.subtle
+        : brand.blue;
   const iconBg =
-    tone === 'brand'
-      ? 'bg-python-green/10 dark:bg-python-green/20'
-      : tone === 'neutral'
-        ? 'bg-light-surface-2 dark:bg-dark-surface-2'
-        : 'bg-python-blue/10 dark:bg-python-blue/20';
+    tone === "brand"
+      ? "bg-python-green/10 dark:bg-python-green/20"
+      : tone === "neutral"
+        ? "bg-light-surface-2 dark:bg-dark-surface-2"
+        : "bg-python-blue/10 dark:bg-python-blue/20";
 
   return (
     <View className="items-center px-8 py-14">
-      <View className={`h-12 w-12 items-center justify-center rounded-xl ${iconBg}`}>
+      <View
+        className={`h-12 w-12 items-center justify-center rounded-xl ${iconBg}`}
+      >
         <Ionicons name={icon} size={22} color={iconColor} />
       </View>
       <Text className="mt-4 text-center text-base font-semibold text-light-text dark:text-dark-text">
@@ -44,7 +51,12 @@ export function EmptyState({
       ) : null}
       {actionLabel && onAction ? (
         <View className="mt-4">
-          <Button label={actionLabel} onPress={onAction} variant="secondary" size="md" />
+          <Button
+            label={actionLabel}
+            onPress={onAction}
+            variant="secondary"
+            size="md"
+          />
         </View>
       ) : null}
     </View>

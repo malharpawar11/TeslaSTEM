@@ -1,6 +1,7 @@
 import { PageIntro } from "@/components/CampusVisual";
 import { useMemo, useState, useCallback } from "react";
-import { View, Text, FlatList, ScrollView } from "react-native";
+import { View, FlatList, ScrollView } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Club, ClubCategory } from "@/types/domain";

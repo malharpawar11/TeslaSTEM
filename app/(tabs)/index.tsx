@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Image, ScrollView, RefreshControl } from "react-native";
+import { View, Image, ScrollView, RefreshControl } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useIsFocused } from "@react-navigation/native";
 import { CampusVisual, PageIntro } from "@/components/CampusVisual";
 import { useRouter, useFocusEffect } from "expo-router";

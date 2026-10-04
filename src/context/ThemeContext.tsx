@@ -27,6 +27,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const initial: Theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
         setThemeState(initial);
         setColorScheme(initial);
+      } catch {
+        setColorScheme('dark');
       } finally {
         setReady(true);
       }

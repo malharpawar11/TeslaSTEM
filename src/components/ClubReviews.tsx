@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Button, Card, Chip, Input, SkeletonRow } from "./ui";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";

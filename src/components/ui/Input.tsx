@@ -1,8 +1,10 @@
-import { useState, ReactNode } from 'react';
-import { View, Text, TextInput, TextInputProps, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/context/ThemeContext';
-import { surface, brand, semantic } from '@/theme/tokens';
+import { useState, ReactNode } from "react";
+import { View, TextInput, TextInputProps, Platform } from "react-native";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/context/ThemeContext";
+import { useAccessibility } from "@/context/AccessibilityContext";
+import { surface, brand, semantic } from "@/theme/tokens";
 
 interface FieldProps extends TextInputProps {
   label?: string;
@@ -29,15 +31,16 @@ export function Input({
   ...rest
 }: FieldProps) {
   const { isDark } = useTheme();
+  const { dyslexicFont, fontReady, highContrast } = useAccessibility();
   const c = surface(isDark);
   const [focused, setFocused] = useState(false);
 
   const showError = !!error;
   const borderClass = showError
-    ? 'border-danger'
+    ? "border-danger"
     : focused
-      ? 'border-python-blue'
-      : 'border-light-border dark:border-dark-border';
+      ? "border-python-blue"
+      : "border-light-border dark:border-dark-border";
 
   return (
     <View>
@@ -46,7 +49,9 @@ export function Input({
           <Text className="text-xs font-semibold text-light-secondary dark:text-dark-secondary">
             {label}
           </Text>
-          {required ? <Text className="text-xs font-semibold text-danger">*</Text> : null}
+          {required ? (
+            <Text className="text-xs font-semibold text-danger">*</Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -62,8 +67,12 @@ export function Input({
         ) : null}
         <TextInput
           {...rest}
-          accessibilityLabel={rest.accessibilityLabel ?? label ?? rest.placeholder}
-          placeholderTextColor={c.subtle}
+          accessibilityLabel={
+            rest.accessibilityLabel ?? label ?? rest.placeholder
+          }
+          placeholderTextColor={
+            highContrast ? (isDark ? "#FFFFFF" : "#111827") : c.subtle
+          }
           multiline={multiline}
           onFocus={(e) => {
             setFocused(true);
@@ -74,13 +83,14 @@ export function Input({
             rest.onBlur?.(e);
           }}
           className={`flex-1 text-base text-light-text dark:text-dark-text ${
-            multiline ? 'min-h-24 py-3' : 'h-11'
+            multiline ? "min-h-24 py-3" : "h-11"
           }`}
           // react-native-web renders TextInput as an <input>; suppress the
           // browser's default focus outline so only our own border shows.
           style={[
-            Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+            Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null,
             rest.style,
+            dyslexicFont && fontReady ? { fontFamily: "OpenDyslexic" } : null,
           ]}
         />
         {trailing}
@@ -92,7 +102,9 @@ export function Input({
           <Text className="text-xs font-medium text-danger">{error}</Text>
         </View>
       ) : helper ? (
-        <Text className="mt-1.5 text-xs text-light-muted dark:text-dark-muted">{helper}</Text>
+        <Text className="mt-1.5 text-xs text-light-muted dark:text-dark-muted">
+          {helper}
+        </Text>
       ) : null}
     </View>
   );
