@@ -1,6 +1,6 @@
 import { PageIntro } from '@/components/CampusVisual';
 import { useMemo, useState, useCallback } from "react";
-import { View, Text, FlatList } from "react-native";
+import { View, Text, FlatList, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Club, ClubCategory } from "@/types/domain";
@@ -345,3 +345,4 @@ export default function BrowseScreen() {
     </View>
   );
 }
+
