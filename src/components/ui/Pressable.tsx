@@ -6,6 +6,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '../CampusVisual';
 import { spring, timing } from '@/theme/motion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -29,6 +30,7 @@ export const PressableScale = forwardRef<View, Props>(function PressableScale(
   { children, className, scaleTo = 0.97, pressedOpacity = 1, asSurface, ...rest },
   ref,
 ) {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -45,12 +47,12 @@ export const PressableScale = forwardRef<View, Props>(function PressableScale(
       className={className}
       style={[animatedStyle, rest.style as never]}
       onPressIn={(e) => {
-        if (scaleTo !== 1) scale.value = withSpring(scaleTo, spring.press);
+        if (!reducedMotion && scaleTo !== 1) scale.value = withSpring(scaleTo, spring.press);
         if (pressedOpacity !== 1) opacity.value = withTiming(pressedOpacity, timing.snap);
         rest.onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        if (scaleTo !== 1) scale.value = withSpring(1, spring.press);
+        if (!reducedMotion && scaleTo !== 1) scale.value = withSpring(1, spring.press);
         if (pressedOpacity !== 1) opacity.value = withTiming(1, timing.snap);
         rest.onPressOut?.(e);
       }}

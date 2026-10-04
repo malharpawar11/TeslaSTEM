@@ -12,10 +12,10 @@ interface Props {
 }
 
 const SIZE: Record<NonNullable<Props['size']>, { title: string; description: string }> = {
-  sm: { title: 'text-base font-semibold', description: 'text-sm' },
-  md: { title: 'text-xl font-semibold tracking-tight', description: 'text-sm' },
-  lg: { title: 'text-2xl font-semibold tracking-tight', description: 'text-base' },
-  display: { title: 'text-3xl font-semibold tracking-tight', description: 'text-base' },
+  sm: { title: 'text-base font-bold', description: 'text-sm' },
+  md: { title: 'text-xl font-bold tracking-tight', description: 'text-sm' },
+  lg: { title: 'text-2xl font-bold tracking-tight', description: 'text-base' },
+  display: { title: 'text-3xl font-bold tracking-tight', description: 'text-base' },
 };
 
 export function SectionHeader({

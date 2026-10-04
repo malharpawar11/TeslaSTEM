@@ -35,21 +35,22 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const visibleRoutes = state.routes.filter((r) => ICONS[r.name]);
 
   const activeColor = brand.blue;
-  const activeColorDark = '#6BA1D8';
+  const activeColorDark = '#93B8FF';
   const inactiveColor = c.muted;
 
   return (
     <View
       style={[
         {
-          borderTopWidth: 1,
+          borderTopWidth: 0,
+          shadowColor: "#13213D", shadowOpacity: 0.08, shadowRadius: 18, elevation: 8,
           borderTopColor: c.border,
           backgroundColor: c.surface,
           paddingBottom: IS_WEB ? 8 : insets.bottom > 0 ? insets.bottom : 8,
         },
         IS_WEB ? ({ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50 } as never) : null,
       ]}
-      className="pt-1.5"
+      className="pt-2"
     >
       <View
         className="flex-row"
@@ -79,11 +80,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityRole="button"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={meta.label}
-            className="flex-1 items-center justify-center gap-0.5 pb-1 pt-1"
+            className="flex-1 items-center justify-center gap-1 pb-1 pt-1"
             style={{ minHeight: 48 }}
           >
-            <View>
-              <Ionicons name={focused ? meta.on : meta.off} size={22} color={color} />
+            <View style={{ borderRadius: 18, paddingHorizontal: 13, paddingVertical: 5, backgroundColor: focused ? (isDark ? "#2563EB30" : "#2563EB12") : "transparent" }}>
+              <Ionicons name={focused ? meta.on : meta.off} size={21} color={color} />
               {/* Unread badge: only the Alerts tab carries one. */}
               {route.name === 'notifications' && unreadCount > 0 ? (
                 <View

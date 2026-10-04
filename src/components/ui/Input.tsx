@@ -51,7 +51,7 @@ export function Input({
       ) : null}
 
       <View
-        className={`flex-row items-center gap-2.5 rounded-lg border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
+        className={`flex-row items-center gap-2.5 rounded-2xl border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
       >
         {icon ? (
           <Ionicons

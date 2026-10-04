@@ -33,10 +33,10 @@ interface Props {
 // `h-13` is not a Tailwind default, so heights are set explicitly here rather
 // than through the scale: a missing height class silently collapses a button.
 const SIZE: Record<Size, { h: number; px: string; text: string; icon: number; gap: string; radius: string }> = {
-  sm: { h: 32, px: 'px-3', text: 'text-xs', icon: 14, gap: 'gap-1.5', radius: 'rounded-lg' },
-  md: { h: 40, px: 'px-4', text: 'text-sm', icon: 16, gap: 'gap-2', radius: 'rounded-lg' },
-  lg: { h: 48, px: 'px-5', text: 'text-base', icon: 18, gap: 'gap-2', radius: 'rounded-xl' },
-  xl: { h: 54, px: 'px-6', text: 'text-base', icon: 19, gap: 'gap-2', radius: 'rounded-xl' },
+  sm: { h: 44, px: 'px-3', text: 'text-xs', icon: 14, gap: 'gap-1.5', radius: 'rounded-full' },
+  md: { h: 40, px: 'px-4', text: 'text-sm', icon: 16, gap: 'gap-2', radius: 'rounded-full' },
+  lg: { h: 48, px: 'px-5', text: 'text-base', icon: 18, gap: 'gap-2', radius: 'rounded-full' },
+  xl: { h: 54, px: 'px-6', text: 'text-base', icon: 19, gap: 'gap-2', radius: 'rounded-full' },
 };
 
 const VARIANT: Record<Variant, { container: string; text: string; iconColor: string; pressedOpacity: number }> = {
