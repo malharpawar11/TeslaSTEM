@@ -119,13 +119,13 @@ function Conversation() {
       className="flex-1 bg-light-bg dark:bg-dark-bg"
       style={{ paddingTop: insets.top }}
     >
-      <View className="gap-2 px-5 py-3">
+      <View className="gap-2 border-b border-light-border bg-light-surface px-5 py-4 dark:border-dark-border dark:bg-dark-surface">
         <Button
           label={peer ? "Back to contacts" : "Back to club"}
           variant="ghost"
           onPress={() => (peer ? setPeer("") : router.back())}
         />
-        <Text className="text-xl font-semibold text-light-text dark:text-dark-text">
+        <Text className="text-2xl font-bold text-light-text dark:text-dark-text">
           {peer
             ? (contacts.find((contact) => contact.user_id === peer)?.name ??
               "Conversation")
@@ -192,17 +192,23 @@ function Conversation() {
                 messages.map((message) => (
                   <Card
                     key={message.id}
-                    className={`p-3 ${message.sender_id === session?.user.id ? "ml-8" : "mr-8"}`}
+                    className={`max-w-[85%] border-0 p-4 ${message.sender_id === session?.user.id ? "self-end rounded-br-md bg-python-blue dark:bg-python-blue" : "self-start rounded-bl-md"}`}
                   >
-                    <Text className="text-xs font-semibold text-python-blue">
+                    <Text
+                      className={`text-xs font-semibold ${message.sender_id === session?.user.id ? "text-white/75" : "text-python-blue-dark dark:text-python-blue-light"}`}
+                    >
                       {message.sender_id === session?.user.id
                         ? "You"
                         : "Member"}
                     </Text>
-                    <Text className="mt-1 text-light-text dark:text-dark-text">
+                    <Text
+                      className={`mt-1 text-base leading-6 ${message.sender_id === session?.user.id ? "text-white" : "text-light-text dark:text-dark-text"}`}
+                    >
                       {message.body}
                     </Text>
-                    <Text className="mt-2 text-xs text-light-muted dark:text-dark-muted">
+                    <Text
+                      className={`mt-2 text-2xs ${message.sender_id === session?.user.id ? "text-white/70" : "text-light-muted dark:text-dark-muted"}`}
+                    >
                       {new Date(message.created_at).toLocaleString()}
                       {message.sender_id === session?.user.id && message.read_at
                         ? " · Read"
@@ -217,7 +223,7 @@ function Conversation() {
       </ScrollView>
       {peer && !loading && !error ? (
         <View
-          className="gap-2 border-t border-light-border px-5 pt-3 dark:border-dark-border"
+          className="gap-3 border-t border-light-border bg-light-surface px-5 pt-4 dark:border-dark-border dark:bg-dark-surface"
           style={{ paddingBottom: insets.bottom + 12 }}
         >
           {allowed ? (
@@ -231,7 +237,8 @@ function Conversation() {
                 editable={!busy}
               />
               <Button
-                label="Send"
+                label="Send message"
+                iconRight="send"
                 loading={busy}
                 disabled={!body.trim()}
                 onPress={() => void send()}

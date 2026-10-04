@@ -1,3 +1,5 @@
+import { PageIntro } from "@/components/CampusVisual";
+import { MonthCalendar } from "@/components/MonthCalendar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -34,6 +36,7 @@ export default function CalendarScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [scope, setScope] = useState<Scope>("My clubs");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [deadlinesOnly, setDeadlinesOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +66,7 @@ export default function CalendarScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const visible = useMemo(() => {
+  const scopedEvents = useMemo(() => {
     return events.filter(
       (e) =>
         (!deadlinesOnly || e.eventType === "Deadline") &&
@@ -71,6 +74,20 @@ export default function CalendarScreen() {
           memberships.get(e.clubId)?.status === "active"),
     );
   }, [events, scope, memberships, deadlinesOnly]);
+
+  const visible = useMemo(
+    () =>
+      selectedDay
+        ? scopedEvents.filter(
+            (event) => schoolDayKey(event.startsAt) === selectedDay,
+          )
+        : scopedEvents,
+    [scopedEvents, selectedDay],
+  );
+  const eventDays = useMemo(
+    () => new Set(scopedEvents.map((event) => schoolDayKey(event.startsAt))),
+    [scopedEvents],
+  );
 
   // Group by calendar day so the list reads like a schedule, not a feed.
   const groups = useMemo(() => {
@@ -130,7 +147,7 @@ export default function CalendarScreen() {
           style={{ paddingTop: insets.top + 8 }}
         >
           <View className="flex-1 pr-3">
-            <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+            <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
               Calendar
             </Text>
             <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
@@ -140,6 +157,14 @@ export default function CalendarScreen() {
           <View className="pt-1">
             <ThemeToggle />
           </View>
+        </View>
+
+        <View className="px-5 pt-5">
+          <PageIntro
+            eyebrow="PLAN / PARTICIPATE"
+            title="Your next opportunity awaits."
+            description="Keep club events and application deadlines in view. Tap a day to explore its agenda."
+          />
         </View>
 
         <View className="mt-4 flex-row items-center gap-2 px-5">
@@ -183,6 +208,14 @@ export default function CalendarScreen() {
           </View>
         </View>
 
+        <View className="px-5 pt-5">
+          <MonthCalendar
+            eventDays={eventDays}
+            selected={selectedDay}
+            onSelect={setSelectedDay}
+          />
+        </View>
+
         {loading ? (
           <View className="px-5 pt-6">
             <SkeletonRow count={4} />
@@ -200,9 +233,11 @@ export default function CalendarScreen() {
             <EmptyState
               icon="calendar-outline"
               title={
-                scope === "My clubs"
-                  ? "No events from your clubs"
-                  : "No upcoming events"
+                selectedDay
+                  ? `No events on ${selectedDay}`
+                  : scope === "My clubs"
+                    ? "No events from your clubs"
+                    : "No upcoming events"
               }
               description={
                 scope === "My clubs"

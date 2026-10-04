@@ -62,7 +62,7 @@ export default function SearchScreen() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             scaleTo={0.9}
-            className="h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+            className="h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
           >
             <Ionicons name="chevron-back" size={18} color={brand.blue} />
           </PressableScale>
@@ -133,7 +133,7 @@ export default function SearchScreen() {
                       accessibilityLabel={`Open ${club.name}`}
                       scaleTo={0.98}
                     >
-                      <Card elevation="ambient" className="flex-row items-center gap-3 p-3.5">
+                      <Card elevation="ambient" className="flex-row items-center gap-4 p-5">
                         <View className="h-10 w-10 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
                           <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
                             {clubInitials(club.name)}

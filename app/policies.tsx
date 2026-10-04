@@ -168,12 +168,12 @@ export default function PoliciesScreen() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             scaleTo={0.9}
-            className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+            className="mr-3 mt-1 h-9 w-9 items-center justify-center rounded-full border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
           >
             <Ionicons name="chevron-back" size={18} color={brand.blue} />
           </PressableScale>
           <View className="flex-1 pr-3">
-            <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+            <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
               Trust and privacy
             </Text>
           </View>

@@ -1,21 +1,21 @@
-import { PageIntro } from '@/components/CampusVisual';
-import { ReactNode, useEffect, useState } from 'react';
-import { View, Text, Platform, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Input, PressableScale } from '@/components/ui';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { useAuth } from '@/context/AuthContext';
-import { brand, semantic } from '@/theme/tokens';
+import { PageIntro } from "@/components/CampusVisual";
+import { ReactNode, useEffect, useState } from "react";
+import { View, Text, Platform, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import { Button, Card, Input, PressableScale } from "@/components/ui";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/context/AuthContext";
+import { brand, semantic } from "@/theme/tokens";
 
 // Client-side LWSD gate. The database enforces the same rule independently:
 // a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses, so this
 // is a UX nicety, not the security line.
 const LWSD_RE = /@lwsd\.org$/i;
 
-type Mode = 'signIn' | 'signUp';
-type Step = 'form' | 'code';
+type Mode = "signIn" | "signUp";
+type Step = "form" | "code";
 
 // Matches `min_interval_seconds` in insforge.toml: the backend rejects a
 // resend inside this window, so don't offer the button until it has passed.
@@ -40,16 +40,24 @@ interface SignInGateProps {
  */
 export function SignInGate({
   children,
-  title = 'Sign in to continue',
-  subtitle = 'Use your Lake Washington School District (@lwsd.org) account.',
+  title = "Sign in to continue",
+  subtitle = "Use your Lake Washington School District (@lwsd.org) account.",
 }: SignInGateProps) {
-  const { configured, loading, session, signUp, verifyCode, signIn, resendCode } = useAuth();
+  const {
+    configured,
+    loading,
+    session,
+    signUp,
+    verifyCode,
+    signIn,
+    resendCode,
+  } = useAuth();
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>('signIn');
-  const [step, setStep] = useState<Step>('form');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
+  const [mode, setMode] = useState<Mode>("signIn");
+  const [step, setStep] = useState<Step>("form");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,11 +78,11 @@ export function SignInGate({
   const validate = () => {
     const e = email.trim().toLowerCase();
     if (!LWSD_RE.test(e)) {
-      setError('Enter a valid @lwsd.org school email.');
+      setError("Enter a valid @lwsd.org school email.");
       return null;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError("Password must be at least 8 characters.");
       return null;
     }
     return e;
@@ -83,10 +91,10 @@ export function SignInGate({
   /** Move to the code step and start the resend cooldown for the code just sent. */
   const enterCodeStep = (e: string, message: string) => {
     setEmail(e);
-    setCode('');
+    setCode("");
     setNotice(message);
     setCooldown(RESEND_COOLDOWN_SECONDS);
-    setStep('code');
+    setStep("code");
   };
 
   const submit = async () => {
@@ -95,7 +103,8 @@ export function SignInGate({
     setError(null);
     setNotice(null);
     setBusy(true);
-    const res = mode === 'signUp' ? await signUp(e, password) : await signIn(e, password);
+    const res =
+      mode === "signUp" ? await signUp(e, password) : await signIn(e, password);
     setBusy(false);
 
     // An unverified account reaches here from either mode: sign-up returns
@@ -110,9 +119,9 @@ export function SignInGate({
       // The address is taken, so sign-up can never succeed; flip to sign-in
       // with the email kept so the user just types their password.
       if (res.existingAccount) {
-        setMode('signIn');
+        setMode("signIn");
         setEmail(e);
-        setPassword('');
+        setPassword("");
       }
       return;
     }
@@ -120,9 +129,9 @@ export function SignInGate({
   };
 
   const verify = async () => {
-    const digits = code.replace(/\D/g, '');
+    const digits = code.replace(/\D/g, "");
     if (digits.length !== 6) {
-      setError('Enter the 6-digit code from your email.');
+      setError("Enter the 6-digit code from your email.");
       return;
     }
     setError(null);
@@ -145,13 +154,15 @@ export function SignInGate({
       setError(res.error);
       return;
     }
-    setCode('');
+    setCode("");
     setNotice(`A new code is on its way to ${email}.`);
     setCooldown(RESEND_COOLDOWN_SECONDS);
   };
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 36 }}
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: 36 }}
       className="flex-1 bg-light-bg px-6 dark:bg-dark-bg"
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
@@ -160,10 +171,18 @@ export function SignInGate({
       </View>
 
       <View className="flex-1 justify-center py-6">
-        <PageIntro eyebrow="WELCOME TO YOUR CAMPUS" title="Good things start together." description="A school account connects you to your clubs and your community." />
+        <PageIntro
+          eyebrow="WELCOME TO YOUR CAMPUS"
+          title="Good things start together."
+          description="A school account connects you to your clubs and your community."
+        />
         <Animated.View entering={FadeIn.duration(180)} className="items-center">
           <View className="h-14 w-14 items-center justify-center rounded-xl bg-python-blue/10 dark:bg-python-blue/20">
-            <Ionicons name="shield-checkmark-outline" size={26} color={brand.blue} />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={26}
+              color={brand.blue}
+            />
           </View>
           <Text className="mt-5 text-center text-xl font-semibold tracking-tight text-light-text dark:text-dark-text">
             {title}
@@ -175,27 +194,29 @@ export function SignInGate({
 
         <Animated.View entering={FadeIn.duration(180)} className="mt-7">
           <Card elevation="ambient" className="p-5">
-            {step === 'form' ? (
+            {step === "form" ? (
               <View className="gap-4">
                 {/* Sign in / sign up toggle */}
                 <View className="flex-row rounded-xl bg-light-surface-2 p-1 dark:bg-dark-surface-2">
                   <PressableScale
                     onPress={() => {
-                      setMode('signIn');
+                      setMode("signIn");
                       setError(null);
                       setNotice(null);
                     }}
                     className={`flex-1 items-center rounded-lg py-2 ${
-                      mode === 'signIn' ? 'bg-light-surface dark:bg-dark-surface' : ''
+                      mode === "signIn"
+                        ? "bg-light-surface dark:bg-dark-surface"
+                        : ""
                     }`}
                     accessibilityRole="button"
                     accessibilityLabel="Sign in"
                   >
                     <Text
                       className={`text-sm font-semibold ${
-                        mode === 'signIn'
-                          ? 'text-python-blue-dark dark:text-python-blue-light'
-                          : 'text-light-muted dark:text-dark-muted'
+                        mode === "signIn"
+                          ? "text-python-blue-dark dark:text-python-blue-light"
+                          : "text-light-muted dark:text-dark-muted"
                       }`}
                     >
                       Sign in
@@ -203,21 +224,23 @@ export function SignInGate({
                   </PressableScale>
                   <PressableScale
                     onPress={() => {
-                      setMode('signUp');
+                      setMode("signUp");
                       setError(null);
                       setNotice(null);
                     }}
                     className={`flex-1 items-center rounded-lg py-2 ${
-                      mode === 'signUp' ? 'bg-light-surface dark:bg-dark-surface' : ''
+                      mode === "signUp"
+                        ? "bg-light-surface dark:bg-dark-surface"
+                        : ""
                     }`}
                     accessibilityRole="button"
                     accessibilityLabel="Sign up"
                   >
                     <Text
                       className={`text-sm font-semibold ${
-                        mode === 'signUp'
-                          ? 'text-python-blue-dark dark:text-python-blue-light'
-                          : 'text-light-muted dark:text-dark-muted'
+                        mode === "signUp"
+                          ? "text-python-blue-dark dark:text-python-blue-light"
+                          : "text-light-muted dark:text-dark-muted"
                       }`}
                     >
                       Sign up
@@ -239,7 +262,11 @@ export function SignInGate({
                   label="Password"
                   value={password}
                   onChangeText={setPassword}
-                  placeholder={mode === 'signUp' ? 'At least 8 characters' : 'Your password'}
+                  placeholder={
+                    mode === "signUp"
+                      ? "At least 8 characters"
+                      : "Your password"
+                  }
                   secureTextEntry
                   autoCapitalize="none"
                   icon="lock-closed-outline"
@@ -247,11 +274,11 @@ export function SignInGate({
                   onSubmitEditing={submit}
                 />
                 <Button
-                  label={mode === 'signUp' ? 'Create account' : 'Sign in'}
+                  label={mode === "signUp" ? "Create account" : "Sign in"}
                   variant="primary"
                   size="lg"
                   fullWidth
-                  icon={mode === 'signUp' ? 'person-add' : 'log-in'}
+                  icon={mode === "signUp" ? "person-add" : "log-in"}
                   loading={busy}
                   onPress={submit}
                 />
@@ -268,8 +295,8 @@ export function SignInGate({
                   </Text>
                   <PressableScale
                     onPress={() => {
-                      setStep('form');
-                      setCode('');
+                      setStep("form");
+                      setCode("");
                       setError(null);
                       setNotice(null);
                     }}
@@ -284,7 +311,9 @@ export function SignInGate({
                 <Input
                   label="6-digit code"
                   value={code}
-                  onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
+                  onChangeText={(t) =>
+                    setCode(t.replace(/\D/g, "").slice(0, 6))
+                  }
                   placeholder="000000"
                   keyboardType="number-pad"
                   autoCapitalize="none"
@@ -315,11 +344,13 @@ export function SignInGate({
                   <Text
                     className={`text-xs font-semibold ${
                       cooldown > 0
-                        ? 'text-light-subtle dark:text-dark-subtle'
-                        : 'text-python-blue-dark dark:text-python-blue-light'
+                        ? "text-light-subtle dark:text-dark-subtle"
+                        : "text-python-blue-dark dark:text-python-blue-light"
                     }`}
                   >
-                    {cooldown > 0 ? `Resend code in ${cooldown}s` : "Didn't get it? Resend code"}
+                    {cooldown > 0
+                      ? `Resend code in ${cooldown}s`
+                      : "Didn't get it? Resend code"}
                   </Text>
                 </PressableScale>
               </View>
@@ -330,7 +361,11 @@ export function SignInGate({
                 entering={FadeIn.duration(180)}
                 className="mt-4 flex-row items-start gap-2 rounded-xl border border-python-blue/40 bg-python-blue/10 p-3 dark:bg-python-blue/20"
               >
-                <Ionicons name="mail-unread-outline" size={16} color={brand.blue} />
+                <Ionicons
+                  name="mail-unread-outline"
+                  size={16}
+                  color={brand.blue}
+                />
                 <Text className="flex-1 text-xs font-semibold leading-5 text-python-blue-dark dark:text-python-blue-light">
                   {notice}
                 </Text>
@@ -342,7 +377,11 @@ export function SignInGate({
                 entering={FadeIn.duration(180)}
                 className="mt-4 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/10 dark:bg-danger/20 p-3"
               >
-                <Ionicons name="alert-circle" size={16} color={semantic.danger} />
+                <Ionicons
+                  name="alert-circle"
+                  size={16}
+                  color={semantic.danger}
+                />
                 <Text className="flex-1 text-xs font-semibold leading-5 text-danger">
                   {error}
                 </Text>
@@ -352,7 +391,7 @@ export function SignInGate({
         </Animated.View>
 
         <Text className="mt-5 text-center text-2xs leading-5 text-light-subtle dark:text-dark-subtle">
-          Only Lake Washington School District accounts can sign in.{'\n'}
+          Only Lake Washington School District accounts can sign in.{"\n"}
           Access is verified by the server on every request.
         </Text>
       </View>

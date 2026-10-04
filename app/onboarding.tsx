@@ -1,4 +1,4 @@
-import { PageIntro } from '@/components/CampusVisual';
+import { PageIntro } from "@/components/CampusVisual";
 import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -92,7 +92,11 @@ function Survey() {
       }}
     >
       <View className="gap-4">
-        <PageIntro eyebrow="YOUR PERSONAL CLUB GUIDE" title="Follow your curiosity." description="Choose your interests, future goals, and free time. We will help you find your fit. Edit anytime; schedules use Pacific time." />
+        <PageIntro
+          eyebrow="YOUR PERSONAL CLUB GUIDE"
+          title="Follow your curiosity."
+          description="Choose your interests, future goals, and free time. We will help you find your fit. Edit anytime; schedules use Pacific time."
+        />
         {loading ? (
           <SkeletonRow count={3} />
         ) : error ? (

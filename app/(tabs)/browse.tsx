@@ -1,4 +1,4 @@
-import { PageIntro } from '@/components/CampusVisual';
+import { PageIntro } from "@/components/CampusVisual";
 import { useMemo, useState, useCallback } from "react";
 import { View, Text, FlatList, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
@@ -149,13 +149,15 @@ export default function BrowseScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Club }) => (
-      <View className="px-5"><ClubCard
-        club={item}
-        joined={isMember(item.id)}
-        pending={membershipFor(item.id)?.status === "pending"}
-        onPress={() => router.push(`/club/${item.id}`)}
-        onToggleJoin={() => void toggleJoin(item)}
-      /></View>
+      <View className="px-5">
+        <ClubCard
+          club={item}
+          joined={isMember(item.id)}
+          pending={membershipFor(item.id)?.status === "pending"}
+          onPress={() => router.push(`/club/${item.id}`)}
+          onToggleJoin={() => void toggleJoin(item)}
+        />
+      </View>
     ),
     [isMember, membershipFor, toggleJoin, router],
   );
@@ -200,126 +202,133 @@ export default function BrowseScreen() {
     ) : null;
 
   const header = (
-      <View
-        className="px-5 pb-3"
-        style={{ paddingTop: insets.top + 10 }}
-      >
-        <View className="flex-row items-center justify-between gap-3">
-          <View className="flex-1">
-            <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
-              Discover clubs
-            </Text>
-            <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
-              {clubs.length} club{clubs.length === 1 ? "" : "s"} at Tesla STEM
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <PressableScale
-              onPress={() => setJoinedOnly((v) => !v)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: joinedOnly }}
-              accessibilityLabel={
-                joinedOnly ? "Show all clubs" : "Show only clubs I joined"
+    <View className="px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
+      <View className="flex-row items-center justify-between gap-3">
+        <View className="flex-1">
+          <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
+            Discover clubs
+          </Text>
+          <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
+            {clubs.length} club{clubs.length === 1 ? "" : "s"} at Tesla STEM
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2">
+          <PressableScale
+            onPress={() => setJoinedOnly((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: joinedOnly }}
+            accessibilityLabel={
+              joinedOnly ? "Show all clubs" : "Show only clubs I joined"
+            }
+            scaleTo={0.94}
+            pressedOpacity={0.7}
+            className={`h-9 flex-row items-center gap-1.5 rounded-lg border px-2.5 ${
+              joinedOnly
+                ? "border-python-green/40 bg-python-green/10 dark:bg-python-green/20"
+                : "border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+            }`}
+          >
+            <Ionicons
+              name={
+                joinedOnly ? "checkmark-circle" : "checkmark-circle-outline"
               }
-              scaleTo={0.94}
-              pressedOpacity={0.7}
-              className={`h-9 flex-row items-center gap-1.5 rounded-lg border px-2.5 ${
+              size={15}
+              color={joinedOnly ? brand.green : brand.blue}
+            />
+            <Text
+              className={`text-xs font-medium ${
                 joinedOnly
-                  ? "border-python-green/40 bg-python-green/10 dark:bg-python-green/20"
-                  : "border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
+                  ? "text-python-green-dark dark:text-python-green-light"
+                  : "text-light-secondary dark:text-dark-secondary"
               }`}
             >
-              <Ionicons
-                name={
-                  joinedOnly ? "checkmark-circle" : "checkmark-circle-outline"
-                }
-                size={15}
-                color={joinedOnly ? brand.green : brand.blue}
-              />
-              <Text
-                className={`text-xs font-medium ${
-                  joinedOnly
-                    ? "text-python-green-dark dark:text-python-green-light"
-                    : "text-light-secondary dark:text-dark-secondary"
-                }`}
-              >
-                Joined
-              </Text>
-            </PressableScale>
-            <ThemeToggle />
-          </View>
+              Joined
+            </Text>
+          </PressableScale>
+          <ThemeToggle />
         </View>
-
-        <View className="mt-5"><PageIntro eyebrow="EXPLORE / CONNECT / GROW" title="A club for your curiosity." description="Find a community that fits your goals and your week." /></View>
-        <View className="mt-3">
-          <SearchBar
-            value={query}
-            onChangeText={setQuery}
-            resultCount={query.length === 0 ? undefined : data.length}
-          />
-        </View>
-
-        <View className="-mx-5 mt-2">
-          <FilterChips
-            options={FILTERS}
-            selected={filter}
-            onSelect={setFilter}
-            counts={counts}
-          />
-        </View>
-        <View className="flex-row flex-wrap gap-2 py-2">
-          <Chip
-            label="Fits my schedule"
-            active={availableOnly}
-            onPress={() => {
-              if (!preferences.availability.length) {
-                router.push("/onboarding");
-                return;
-              }
-              setAvailableOnly((v) => !v);
-            }}
-          />
-          <Chip
-            label="Recommended"
-            active={recommendedOnly}
-            onPress={() => {
-              if (
-                !preferences.interests.length &&
-                !preferences.careers.length &&
-                !preferences.availability.length
-              ) {
-                router.push("/onboarding");
-                return;
-              }
-              setRecommendedOnly((v) => !v);
-            }}
-          />
-          <Button
-            label="Edit preferences"
-            variant="ghost"
-            size="sm"
-            onPress={() => router.push("/onboarding")}
-          />
-        </View>
-        <View className="-mx-5">
-          <FilterChips
-            options={["All careers", ...Object.keys(CAREERS)]}
-            selected={career}
-            onSelect={setCareer}
-          />
-        </View>
-        {availableOnly ? (
-          <Text className="pb-2 text-xs text-light-muted dark:text-dark-muted">
-            Pacific time · Unknown meeting times are excluded.
-          </Text>
-        ) : null}
       </View>
 
+      <View className="mt-5">
+        <PageIntro
+          eyebrow="EXPLORE / CONNECT / GROW"
+          title="A club for your curiosity."
+          description="Find a community that fits your goals and your week."
+        />
+      </View>
+      <View className="mt-3">
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          resultCount={query.length === 0 ? undefined : data.length}
+        />
+      </View>
+
+      <View className="-mx-5 mt-2">
+        <FilterChips
+          options={FILTERS}
+          selected={filter}
+          onSelect={setFilter}
+          counts={counts}
+        />
+      </View>
+      <View className="flex-row flex-wrap gap-2 py-2">
+        <Chip
+          label="Fits my schedule"
+          active={availableOnly}
+          onPress={() => {
+            if (!preferences.availability.length) {
+              router.push("/onboarding");
+              return;
+            }
+            setAvailableOnly((v) => !v);
+          }}
+        />
+        <Chip
+          label="Recommended"
+          active={recommendedOnly}
+          onPress={() => {
+            if (
+              !preferences.interests.length &&
+              !preferences.careers.length &&
+              !preferences.availability.length
+            ) {
+              router.push("/onboarding");
+              return;
+            }
+            setRecommendedOnly((v) => !v);
+          }}
+        />
+        <Button
+          label="Edit preferences"
+          variant="ghost"
+          size="sm"
+          onPress={() => router.push("/onboarding")}
+        />
+      </View>
+      <View className="-mx-5">
+        <FilterChips
+          options={["All careers", ...Object.keys(CAREERS)]}
+          selected={career}
+          onSelect={setCareer}
+        />
+      </View>
+      {availableOnly ? (
+        <Text className="pb-2 text-xs text-light-muted dark:text-dark-muted">
+          Pacific time · Unknown meeting times are excluded.
+        </Text>
+      ) : null}
+    </View>
   );
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      {body ? <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>{header}{body}</ScrollView> : (
+      {body ? (
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {header}
+          {body}
+        </ScrollView>
+      ) : (
         <FlatList
           ListHeaderComponent={header}
           data={data}
@@ -345,4 +354,3 @@ export default function BrowseScreen() {
     </View>
   );
 }
-

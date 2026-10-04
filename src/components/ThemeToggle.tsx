@@ -28,7 +28,7 @@ export function ThemeToggle({ variant = 'surface' }: Props) {
       accessibilityLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       scaleTo={0.94}
       pressedOpacity={0.7}
-      className={`h-9 w-9 items-center justify-center rounded-lg border ${container}`}
+      className={`h-9 w-9 items-center justify-center rounded-full border ${container}`}
     >
       <Ionicons
         name={isDark ? 'moon-outline' : 'sunny-outline'}

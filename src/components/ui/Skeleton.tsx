@@ -1,6 +1,8 @@
+import { useReducedMotion } from '../CampusVisual';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -25,15 +27,18 @@ const RADIUS: Record<NonNullable<Props['radius']>, string> = {
 };
 
 export function Skeleton({ className, height, width, radius = 'md' }: Props) {
+  const reducedMotion = useReducedMotion();
   const opacity = useSharedValue(0.55);
 
   useEffect(() => {
+    if (reducedMotion) { opacity.value = 0.7; return; }
     opacity.value = withRepeat(
       withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
       -1,
       true,
     );
-  }, [opacity]);
+    return () => cancelAnimation(opacity);
+  }, [opacity, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 

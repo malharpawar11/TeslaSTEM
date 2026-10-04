@@ -1,3 +1,6 @@
+import { PageIntro } from "@/components/CampusVisual";
+import { Avatar, PressableCard, EmptyState } from "@/components/ui";
+import { clubInitials } from "@/types/domain";
 import { useCallback, useState } from "react";
 import { ScrollView, Text, View, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -62,9 +65,11 @@ function Inbox() {
       }
     >
       <View className="gap-3">
-        <Text className="text-2xl font-semibold text-light-text dark:text-dark-text">
-          Messages
-        </Text>
+        <PageIntro
+          eyebrow="CONVERSATIONS / CONNECTIONS"
+          title="Keep the conversation going."
+          description="Your club board is a message away. Find your conversations here."
+        />
         {loading ? (
           <SkeletonRow count={3} />
         ) : error ? (
@@ -73,42 +78,55 @@ function Inbox() {
             <Button label="Retry" onPress={() => void refresh()} />
           </>
         ) : !threads.length ? (
-          <>
-            <Text className="text-light-muted dark:text-dark-muted">
-              No conversations yet. Open a joined club to message its board.
-            </Text>
-            <Button
-              label="Browse clubs"
-              onPress={() => router.push("/browse")}
-            />
-          </>
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="Say hello to your club."
+            description="Open a club you have joined to message its board. Your conversations will appear here."
+            actionLabel="Browse clubs"
+            onAction={() => router.push("/browse")}
+          />
         ) : (
           threads.map((thread) => (
-            <Card
+            <PressableCard
               key={`${thread.club_id}-${thread.user_id}`}
-              className="gap-2 p-4"
+              className="p-5"
+              onPress={() =>
+                router.push({
+                  pathname: "/club/[id]/messages",
+                  params: { id: thread.club_id, peer: thread.user_id },
+                })
+              }
+              accessibilityLabel={`Open conversation with ${thread.name} from ${thread.club_name}`}
             >
-              <Text className="font-semibold text-light-text dark:text-dark-text">
-                {thread.name} · {thread.club_name}
-                {Number(thread.unread) > 0 ? ` · ${thread.unread} unread` : ""}
-              </Text>
-              <Text
-                numberOfLines={2}
-                className="text-sm text-light-muted dark:text-dark-muted"
-              >
-                {thread.body}
-              </Text>
-              <Button
-                label="Open conversation"
-                variant="secondary"
-                onPress={() =>
-                  router.push({
-                    pathname: "/club/[id]/messages",
-                    params: { id: thread.club_id, peer: thread.user_id },
-                  })
-                }
-              />
-            </Card>
+              <View className="flex-row items-center gap-3">
+                <Avatar
+                  initials={clubInitials(thread.name)}
+                  size="lg"
+                  rounded="circle"
+                />
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-light-text dark:text-dark-text">
+                    {thread.name}
+                  </Text>
+                  <Text className="mt-1 text-xs text-python-blue-dark dark:text-python-blue-light">
+                    {thread.club_name}
+                  </Text>
+                  <Text
+                    numberOfLines={2}
+                    className="mt-2 text-sm text-light-muted dark:text-dark-muted"
+                  >
+                    {thread.body}
+                  </Text>
+                </View>
+                {Number(thread.unread) > 0 ? (
+                  <View className="min-w-6 items-center rounded-full bg-python-green px-2 py-1">
+                    <Text className="text-xs font-bold text-white">
+                      {thread.unread}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </PressableCard>
           ))
         )}
       </View>
