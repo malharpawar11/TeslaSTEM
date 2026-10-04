@@ -9,8 +9,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Card, SkeletonRow } from "@/components/ui";
 import { SignInGate } from "@/components/SignInGate";
 import { fetchMessageThreads, type MessageThread } from "@/data/discoveryRepo";
+import { useClubs } from "@/context/ClubsContext";
+import { useMemberships } from "@/context/MembershipContext";
 
 function Inbox() {
+  const { clubs } = useClubs();
+  const { isMember, error: membershipError, refresh: refreshMemberships } = useMemberships();
+  const joinedClubs = clubs.filter((club) => isMember(club.id));
   const router = useRouter(),
     insets = useSafeAreaInsets();
   const [threads, setThreads] = useState<MessageThread[]>([]),
@@ -71,6 +76,33 @@ function Inbox() {
           title="Keep the conversation going."
           description="Your club board is a message away. Find your conversations here."
         />
+        <Card className="gap-3 p-5">
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text">
+            Start a conversation
+          </Text>
+          <Text className="text-sm text-light-muted dark:text-dark-muted">
+            Choose a club to message its board inside the app. Board members can also reply to members here.
+          </Text>
+          {membershipError ? (
+            <>
+              <Text className="text-danger">{membershipError}</Text>
+              <Button label="Reload my clubs" onPress={() => void refreshMemberships()} />
+            </>
+          ) : joinedClubs.map((club) => (
+            <Button
+              key={club.id}
+              label={`Message ${club.name}`}
+              variant="secondary"
+              iconRight="chatbubbles-outline"
+              onPress={() => router.push(`/club/${club.id}/messages`)}
+            />
+          ))}
+          <Button label="Find a club" variant="ghost" onPress={() => router.push("/browse")} />
+        </Card>
+        <View className="flex-row items-center justify-between">
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text">Your conversations</Text>
+          <Button label="Refresh" variant="ghost" onPress={() => void refresh()} />
+        </View>
         {loading ? (
           <SkeletonRow count={3} />
         ) : error ? (
