@@ -109,9 +109,18 @@ export function SignInGate({
 
     // An unverified account reaches here from either mode: sign-up returns
     // requiresCode for a brand-new user, sign-in returns it for someone who
-    // never finished. Both mean "a code is in their inbox".
+    // never finished. Sending can fail while an older code is still usable.
     if (res.requiresCode) {
-      enterCodeStep(e, `We sent a 6-digit code to ${e}.`);
+      enterCodeStep(
+        e,
+        res.error
+          ? "Enter a previous code, or request a new one."
+          : `We sent a 6-digit code to ${e}.`,
+      );
+      if (res.error) {
+        setError(res.error);
+        setCooldown(0);
+      }
       return;
     }
     if (res.error) {

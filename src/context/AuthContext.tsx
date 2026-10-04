@@ -41,8 +41,8 @@ export type VerificationStep = { email: string } | null;
 
 /**
  * Result of a sign-in / sign-up attempt. `requiresCode` means the account
- * exists but is unverified and a 6-digit code is now in the user's inbox;
- * the caller should show the code step.
+ * exists but is unverified; the caller should show the code step. A send
+ * failure is returned in `error`, even when an existing code can still be used.
  */
 export interface AuthAttempt {
   error: string | null;
@@ -300,10 +300,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // the code step. Without this the account is permanently unreachable:
         // sign-in rejects it and sign-up says the email is taken.
         if (error.error === NEEDS_VERIFICATION) {
-          // A resend failure here (rate limit, mailer down) is not fatal: show
-          // the code step anyway so a code the user already holds still works.
-          await insforge.auth.resendVerificationEmail({ email: e });
-          return { error: null, requiresCode: true };
+          // Keep the code step usable, but never claim delivery when sending
+          // failed (including SMTP errors or the resend rate limit).
+          const { error: sendError } =
+            await insforge.auth.resendVerificationEmail({ email: e });
+          return { error: sendError?.message ?? null, requiresCode: true };
         }
         return { error: error.message, requiresCode: false };
       }
