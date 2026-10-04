@@ -5,10 +5,11 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
-} from 'react';
-import { AppState } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
+} from "react";
+import { AppState } from "react-native";
+import { useAuth } from "@/context/AuthContext";
 import {
   fetchNotifications,
   fetchNotificationPrefs,
@@ -16,9 +17,9 @@ import {
   saveNotificationPrefs,
   effectivePrefs,
   type PrefsRow,
-} from '@/data/notificationsRepo';
-import { setBadgeCount } from '@/lib/push';
-import type { AppNotification, NotificationPrefs } from '@/types/domain';
+} from "@/data/notificationsRepo";
+import { setBadgeCount } from "@/lib/push";
+import type { AppNotification, NotificationPrefs } from "@/types/domain";
 
 /**
  * The notification inbox plus the per-club preference matrix.
@@ -35,12 +36,17 @@ interface NotificationsContextValue {
   prefs: PrefsRow[];
   /** Effective settings for a club (its override, else the global default). */
   prefsFor: (clubId: string | null) => NotificationPrefs;
-  savePrefs: (clubId: string | null, prefs: NotificationPrefs) => Promise<{ ok: boolean; error?: string }>;
+  savePrefs: (
+    clubId: string | null,
+    prefs: NotificationPrefs,
+  ) => Promise<{ ok: boolean; error?: string }>;
   markRead: (ids?: number[]) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
-const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
+const NotificationsContext = createContext<
+  NotificationsContextValue | undefined
+>(undefined);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
@@ -48,6 +54,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [prefs, setPrefs] = useState<PrefsRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const currentUser = useRef(userId);
+  currentUser.current = userId;
 
   const refresh = useCallback(async () => {
     if (!userId) {
@@ -56,16 +64,24 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoading(true);
-    const [rows, prefRows] = await Promise.all([
-      fetchNotifications(60),
-      fetchNotificationPrefs(userId),
-    ]);
-    setNotifications(rows);
-    setPrefs(prefRows);
-    setLoading(false);
+    try {
+      const [rows, prefRows] = await Promise.all([
+        fetchNotifications(60),
+        fetchNotificationPrefs(userId),
+      ]);
+      if (currentUser.current !== userId) return;
+      setNotifications(rows);
+      setPrefs(prefRows);
+    } catch {
+      /* Keep the last known inbox during transient network failures. */
+    } finally {
+      if (currentUser.current === userId) setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
+    setNotifications([]);
+    setPrefs([]);
     void refresh();
   }, [refresh]);
 
@@ -73,8 +89,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   // stale, and it costs one request.
   useEffect(() => {
     if (!userId) return;
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refresh();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refresh();
     });
     return () => sub.remove();
   }, [userId, refresh]);
@@ -88,13 +104,19 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     void setBadgeCount(unreadCount);
   }, [unreadCount]);
 
-  const markRead = useCallback(async (ids?: number[]) => {
-    const now = new Date().toISOString();
-    setNotifications((prev) =>
-      prev.map((n) => (!n.readAt && (!ids || ids.includes(n.id)) ? { ...n, readAt: now } : n)),
-    );
-    await markNotificationsRead(ids);
-  }, []);
+  const markRead = useCallback(
+    async (ids?: number[]) => {
+      const result = await markNotificationsRead(ids);
+      if (!result.ok || currentUser.current !== userId) return;
+      const now = new Date().toISOString();
+      setNotifications((prev) =>
+        prev.map((n) =>
+          !n.readAt && (!ids || ids.includes(n.id)) ? { ...n, readAt: now } : n,
+        ),
+      );
+    },
+    [userId],
+  );
 
   const prefsFor = useCallback(
     (clubId: string | null) => effectivePrefs(prefs, clubId),
@@ -116,7 +138,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   return (
     <NotificationsContext.Provider
-      value={{ notifications, unreadCount, loading, prefs, prefsFor, savePrefs, markRead, refresh }}
+      value={{
+        notifications,
+        unreadCount,
+        loading,
+        prefs,
+        prefsFor,
+        savePrefs,
+        markRead,
+        refresh,
+      }}
     >
       {children}
     </NotificationsContext.Provider>
@@ -125,6 +156,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications(): NotificationsContextValue {
   const ctx = useContext(NotificationsContext);
-  if (!ctx) throw new Error('useNotifications must be used within NotificationsProvider');
+  if (!ctx)
+    throw new Error(
+      "useNotifications must be used within NotificationsProvider",
+    );
   return ctx;
 }

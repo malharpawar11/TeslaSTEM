@@ -1,11 +1,19 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { insforge, isInsforgeConfigured } from '@/lib/insforge';
-import type { AppRole, ApprovalStatus } from '@/types/domain';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  ReactNode,
+} from "react";
+import { AppState } from "react-native";
+import { getRefreshToken, persistRefreshToken } from "@/lib/authStorage";
+import { insforge, isInsforgeConfigured } from "@/lib/insforge";
+import type { AppRole, ApprovalStatus } from "@/types/domain";
 
-export type { AppRole } from '@/types/domain';
+export type { AppRole } from "@/types/domain";
 
-const REFRESH_TOKEN_KEY = 'tsc.insforge.refreshToken';
 const LWSD_RE = /@lwsd\.org$/i;
 
 /** Minimal session shape, enough for the rest of the app to check "signed in". */
@@ -44,8 +52,8 @@ export interface AuthAttempt {
 }
 
 /** InsForge error codes this flow has to branch on, not just display. */
-const NEEDS_VERIFICATION = 'AUTH_NEED_VERIFICATION';
-const EMAIL_EXISTS = 'AUTH_EMAIL_EXISTS';
+const NEEDS_VERIFICATION = "AUTH_NEED_VERIFICATION";
+const EMAIL_EXISTS = "AUTH_EMAIL_EXISTS";
 
 interface AuthContextValue {
   configured: boolean;
@@ -61,7 +69,10 @@ interface AuthContextValue {
   /** Creates an @lwsd.org account. Returns whether a 6-digit code was sent. */
   signUp: (email: string, password: string) => Promise<AuthAttempt>;
   /** Exchanges the emailed code for a session, completing sign-up. */
-  verifyCode: (email: string, code: string) => Promise<{ error: string | null }>;
+  verifyCode: (
+    email: string,
+    code: string,
+  ) => Promise<{ error: string | null }>;
   /**
    * Signs in an @lwsd.org account. If the address exists but was never
    * verified, this sends a fresh code and reports `requiresCode: true` so the
@@ -79,46 +90,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AppSession | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(isInsforgeConfigured);
+  const currentUser = useRef<string | null>(null);
 
-  const applySession = useCallback((user: { id: string; email: string } | null, refreshToken?: string | null) => {
-    setSession(user ? { user } : null);
-    if (refreshToken) {
-      AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken).catch(() => {});
-    } else if (refreshToken === null) {
-      AsyncStorage.removeItem(REFRESH_TOKEN_KEY).catch(() => {});
-    }
-  }, []);
+  const applySession = useCallback(
+    (
+      user: { id: string; email: string } | null,
+      refreshToken?: string | null,
+    ) => {
+      if (currentUser.current !== (user?.id ?? null)) setProfile(null);
+      currentUser.current = user?.id ?? null;
+      setSession(user ? { user } : null);
+      if (refreshToken) {
+        void persistRefreshToken(refreshToken).catch(() => {});
+      } else if (refreshToken === null) {
+        void persistRefreshToken(null).catch(() => {});
+      }
+    },
+    [],
+  );
 
   // Cold start: restore the session from the persisted refresh token.
   useEffect(() => {
     if (!insforge) return;
     let active = true;
     (async () => {
-      const storedToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-      if (storedToken) {
-        const { data, error } = await insforge.auth.refreshSession({ refreshToken: storedToken });
-        if (!active) return;
-        if (!error && data) {
-          applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? storedToken);
-        } else {
-          applySession(null, null);
+      try {
+        const storedToken = await getRefreshToken();
+        if (storedToken) {
+          const { data, error } = await insforge.auth.refreshSession({
+            refreshToken: storedToken,
+          });
+          if (!active) return;
+          if (!error && data) {
+            applySession(
+              { id: data.user.id, email: data.user.email },
+              data.refreshToken ?? storedToken,
+            );
+          } else if (error?.statusCode === 401 || error?.statusCode === 403) {
+            applySession(null, null);
+          }
         }
+      } catch {
+        // A transient outage must not delete the persisted refresh token.
+        if (active) applySession(null);
+      } finally {
+        if (active) setLoading(false);
       }
-      if (active) setLoading(false);
     })();
     return () => {
       active = false;
     };
   }, [applySession]);
 
+  // Server/mobile mode has no SDK auto-refresh. Rotate while active and on resume.
+  useEffect(() => {
+    if (!session || !insforge) return;
+    const uid = session.user.id;
+    let refreshing = false;
+    const refresh = async () => {
+      if (refreshing || AppState.currentState === "background") return;
+      refreshing = true;
+      try {
+        const token = await getRefreshToken();
+        if (!token || currentUser.current !== uid) return;
+        const result = await insforge!.auth.refreshSession({
+          refreshToken: token,
+        });
+        if (currentUser.current !== uid) return;
+        if (result.data && !result.error)
+          await persistRefreshToken(result.data.refreshToken ?? token);
+        else if (
+          result.error?.statusCode === 401 ||
+          result.error?.statusCode === 403
+        )
+          applySession(null, null);
+      } finally {
+        refreshing = false;
+      }
+    };
+    const timer = setInterval(
+      () => {
+        void refresh().catch(() => {});
+      },
+      5 * 60 * 1000,
+    );
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refresh().catch(() => {});
+    });
+    return () => {
+      clearInterval(timer);
+      listener.remove();
+    };
+  }, [session?.user.id, applySession]);
+
   const loadProfile = useCallback(async (userId: string) => {
     if (!insforge) return;
     const { data } = await insforge.database
-      .from('profiles')
-      .select('id, email, display_name, role, president_status')
-      .eq('id', userId)
+      .from("profiles")
+      .select("id, email, display_name, role, president_status")
+      .eq("id", userId)
       .single();
-    setProfile((data as Profile) ?? null);
+    if (currentUser.current === userId) setProfile((data as Profile) ?? null);
   }, []);
 
   useEffect(() => {
@@ -140,78 +212,118 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, loadProfile]);
 
   const resendCode = useCallback(async (email: string) => {
-    if (!insforge) return { error: 'Backend not configured.' };
+    if (!insforge) return { error: "Backend not configured." };
     const { error } = await insforge.auth.resendVerificationEmail({
       email: email.trim().toLowerCase(),
     });
     return { error: error ? error.message : null };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string): Promise<AuthAttempt> => {
-    const e = email.trim().toLowerCase();
-    if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.', requiresCode: false };
-    if (!insforge) return { error: 'Backend not configured.', requiresCode: false };
-    const { data, error } = await insforge.auth.signUp({ email: e, password });
-    if (error) {
-      // Already registered. We can't tell from here whether that account is
-      // verified, so don't guess; hand it to sign-in, which mails a fresh
-      // code when the account turns out to be unverified.
-      if (error.error === EMAIL_EXISTS) {
+  const signUp = useCallback(
+    async (email: string, password: string): Promise<AuthAttempt> => {
+      const e = email.trim().toLowerCase();
+      if (!LWSD_RE.test(e))
         return {
-          error: 'That email already has an account; enter your password to sign in.',
+          error: "Use your @lwsd.org school email.",
           requiresCode: false,
-          existingAccount: true,
         };
+      if (!insforge)
+        return { error: "Backend not configured.", requiresCode: false };
+      const { data, error } = await insforge.auth.signUp({
+        email: e,
+        password,
+      });
+      if (error) {
+        // Already registered. We can't tell from here whether that account is
+        // verified, so don't guess; hand it to sign-in, which mails a fresh
+        // code when the account turns out to be unverified.
+        if (error.error === EMAIL_EXISTS) {
+          return {
+            error:
+              "That email already has an account; enter your password to sign in.",
+            requiresCode: false,
+            existingAccount: true,
+          };
+        }
+        return { error: error.message, requiresCode: false };
       }
-      return { error: error.message, requiresCode: false };
-    }
-    if (data?.requireEmailVerification) {
-      return { error: null, requiresCode: true };
-    }
-    if (data?.accessToken && data.user) {
-      applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
-    }
-    return { error: null, requiresCode: false };
-  }, [applySession]);
-
-  const verifyCode = useCallback(async (email: string, code: string) => {
-    if (!insforge) return { error: 'Backend not configured.' };
-    const { data, error } = await insforge.auth.verifyEmail({
-      email: email.trim().toLowerCase(),
-      // Codes get pasted from mail clients with stray spaces or dashes.
-      otp: code.replace(/\D/g, ''),
-    });
-    if (error) return { error: error.message };
-    if (data) applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
-    return { error: null };
-  }, [applySession]);
-
-  const signIn = useCallback(async (email: string, password: string): Promise<AuthAttempt> => {
-    const e = email.trim().toLowerCase();
-    if (!LWSD_RE.test(e)) return { error: 'Use your @lwsd.org school email.', requiresCode: false };
-    if (!insforge) return { error: 'Backend not configured.', requiresCode: false };
-    const { data, error } = await insforge.auth.signInWithPassword({ email: e, password });
-    if (error) {
-      // Credentials were fine but the address was never verified. Mail a new
-      // code (the original has almost certainly expired) and hand the caller
-      // the code step. Without this the account is permanently unreachable:
-      // sign-in rejects it and sign-up says the email is taken.
-      if (error.error === NEEDS_VERIFICATION) {
-        // A resend failure here (rate limit, mailer down) is not fatal: show
-        // the code step anyway so a code the user already holds still works.
-        await insforge.auth.resendVerificationEmail({ email: e });
+      if (data?.requireEmailVerification) {
         return { error: null, requiresCode: true };
       }
-      return { error: error.message, requiresCode: false };
-    }
-    if (data) applySession({ id: data.user.id, email: data.user.email }, data.refreshToken ?? null);
-    return { error: null, requiresCode: false };
-  }, [applySession]);
+      if (data?.accessToken && data.user) {
+        applySession(
+          { id: data.user.id, email: data.user.email },
+          data.refreshToken ?? null,
+        );
+      }
+      return { error: null, requiresCode: false };
+    },
+    [applySession],
+  );
+
+  const verifyCode = useCallback(
+    async (email: string, code: string) => {
+      if (!insforge) return { error: "Backend not configured." };
+      const { data, error } = await insforge.auth.verifyEmail({
+        email: email.trim().toLowerCase(),
+        // Codes get pasted from mail clients with stray spaces or dashes.
+        otp: code.replace(/\D/g, ""),
+      });
+      if (error) return { error: error.message };
+      if (data)
+        applySession(
+          { id: data.user.id, email: data.user.email },
+          data.refreshToken ?? null,
+        );
+      return { error: null };
+    },
+    [applySession],
+  );
+
+  const signIn = useCallback(
+    async (email: string, password: string): Promise<AuthAttempt> => {
+      const e = email.trim().toLowerCase();
+      if (!LWSD_RE.test(e))
+        return {
+          error: "Use your @lwsd.org school email.",
+          requiresCode: false,
+        };
+      if (!insforge)
+        return { error: "Backend not configured.", requiresCode: false };
+      const { data, error } = await insforge.auth.signInWithPassword({
+        email: e,
+        password,
+      });
+      if (error) {
+        // Credentials were fine but the address was never verified. Mail a new
+        // code (the original has almost certainly expired) and hand the caller
+        // the code step. Without this the account is permanently unreachable:
+        // sign-in rejects it and sign-up says the email is taken.
+        if (error.error === NEEDS_VERIFICATION) {
+          // A resend failure here (rate limit, mailer down) is not fatal: show
+          // the code step anyway so a code the user already holds still works.
+          await insforge.auth.resendVerificationEmail({ email: e });
+          return { error: null, requiresCode: true };
+        }
+        return { error: error.message, requiresCode: false };
+      }
+      if (data)
+        applySession(
+          { id: data.user.id, email: data.user.email },
+          data.refreshToken ?? null,
+        );
+      return { error: null, requiresCode: false };
+    },
+    [applySession],
+  );
 
   const signOut = useCallback(async () => {
-    await insforge?.auth.signOut();
-    applySession(null, null);
-    setProfile(null);
+    try {
+      await insforge?.auth.signOut();
+    } finally {
+      applySession(null, null);
+      setProfile(null);
+    }
   }, [applySession]);
 
   return (
@@ -221,9 +333,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         session,
         profile,
-        isSpecialAdmin: profile?.role === 'special_admin',
-        isVerifiedPresident: profile?.role === 'verified_president',
-        isClubAdmin: profile?.role === 'club_admin',
+        isSpecialAdmin: profile?.role === "special_admin",
+        isVerifiedPresident: profile?.role === "verified_president",
+        isClubAdmin: profile?.role === "club_admin",
         refreshProfile,
         signUp,
         verifyCode,
@@ -239,6 +351,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

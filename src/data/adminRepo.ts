@@ -1,4 +1,5 @@
 import { insforge } from '@/lib/insforge';
+import { callRpc } from './result';
 import type { ApprovalStatus } from '@/types/domain';
 
 /**
@@ -9,15 +10,6 @@ import type { ApprovalStatus } from '@/types/domain';
  */
 
 export type RpcResult = { ok: true } | { ok: false; error: string };
-
-const NOT_CONFIGURED = 'Backend not configured.';
-
-/** Shared helper: invoke an RPC and normalise the result. */
-async function callRpc(fn: string, args?: Record<string, unknown>): Promise<RpcResult> {
-  if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await insforge.database.rpc(fn, args ?? {});
-  return error ? { ok: false, error: error.message } : { ok: true };
-}
 
 // ---------------------------------------------------------------------------
 // Review queues: special-admin reads. RLS lets a special admin see every

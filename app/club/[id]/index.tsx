@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, Share, Platform, Linking, ScrollView } from 'react-native';
+import { ClubReviews } from '@/components/ClubReviews';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -320,7 +321,7 @@ export default function ClubProfileScreen() {
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 112 }}
       >
         <ClubProfileHeader
           club={club}
@@ -352,6 +353,8 @@ export default function ClubProfileScreen() {
         </View>
 
         <View className="px-5 pt-4">
+          <Button label="Message club board" variant="secondary" icon="chatbubbles-outline" onPress={() => router.push(`/club/${clubId}/messages`)} />
+          <View className="h-3" />
           <SegmentedTabs tabs={tabs} value={tab} onChange={setTab} />
         </View>
 
@@ -363,6 +366,7 @@ export default function ClubProfileScreen() {
               <Text className="text-base leading-6 text-light-secondary dark:text-dark-secondary">
                 {club.description}
               </Text>
+              <ClubReviews clubId={clubId} isMember={joined} />
 
               <View className="mt-6">
                 <Text className="mb-2 text-xs font-semibold text-light-muted dark:text-dark-muted">
@@ -692,6 +696,7 @@ export default function ClubProfileScreen() {
           )}
         </View>
       </ScrollView>
+
 
       {/* Sticky join / leave bar */}
       <View pointerEvents="box-none" className="absolute bottom-0 left-0 right-0">

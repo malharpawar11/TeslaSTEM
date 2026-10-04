@@ -1,20 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Button, Chip, EmptyState, SkeletonRow } from '@/components/ui';
-import { EventCard } from '@/components/ClubContentCards';
-import { useMemberships } from '@/context/MembershipContext';
-import { useToast } from '@/context/ToastContext';
-import { fetchUpcomingEvents } from '@/data/contentRepo';
-import { dayLabel, downloadIcs } from '@/lib/calendar';
-import { scheduleEventReminder } from '@/lib/push';
-import { brand } from '@/theme/tokens';
-import type { ClubEvent } from '@/types/domain';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button, Chip, EmptyState, SkeletonRow } from "@/components/ui";
+import { EventCard } from "@/components/ClubContentCards";
+import { useMemberships } from "@/context/MembershipContext";
+import { useToast } from "@/context/ToastContext";
+import { useNotifications } from "@/context/NotificationsContext";
+import { fetchUpcomingEvents } from "@/data/contentRepo";
+import { dayLabel, downloadIcs, schoolDayKey } from "@/lib/calendar";
+import { scheduleEventReminder } from "@/lib/push";
+import { brand } from "@/theme/tokens";
+import type { ClubEvent } from "@/types/domain";
 
-type Scope = 'My clubs' | 'All clubs';
+type Scope = "My clubs" | "All clubs";
 
 /**
  * One calendar for every club event the student can see, grouped by day.
@@ -28,20 +29,33 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { toast } = useToast();
   const { memberships } = useMemberships();
+  const { prefsFor } = useNotifications();
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [scope, setScope] = useState<Scope>('My clubs');
+  const [scope, setScope] = useState<Scope>("My clubs");
+  const [deadlinesOnly, setDeadlinesOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const rows = await fetchUpcomingEvents(150);
-    setEvents(rows);
-    setLoading(false);
+    try {
+      setEvents(await fetchUpcomingEvents(150));
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not load the calendar.",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -50,15 +64,19 @@ export default function CalendarScreen() {
   }, [load]);
 
   const visible = useMemo(() => {
-    if (scope === 'All clubs') return events;
-    return events.filter((e) => memberships.get(e.clubId)?.status === 'active');
-  }, [events, scope, memberships]);
+    return events.filter(
+      (e) =>
+        (!deadlinesOnly || e.eventType === "Deadline") &&
+        (scope === "All clubs" ||
+          memberships.get(e.clubId)?.status === "active"),
+    );
+  }, [events, scope, memberships, deadlinesOnly]);
 
   // Group by calendar day so the list reads like a schedule, not a feed.
   const groups = useMemo(() => {
     const map = new Map<string, ClubEvent[]>();
     for (const event of visible) {
-      const key = event.startsAt.slice(0, 10);
+      const key = schoolDayKey(event.startsAt);
       const list = map.get(key);
       if (list) list.push(event);
       else map.set(key, [event]);
@@ -68,23 +86,31 @@ export default function CalendarScreen() {
 
   const exportAll = useCallback(async () => {
     if (visible.length === 0) {
-      toast('No events to export yet.', 'info');
+      toast("No events to export yet.", "info");
       return;
     }
-    await downloadIcs(visible, scope === 'My clubs' ? 'My club events' : 'Tesla STEM club events');
+    await downloadIcs(
+      visible,
+      scope === "My clubs" ? "My club events" : "Tesla STEM club events",
+    );
   }, [visible, scope, toast]);
 
   /** Sets a local reminder an hour before each listed event. */
   const remindAll = useCallback(async () => {
-    const ids = await Promise.all(visible.slice(0, 30).map((e) => scheduleEventReminder(e)));
+    const ids = await Promise.all(
+      visible
+        .filter((e) => prefsFor(e.clubId).reminders)
+        .slice(0, 30)
+        .map((e) => scheduleEventReminder(e)),
+    );
     const count = ids.filter(Boolean).length;
     toast(
       count > 0
-        ? `Reminders set for ${count} event${count === 1 ? '' : 's'}.`
-        : 'No reminders set; enable notifications in your profile first.',
-      count > 0 ? 'success' : 'info',
+        ? `Reminders set for ${count} event${count === 1 ? "" : "s"}.`
+        : "No reminders set; enable notifications in your profile first.",
+      count > 0 ? "success" : "info",
     );
-  }, [visible, toast]);
+  }, [visible, toast, prefsFor]);
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
@@ -92,7 +118,11 @@ export default function CalendarScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brand.blue} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={brand.blue}
+          />
         }
       >
         <View
@@ -104,7 +134,7 @@ export default function CalendarScreen() {
               Calendar
             </Text>
             <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
-              Meetings and events from your clubs
+              Meetings, events, and deadlines · Pacific time
             </Text>
           </View>
           <View className="pt-1">
@@ -113,7 +143,7 @@ export default function CalendarScreen() {
         </View>
 
         <View className="mt-4 flex-row items-center gap-2 px-5">
-          {(['My clubs', 'All clubs'] as Scope[]).map((option) => (
+          {(["My clubs", "All clubs"] as Scope[]).map((option) => (
             <Chip
               key={option}
               label={option}
@@ -123,6 +153,13 @@ export default function CalendarScreen() {
           ))}
         </View>
 
+        <View className="mt-3 px-5">
+          <Chip
+            label="Deadlines only"
+            active={deadlinesOnly}
+            onPress={() => setDeadlinesOnly((value) => !value)}
+          />
+        </View>
         <View className="mt-3 flex-row gap-2 px-5">
           <View className="flex-1">
             <Button
@@ -150,18 +187,32 @@ export default function CalendarScreen() {
           <View className="px-5 pt-6">
             <SkeletonRow count={4} />
           </View>
+        ) : error ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Couldn't load calendar"
+            description={error}
+            actionLabel="Retry"
+            onAction={() => void load()}
+          />
         ) : groups.length === 0 ? (
           <View className="pt-10">
             <EmptyState
               icon="calendar-outline"
-              title={scope === 'My clubs' ? 'No events from your clubs' : 'No upcoming events'}
-              description={
-                scope === 'My clubs'
-                  ? 'Join a club, or switch to All clubs to see everything happening at Tesla STEM.'
-                  : 'Club leaders schedule meetings, competitions, and deadlines here.'
+              title={
+                scope === "My clubs"
+                  ? "No events from your clubs"
+                  : "No upcoming events"
               }
-              actionLabel={scope === 'My clubs' ? 'Browse clubs' : undefined}
-              onAction={scope === 'My clubs' ? () => router.push('/browse') : undefined}
+              description={
+                scope === "My clubs"
+                  ? "Join a club, or switch to All clubs to see everything happening at Tesla STEM."
+                  : "Club leaders schedule meetings, competitions, and deadlines here."
+              }
+              actionLabel={scope === "My clubs" ? "Browse clubs" : undefined}
+              onAction={
+                scope === "My clubs" ? () => router.push("/browse") : undefined
+              }
             />
           </View>
         ) : (

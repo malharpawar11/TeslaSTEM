@@ -151,7 +151,8 @@ function NewClubForm() {
           label="Meeting time"
           value={meetingTime}
           onChangeText={setMeetingTime}
-          placeholder="After School"
+          placeholder="3:00 PM – 4:00 PM"
+          helper="Start/end time in Pacific time, or At Lunch, After School, Before School."
         />
         <Input label="Location" value={location} onChangeText={setLocation} placeholder="RM 117" />
         <Input

@@ -49,6 +49,9 @@ export async function registerForPush(): Promise<{ ok: boolean; error?: string }
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
       (Constants.easConfig as { projectId?: string } | undefined)?.projectId;
+    if (!projectId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+      return { ok: false, error: 'Push notifications require a configured Expo EAS project ID.' };
+    }
     const token = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,
     );
@@ -65,13 +68,16 @@ export async function registerForPush(): Promise<{ ok: boolean; error?: string }
  * id so the caller can cancel it if the event moves or is cancelled.
  */
 export async function scheduleEventReminder(event: ClubEvent): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
+  if (Platform.OS === 'web' || event.status === 'cancelled') return null;
   const fireAt = new Date(new Date(event.startsAt).getTime() - REMINDER_LEAD_MINUTES * 60 * 1000);
   if (isNaN(fireAt.getTime()) || fireAt.getTime() <= Date.now()) return null;
   try {
     const settings = await Notifications.getPermissionsAsync();
     if (!settings.granted) return null;
+    const identifier = `club-event-${event.id}`;
+    await Notifications.cancelScheduledNotificationAsync(identifier);
     return await Notifications.scheduleNotificationAsync({
+      identifier,
       content: {
         title: event.clubName ? `${event.clubName}: ${event.title}` : event.title,
         body: `Starts in ${REMINDER_LEAD_MINUTES} minutes${event.location ? ` · ${event.location}` : ''}`,

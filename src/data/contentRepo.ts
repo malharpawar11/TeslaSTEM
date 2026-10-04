@@ -161,7 +161,7 @@ export async function fetchClubEvents(clubId: string, includePast = false): Prom
 
 /** Every upcoming event across the school; powers the Calendar tab. */
 export async function fetchUpcomingEvents(limit = 100): Promise<ClubEvent[]> {
-  if (!insforge) return [];
+  if (!insforge) throw new Error(NOT_CONFIGURED);
   const { data, error } = await insforge.database
     .from('club_events')
     .select(`${EVENT_COLUMNS}, clubs:club_id(name)`)
@@ -169,7 +169,7 @@ export async function fetchUpcomingEvents(limit = 100): Promise<ClubEvent[]> {
     .gte('starts_at', new Date(Date.now() - 12 * 3600 * 1000).toISOString())
     .order('starts_at', { ascending: true })
     .limit(limit);
-  if (error || !data) return [];
+  if (error || !data) throw new Error(error?.message ?? 'Could not load calendar events.');
   return (data as unknown as DbEvent[]).map(toEvent);
 }
 

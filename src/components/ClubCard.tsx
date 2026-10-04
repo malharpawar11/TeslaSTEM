@@ -93,6 +93,7 @@ function ClubCardBase({ club, joined, pending = false, onPress, onToggleJoin }: 
               <Text className="text-xs text-light-muted dark:text-dark-muted">
                 {dayAbbr(club.day)} · {club.time}
               </Text>
+              <Text className="text-xs text-light-muted dark:text-dark-muted">· {club.location}</Text>
               {club.memberCount > 0 ? (
                 <Text className="text-xs text-light-muted dark:text-dark-muted">
                   · {club.memberCount} member{club.memberCount === 1 ? '' : 's'}

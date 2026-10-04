@@ -1,6 +1,7 @@
 import { insforge, isInsforgeConfigured } from '@/lib/insforge';
 import { currentUserId, NOT_CONFIGURED, type RpcResult } from './result';
 import { Club, ClubCategory, CATEGORIES } from '@/types/domain';
+import { validateMeeting } from '@/lib/discovery';
 
 export type ClubsResult =
   | { clubs: Club[]; error: null }
@@ -10,6 +11,7 @@ interface DbClub {
   id: string;
   name: string;
   category: string;
+  career_tags: string[];
   description: string;
   meeting_day: string | null;
   meeting_time: string | null;
@@ -28,7 +30,7 @@ interface DbClub {
 
 const CLUB_COLUMNS =
   'id,name,category,description,meeting_day,meeting_time,location,advisor,contact_email,' +
-  'instagram,website,logo_url,banner_url,join_policy,member_count,president_id,created_at';
+  'instagram,website,logo_url,banner_url,join_policy,member_count,president_id,created_at,career_tags';
 
 function toCategory(value: string): ClubCategory {
   return (CATEGORIES as string[]).includes(value) ? (value as ClubCategory) : 'STEM';
@@ -48,6 +50,7 @@ function fromDb(row: DbClub): Club {
     day: row.meeting_day ?? 'TBD',
     time: row.meeting_time ?? 'TBD',
     category: toCategory(row.category),
+    careerTags: row.career_tags ?? [],
     description: row.description,
     contactEmail: row.contact_email ?? '',
     instagram: row.instagram ?? undefined,
@@ -110,7 +113,6 @@ export async function fetchClubOfficers(
       profiles?: { display_name: string | null; email: string | null } | null;
     }[]
   )
-    .filter((r) => r.role === 'president' || r.position)
     .map((r) => ({
       userId: r.user_id,
       role: r.position ?? (r.role === 'president' ? 'President' : 'Board Member'),
@@ -137,6 +139,8 @@ export interface NewClubInput {
  * student cannot self-approve a club by sending `status: 'approved'`.
  */
 export async function submitClub(input: NewClubInput): Promise<RpcResult> {
+  const scheduleError = validateMeeting(input.meetingDay, input.meetingTime, input.location);
+  if (scheduleError) return { ok: false, error: scheduleError };
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
   if (!uid) return { ok: false, error: 'Sign in to submit a club.' };
@@ -159,6 +163,7 @@ export async function submitClub(input: NewClubInput): Promise<RpcResult> {
 }
 
 export interface ClubSettingsInput {
+  careerTags: string[];
   description: string;
   meetingDay: string;
   meetingTime: string;
@@ -179,10 +184,13 @@ export async function updateClubSettings(
   clubId: string,
   input: ClubSettingsInput,
 ): Promise<RpcResult> {
+  const scheduleError = validateMeeting(input.meetingDay, input.meetingTime, input.location);
+  if (scheduleError) return { ok: false, error: scheduleError };
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await insforge.database
     .from('clubs')
     .update({
+      career_tags: input.careerTags,
       description: input.description.trim(),
       meeting_day: input.meetingDay.trim() || null,
       meeting_time: input.meetingTime.trim() || null,
@@ -221,6 +229,7 @@ export async function uploadClubImage(
       ? { logo_url: data.url, logo_key: data.key }
       : { banner_url: data.url, banner_key: data.key };
   const { error: rowError } = await insforge.database.from('clubs').update(patch).eq('id', clubId);
+  if (rowError) await insforge.storage.from('club-assets').remove(data.key);
   return rowError ? { ok: false, error: rowError.message } : { ok: true };
 }
 

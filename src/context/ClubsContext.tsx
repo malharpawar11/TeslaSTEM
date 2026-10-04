@@ -22,10 +22,12 @@ export function ClubsProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const result = await fetchClubs();
-    setClubs(result.clubs);
-    setError(result.error);
-    setLoading(false);
+    try {
+      const result = await fetchClubs();
+      if (!result.error) setClubs(result.clubs);
+      setError(result.error);
+    } catch { setError('Could not load clubs. Check your connection and retry.'); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => {

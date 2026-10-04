@@ -5,15 +5,16 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
-} from 'react';
-import { useAuth } from '@/context/AuthContext';
+} from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   fetchMyMemberships,
   joinClub as joinClubRpc,
   leaveClub as leaveClubRpc,
-} from '@/data/membershipRepo';
-import type { Membership, MembershipStatus } from '@/types/domain';
+} from "@/data/membershipRepo";
+import type { Membership, MembershipStatus } from "@/types/domain";
 
 /**
  * The signed-in student's club memberships: the single source of truth for
@@ -32,18 +33,28 @@ interface MembershipContextValue {
   membershipFor: (clubId: string) => Membership | undefined;
   /** Number of clubs the student has actually joined (pending excluded). */
   joinedCount: number;
-  join: (clubId: string) => Promise<{ ok: true; status: MembershipStatus } | { ok: false; error: string }>;
+  join: (
+    clubId: string,
+  ) => Promise<
+    { ok: true; status: MembershipStatus } | { ok: false; error: string }
+  >;
   leave: (clubId: string) => Promise<{ ok: boolean; error?: string }>;
   refresh: () => Promise<void>;
 }
 
-const MembershipContext = createContext<MembershipContextValue | undefined>(undefined);
+const MembershipContext = createContext<MembershipContextValue | undefined>(
+  undefined,
+);
 
 export function MembershipProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
-  const [memberships, setMemberships] = useState<Map<string, Membership>>(new Map());
+  const [memberships, setMemberships] = useState<Map<string, Membership>>(
+    new Map(),
+  );
   const [loading, setLoading] = useState(false);
+  const currentUser = useRef(userId);
+  currentUser.current = userId;
 
   const refresh = useCallback(async () => {
     if (!userId) {
@@ -51,25 +62,34 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoading(true);
-    const rows = await fetchMyMemberships(userId);
-    setMemberships(new Map(rows.map((m) => [m.clubId, m])));
-    setLoading(false);
+    try {
+      const rows = await fetchMyMemberships(userId);
+      if (currentUser.current === userId)
+        setMemberships(new Map(rows.map((m) => [m.clubId, m])));
+    } catch {
+      /* Keep the last known memberships during a network failure. */
+    } finally {
+      if (currentUser.current === userId) setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
+    setMemberships(new Map());
     void refresh();
   }, [refresh]);
 
-  const join = useCallback<MembershipContextValue['join']>(
+  const join = useCallback<MembershipContextValue["join"]>(
     async (clubId) => {
       const res = await joinClubRpc(clubId);
       if (!res.ok) return { ok: false, error: res.error };
-      const status = (res.value ?? 'active') as MembershipStatus;
+      if (currentUser.current !== userId)
+        return { ok: false, error: "Your account changed. Try again." };
+      const status = (res.value ?? "active") as MembershipStatus;
       setMemberships((prev) => {
         const next = new Map(prev);
         next.set(clubId, {
           clubId,
-          role: prev.get(clubId)?.role ?? 'member',
+          role: prev.get(clubId)?.role ?? "member",
           status,
           boardStatus: prev.get(clubId)?.boardStatus ?? null,
           position: prev.get(clubId)?.position ?? null,
@@ -78,35 +98,52 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
       });
       return { ok: true, status };
     },
-    [],
+    [userId],
   );
 
-  const leave = useCallback(async (clubId: string) => {
-    const res = await leaveClubRpc(clubId);
-    if (!res.ok) return { ok: false, error: res.error };
-    setMemberships((prev) => {
-      const next = new Map(prev);
-      next.delete(clubId);
-      return next;
-    });
-    return { ok: true };
-  }, []);
+  const leave = useCallback(
+    async (clubId: string) => {
+      const res = await leaveClubRpc(clubId);
+      if (!res.ok) return { ok: false, error: res.error };
+      if (currentUser.current !== userId)
+        return { ok: false, error: "Your account changed. Try again." };
+      setMemberships((prev) => {
+        const next = new Map(prev);
+        next.delete(clubId);
+        return next;
+      });
+      return { ok: true };
+    },
+    [userId],
+  );
 
   const isMember = useCallback(
-    (clubId: string) => memberships.get(clubId)?.status === 'active',
+    (clubId: string) => memberships.get(clubId)?.status === "active",
     [memberships],
   );
 
-  const membershipFor = useCallback((clubId: string) => memberships.get(clubId), [memberships]);
+  const membershipFor = useCallback(
+    (clubId: string) => memberships.get(clubId),
+    [memberships],
+  );
 
   const joinedCount = useMemo(
-    () => [...memberships.values()].filter((m) => m.status === 'active').length,
+    () => [...memberships.values()].filter((m) => m.status === "active").length,
     [memberships],
   );
 
   return (
     <MembershipContext.Provider
-      value={{ memberships, loading, isMember, membershipFor, joinedCount, join, leave, refresh }}
+      value={{
+        memberships,
+        loading,
+        isMember,
+        membershipFor,
+        joinedCount,
+        join,
+        leave,
+        refresh,
+      }}
     >
       {children}
     </MembershipContext.Provider>
@@ -115,6 +152,7 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
 
 export function useMemberships(): MembershipContextValue {
   const ctx = useContext(MembershipContext);
-  if (!ctx) throw new Error('useMemberships must be used within MembershipProvider');
+  if (!ctx)
+    throw new Error("useMemberships must be used within MembershipProvider");
   return ctx;
 }

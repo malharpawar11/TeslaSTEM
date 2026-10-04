@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,22 +29,25 @@ export default function SearchScreen() {
   const [kind, setKind] = useState<Kind>('All');
   const [results, setResults] = useState<SearchResults>(EMPTY_SEARCH);
   const [loading, setLoading] = useState(false);
+  const generation = useRef(0);
 
   const run = useCallback(async (q: string) => {
+    const version = generation.current;
     if (q.trim().length < 2) {
       setResults(EMPTY_SEARCH);
       setLoading(false);
       return;
     }
     setLoading(true);
-    setResults(await searchPlatform(q, 10));
-    setLoading(false);
+    const next = await searchPlatform(q, 10);
+    if (version === generation.current) { setResults(next); setLoading(false); }
   }, []);
 
   // Debounced: one request per pause in typing rather than one per keystroke.
   useEffect(() => {
+    ++generation.current;
     const handle = setTimeout(() => void run(query), 280);
-    return () => clearTimeout(handle);
+    return () => { clearTimeout(handle); ++generation.current; };
   }, [query, run]);
 
   const total = useMemo(() => searchResultCount(results), [results]);

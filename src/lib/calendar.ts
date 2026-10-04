@@ -1,5 +1,5 @@
-import { Platform, Linking, Share } from 'react-native';
-import type { ClubEvent } from '@/types/domain';
+import { Platform, Linking, Share } from "react-native";
+import type { ClubEvent } from "@/types/domain";
 
 /**
  * "Add to calendar" without asking for calendar permissions.
@@ -13,65 +13,84 @@ import type { ClubEvent } from '@/types/domain';
 /** 20260814T173000Z: the format both Google and iCalendar expect. */
 function toCalendarStamp(iso: string): string {
   const d = new Date(iso);
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return d
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
 }
 
 /** Events without an end time get a one-hour block. */
 function endOf(event: ClubEvent): string {
   if (event.endsAt) return event.endsAt;
-  return new Date(new Date(event.startsAt).getTime() + 60 * 60 * 1000).toISOString();
+  return new Date(
+    new Date(event.startsAt).getTime() + 60 * 60 * 1000,
+  ).toISOString();
 }
 
 function escapeIcs(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
 }
 
 export function eventDescription(event: ClubEvent): string {
-  const parts = [event.description?.trim(), event.organizer ? `Organizer: ${event.organizer}` : null]
-    .filter(Boolean);
-  return parts.join('\n\n');
+  const parts = [
+    event.description?.trim(),
+    event.organizer ? `Organizer: ${event.organizer}` : null,
+  ].filter(Boolean);
+  return parts.join("\n\n");
 }
 
 export function googleCalendarUrl(event: ClubEvent): string {
   const params = new URLSearchParams({
-    action: 'TEMPLATE',
+    action: "TEMPLATE",
     text: event.clubName ? `${event.title}: ${event.clubName}` : event.title,
     dates: `${toCalendarStamp(event.startsAt)}/${toCalendarStamp(endOf(event))}`,
     details: eventDescription(event),
-    location: event.location ?? '',
+    location: event.location ?? "",
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 /** A single VEVENT, or a whole club feed when several events are passed. */
-export function buildIcs(events: ClubEvent[], calendarName = 'Tesla STEM Clubs'): string {
+export function buildIcs(
+  events: ClubEvent[],
+  calendarName = "Tesla STEM Clubs",
+): string {
   const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Tesla STEM Clubs//EN',
-    'CALSCALE:GREGORIAN',
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Tesla STEM Clubs//EN",
+    "CALSCALE:GREGORIAN",
     `X-WR-CALNAME:${escapeIcs(calendarName)}`,
   ];
   for (const event of events) {
     lines.push(
-      'BEGIN:VEVENT',
+      "BEGIN:VEVENT",
       `UID:${event.id}@teslastemclubs`,
       `DTSTAMP:${toCalendarStamp(new Date().toISOString())}`,
       `DTSTART:${toCalendarStamp(event.startsAt)}`,
       `DTEND:${toCalendarStamp(endOf(event))}`,
       `SUMMARY:${escapeIcs(event.clubName ? `${event.title}: ${event.clubName}` : event.title)}`,
       `DESCRIPTION:${escapeIcs(eventDescription(event))}`,
-      `LOCATION:${escapeIcs(event.location ?? '')}`,
-      `STATUS:${event.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
-      'END:VEVENT',
+      `LOCATION:${escapeIcs(event.location ?? "")}`,
+      `STATUS:${event.status === "cancelled" ? "CANCELLED" : "CONFIRMED"}`,
+      "END:VEVENT",
     );
   }
-  lines.push('END:VCALENDAR');
-  return lines.join('\r\n');
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
 }
 
 function filenameFor(name: string): string {
-  return `${name.replace(/[^A-Za-z0-9]+/g, '-').toLowerCase().slice(0, 40) || 'event'}.ics`;
+  return `${
+    name
+      .replace(/[^A-Za-z0-9]+/g, "-")
+      .toLowerCase()
+      .slice(0, 40) || "event"
+  }.ics`;
 }
 
 /**
@@ -79,12 +98,15 @@ function filenameFor(name: string): string {
  * URL so the browser hands the file to whatever calendar app is registered;
  * on native the share sheet lets the user open it in Apple Calendar.
  */
-export async function downloadIcs(events: ClubEvent[], name: string): Promise<void> {
+export async function downloadIcs(
+  events: ClubEvent[],
+  name: string,
+): Promise<void> {
   const ics = buildIcs(events, name);
-  if (Platform.OS === 'web') {
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  if (Platform.OS === "web") {
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filenameFor(name);
     document.body.appendChild(link);
@@ -99,8 +121,8 @@ export async function downloadIcs(events: ClubEvent[], name: string): Promise<vo
 
 export async function openGoogleCalendar(event: ClubEvent): Promise<void> {
   const url = googleCalendarUrl(event);
-  if (Platform.OS === 'web') {
-    window.open(url, '_blank', 'noopener');
+  if (Platform.OS === "web") {
+    window.open(url, "_blank", "noopener");
     return;
   }
   await Linking.openURL(url);
@@ -112,15 +134,27 @@ export async function openGoogleCalendar(event: ClubEvent): Promise<void> {
 
 export function formatEventDate(iso: string): string {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return 'Date TBD';
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  if (isNaN(d.getTime())) return "Date TBD";
+  return d.toLocaleDateString("en-US", {
+    timeZone: "America/Los_Angeles",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
-export function formatEventTime(event: { startsAt: string; endsAt: string | null }): string {
+export function formatEventTime(event: {
+  startsAt: string;
+  endsAt: string | null;
+}): string {
   const start = new Date(event.startsAt);
-  if (isNaN(start.getTime())) return '';
+  if (isNaN(start.getTime())) return "";
   const fmt = (d: Date) =>
-    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    d.toLocaleTimeString("en-US", {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   if (!event.endsAt) return fmt(start);
   const end = new Date(event.endsAt);
   if (isNaN(end.getTime())) return fmt(start);
@@ -130,15 +164,59 @@ export function formatEventTime(event: { startsAt: string; endsAt: string | null
 /** "Today", "Tomorrow", or the weekday+date; used as calendar group headers. */
 export function dayLabel(iso: string): string {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return 'Scheduled';
+  if (isNaN(d.getTime())) return "Scheduled";
   const today = new Date();
-  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const startOf = (x: Date) =>
+    Date.parse(`${schoolDayKey(x.toISOString())}T00:00:00Z`);
   const diffDays = Math.round((startOf(d) - startOf(today)) / 86400000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  return d.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "America/Los_Angeles",
+    month: "long",
+    day: "numeric",
   });
+}
+
+export function schoolDayKey(iso: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const value = (type: string) =>
+    parts.find((part) => part.type === type)?.value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+export function toSchoolInput(iso: string): string {
+  if (!Number.isFinite(Date.parse(iso))) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const part = (name: string) =>
+    parts.find((value) => value.type === name)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+}
+
+/** Reject invalid dates and nonexistent DST clock times; interpret in school time. */
+export function fromSchoolInput(value: string): string | null {
+  const normalized = value.trim().replace(" ", "T");
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, y, m, d, h, minute] = match.map(Number);
+  const naive = Date.UTC(y, m - 1, d, h, minute);
+  for (const offset of [7, 8]) {
+    const candidate = new Date(naive + offset * 3600000).toISOString();
+    if (toSchoolInput(candidate) === normalized) return candidate;
+  }
+  return null;
 }

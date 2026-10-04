@@ -62,6 +62,7 @@ export function Input({
         ) : null}
         <TextInput
           {...rest}
+          accessibilityLabel={rest.accessibilityLabel ?? label ?? rest.placeholder}
           placeholderTextColor={c.subtle}
           multiline={multiline}
           onFocus={(e) => {

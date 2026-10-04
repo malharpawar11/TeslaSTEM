@@ -235,6 +235,7 @@ export interface Club {
   day: string;
   time: string;
   category: ClubCategory;
+  careerTags?: string[];
   description: string;
   foundingYear?: number;
   memberCount: number;
@@ -287,6 +288,7 @@ export function categoryColor(category: ClubCategory): { bg: string; text: strin
 }
 
 export function clubInitials(name: string): string {
+  if (!name.replace(/[^A-Za-z ]/g, '').trim()) return 'CL';
   const words = name.replace(/[^A-Za-z ]/g, '').trim().split(/\s+/);
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();

@@ -13,8 +13,10 @@ export const NOT_CONFIGURED = 'Backend not configured.';
  */
 export async function callRpc(fn: string, args?: Record<string, unknown>): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await insforge.database.rpc(fn, args ?? {});
-  return error ? { ok: false, error: error.message } : { ok: true };
+  try {
+    const { error } = await insforge.database.rpc(fn, args ?? {});
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Request failed. Try again.' }; }
 }
 
 /** Same as `callRpc`, but keeps the function's return value. */
@@ -23,13 +25,15 @@ export async function callRpcValue<T>(
   args?: Record<string, unknown>,
 ): Promise<ValueResult<T>> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
-  const { data, error } = await insforge.database.rpc(fn, args ?? {});
-  return error ? { ok: false, error: error.message } : { ok: true, value: data as T };
+  try {
+    const { data, error } = await insforge.database.rpc(fn, args ?? {});
+    return error ? { ok: false, error: error.message } : { ok: true, value: data as T };
+  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Request failed. Try again.' }; }
 }
 
 /** The signed-in user's id, or null when signed out. */
 export async function currentUserId(): Promise<string | null> {
   if (!insforge) return null;
   const { data } = await insforge.auth.getCurrentUser();
-  return data.user?.id ?? null;
+  return data?.user?.id ?? null;
 }

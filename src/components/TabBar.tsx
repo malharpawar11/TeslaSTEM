@@ -18,6 +18,7 @@ const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   calendar: { on: 'calendar', off: 'calendar-outline', label: 'Calendar' },
   notifications: { on: 'notifications', off: 'notifications-outline', label: 'Alerts' },
   account: { on: 'person-circle', off: 'person-circle-outline', label: 'Profile' },
+  messages: { on: 'chatbubbles', off: 'chatbubbles-outline', label: 'Messages' },
 };
 
 /**

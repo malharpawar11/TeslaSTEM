@@ -35,6 +35,13 @@ npx -y @insforge/cli db query "select public.bootstrap_special_admin('admin-name
 
 ## What the app does
 
+Students can also take a saved interests/career/availability survey, filter the
+directory by schedule or career, view deadline events, message their club's board
+from a private inbox, and review clubs they currently belong to. Club leaders can
+edit meeting details and career tags in Settings. See
+[the audit and feature notes](docs/AUDIT_AND_FEATURES.md) for validation, tests,
+and the remaining schedule-data requirements.
+
 **Students** browse the directory, join clubs (instantly, or by request at
 clubs that vet members), and get one dashboard combining every joined club's
 upcoming events, announcements, new files, and notifications. Events can be

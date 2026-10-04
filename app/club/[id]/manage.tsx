@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
+import {
+  toSchoolInput as toLocalInput,
+  fromSchoolInput as fromLocalInput,
+} from "@/lib/calendar";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
+import { CAREERS } from "@/lib/discovery";
+import { Chip } from "@/components/ui";
 import {
   Avatar,
   Button,
@@ -17,11 +23,16 @@ import {
   SkeletonRow,
   StatTile,
   Tag,
-} from '@/components/ui';
-import { AnnouncementCard, EventCard, FileRow, NoteCard } from '@/components/ClubContentCards';
-import { SignInGate } from '@/components/SignInGate';
-import { useClubs } from '@/context/ClubsContext';
-import { useToast } from '@/context/ToastContext';
+} from "@/components/ui";
+import {
+  AnnouncementCard,
+  EventCard,
+  FileRow,
+  NoteCard,
+} from "@/components/ClubContentCards";
+import { SignInGate } from "@/components/SignInGate";
+import { useClubs } from "@/context/ClubsContext";
+import { useToast } from "@/context/ToastContext";
 import {
   createAnnouncement,
   updateAnnouncement,
@@ -41,7 +52,7 @@ import {
   deleteClubFile,
   type EventInput,
   type NoteInput,
-} from '@/data/contentRepo';
+} from "@/data/contentRepo";
 import {
   fetchClubAccess,
   fetchClubMembers,
@@ -49,8 +60,8 @@ import {
   reviewJoinRequest,
   removeClubMember,
   setMemberPermissions,
-} from '@/data/membershipRepo';
-import { updateClubSettings, type ClubSettingsInput } from '@/data/clubsRepo';
+} from "@/data/membershipRepo";
+import { updateClubSettings, type ClubSettingsInput } from "@/data/clubsRepo";
 import {
   BOARD_POSITIONS,
   CLUB_PERMISSIONS,
@@ -65,8 +76,8 @@ import {
   type ClubMemberRow,
   type ClubNote,
   type ClubPermission,
-} from '@/types/domain';
-import { brand, semantic, surfaces } from '@/theme/tokens';
+} from "@/types/domain";
+import { brand, semantic, surfaces } from "@/theme/tokens";
 
 /**
  * The club admin dashboard.
@@ -79,44 +90,25 @@ import { brand, semantic, surfaces } from '@/theme/tokens';
  */
 
 type Section =
-  | 'Overview'
-  | 'Announcements'
-  | 'Events'
-  | 'Members'
-  | 'Board'
-  | 'Files'
-  | 'Resources'
-  | 'Settings';
+  | "Overview"
+  | "Announcements"
+  | "Events"
+  | "Members"
+  | "Board"
+  | "Files"
+  | "Resources"
+  | "Settings";
 
 const SECTION_PERMISSION: Record<Section, ClubPermission | null> = {
   Overview: null,
-  Announcements: 'announcements',
-  Events: 'events',
-  Members: 'members',
-  Board: 'board',
-  Files: 'files',
-  Resources: 'notes',
-  Settings: 'settings',
+  Announcements: "announcements",
+  Events: "events",
+  Members: "members",
+  Board: "board",
+  Files: "files",
+  Resources: "notes",
+  Settings: "settings",
 };
-
-function toLocalInput(iso: string): string {
-  // "2026-08-20T15:30": what the text fields below take.
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
-    d.getMinutes(),
-  )}`;
-}
-
-/** Parses "YYYY-MM-DDTHH:mm" in the device's timezone. Returns null if invalid. */
-function fromLocalInput(value: string): string | null {
-  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})$/);
-  if (!match) return null;
-  const [, y, mo, d, h, mi] = match;
-  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
-  return isNaN(date.getTime()) ? null : date.toISOString();
-}
 
 function SectionTabs({
   sections,
@@ -128,7 +120,11 @@ function SectionTabs({
   onChange: (s: Section) => void;
 }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 6 }}
+    >
       {sections.map((s) => {
         const active = s === value;
         return (
@@ -140,13 +136,13 @@ function SectionTabs({
             scaleTo={0.97}
             className={`h-9 items-center justify-center rounded-full px-4 ${
               active
-                ? 'bg-python-blue'
-                : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
+                ? "bg-python-blue"
+                : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
             }`}
           >
             <Text
               className={`text-sm font-semibold ${
-                active ? 'text-white' : 'text-light-muted dark:text-dark-muted'
+                active ? "text-white" : "text-light-muted dark:text-dark-muted"
               }`}
             >
               {s}
@@ -178,17 +174,21 @@ function PermissionPicker({
             accessibilityLabel={PERMISSION_LABELS[permission]}
             scaleTo={0.96}
             className={`h-8 flex-row items-center gap-1.5 rounded-full px-3 ${
-              on ? 'bg-python-green' : 'border border-light-border dark:border-dark-border'
+              on
+                ? "bg-python-green"
+                : "border border-light-border dark:border-dark-border"
             }`}
           >
             <Ionicons
-              name={on ? 'checkmark-circle' : 'ellipse-outline'}
+              name={on ? "checkmark-circle" : "ellipse-outline"}
               size={13}
-              color={on ? '#FFFFFF' : surfaces.light.subtle}
+              color={on ? "#FFFFFF" : surfaces.light.subtle}
             />
             <Text
               className={`text-2xs font-semibold ${
-                on ? 'text-white' : 'text-light-secondary dark:text-dark-secondary'
+                on
+                  ? "text-white"
+                  : "text-light-secondary dark:text-dark-secondary"
               }`}
             >
               {PERMISSION_LABELS[permission]}
@@ -212,7 +212,7 @@ function ManageClubScreen() {
 
   const [access, setAccess] = useState<ClubAccess>(NO_ACCESS);
   const [loading, setLoading] = useState(true);
-  const [section, setSection] = useState<Section>('Overview');
+  const [section, setSection] = useState<Section>("Overview");
   const [busy, setBusy] = useState(false);
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -224,40 +224,44 @@ function ManageClubScreen() {
   // Composers
   const [annOpen, setAnnOpen] = useState(false);
   const [annId, setAnnId] = useState<string | null>(null);
-  const [annTitle, setAnnTitle] = useState('');
-  const [annBody, setAnnBody] = useState('');
+  const [annTitle, setAnnTitle] = useState("");
+  const [annBody, setAnnBody] = useState("");
 
   const [eventOpen, setEventOpen] = useState(false);
   const [eventId, setEventId] = useState<string | null>(null);
-  const [eventForm, setEventForm] = useState<EventInput & { endsAtLocal: string; startsAtLocal: string }>({
-    title: '',
-    description: '',
-    eventType: 'Meeting',
-    startsAt: '',
+  const [eventForm, setEventForm] = useState<
+    EventInput & { endsAtLocal: string; startsAtLocal: string }
+  >({
+    title: "",
+    description: "",
+    eventType: "Meeting",
+    startsAt: "",
     endsAt: null,
-    location: '',
-    organizer: '',
-    startsAtLocal: '',
-    endsAtLocal: '',
+    location: "",
+    organizer: "",
+    startsAtLocal: "",
+    endsAtLocal: "",
   });
 
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteId, setNoteId] = useState<string | null>(null);
   const [noteForm, setNoteForm] = useState<NoteInput>({
-    title: '',
-    body: '',
-    category: 'General',
+    title: "",
+    body: "",
+    category: "General",
     pinned: false,
   });
 
-  const [fileFolder, setFileFolder] = useState('General');
-  const [fileTitle, setFileTitle] = useState('');
+  const [fileFolder, setFileFolder] = useState("General");
+  const [fileTitle, setFileTitle] = useState("");
 
   const [settings, setSettings] = useState<ClubSettingsInput | null>(null);
 
   // Board editing
-  const [editingMember, setEditingMember] = useState<ClubMemberRow | null>(null);
-  const [editPosition, setEditPosition] = useState('');
+  const [editingMember, setEditingMember] = useState<ClubMemberRow | null>(
+    null,
+  );
+  const [editPosition, setEditPosition] = useState("");
   const [editPermissions, setEditPermissions] = useState<ClubPermission[]>([]);
 
   const [confirm, setConfirm] = useState<{
@@ -270,19 +274,25 @@ function ManageClubScreen() {
     const nextAccess = await fetchClubAccess(clubId);
     setAccess(nextAccess);
     const jobs: Promise<void>[] = [];
-    if (nextAccess.permissions.includes('announcements') || nextAccess.canAdmin) {
+    if (
+      nextAccess.permissions.includes("announcements") ||
+      nextAccess.canAdmin
+    ) {
       jobs.push(fetchClubAnnouncements(clubId).then(setAnnouncements));
     }
-    if (nextAccess.permissions.includes('events') || nextAccess.canAdmin) {
+    if (nextAccess.permissions.includes("events") || nextAccess.canAdmin) {
       jobs.push(fetchClubEvents(clubId, true).then(setEvents));
     }
-    if (nextAccess.permissions.includes('members') || nextAccess.permissions.includes('board')) {
+    if (
+      nextAccess.permissions.includes("members") ||
+      nextAccess.permissions.includes("board")
+    ) {
       jobs.push(fetchClubMembers(clubId).then(setMembers));
     }
-    if (nextAccess.permissions.includes('files')) {
+    if (nextAccess.permissions.includes("files")) {
       jobs.push(fetchClubFiles(clubId).then(setFiles));
     }
-    if (nextAccess.permissions.includes('notes')) {
+    if (nextAccess.permissions.includes("notes")) {
       jobs.push(fetchClubNotes(clubId).then(setNotes));
     }
     await Promise.all(jobs);
@@ -296,14 +306,15 @@ function ManageClubScreen() {
   useEffect(() => {
     if (club && !settings) {
       setSettings({
+        careerTags: club.careerTags ?? [],
         description: club.description,
-        meetingDay: club.day === 'TBD' ? '' : club.day,
-        meetingTime: club.time === 'TBD' ? '' : club.time,
-        location: club.location === 'TBD' ? '' : club.location,
-        advisor: club.advisor === 'TBD' ? '' : club.advisor,
+        meetingDay: club.day === "TBD" ? "" : club.day,
+        meetingTime: club.time === "TBD" ? "" : club.time,
+        location: club.location === "TBD" ? "" : club.location,
+        advisor: club.advisor === "TBD" ? "" : club.advisor,
         contactEmail: club.contactEmail,
-        instagram: club.instagram ?? '',
-        website: club.website ?? '',
+        instagram: club.instagram ?? "",
+        website: club.website ?? "",
         joinPolicy: club.joinPolicy,
       });
     }
@@ -311,14 +322,14 @@ function ManageClubScreen() {
 
   const sections = useMemo<Section[]>(() => {
     const all: Section[] = [
-      'Overview',
-      'Announcements',
-      'Events',
-      'Members',
-      'Board',
-      'Files',
-      'Resources',
-      'Settings',
+      "Overview",
+      "Announcements",
+      "Events",
+      "Members",
+      "Board",
+      "Files",
+      "Resources",
+      "Settings",
     ];
     return all.filter((s) => {
       const permission = SECTION_PERMISSION[s];
@@ -327,16 +338,19 @@ function ManageClubScreen() {
   }, [access.permissions]);
 
   useEffect(() => {
-    if (!sections.includes(section)) setSection('Overview');
+    if (!sections.includes(section)) setSection("Overview");
   }, [sections, section]);
 
-  const pendingJoins = useMemo(() => members.filter((m) => m.status === 'pending'), [members]);
+  const pendingJoins = useMemo(
+    () => members.filter((m) => m.status === "pending"),
+    [members],
+  );
   const boardRequests = useMemo(
-    () => members.filter((m) => m.boardStatus === 'pending'),
+    () => members.filter((m) => m.boardStatus === "pending"),
     [members],
   );
   const activeBoard = useMemo(
-    () => members.filter((m) => m.role !== 'member' && m.status === 'active'),
+    () => members.filter((m) => m.role !== "member" && m.status === "active"),
     [members],
   );
 
@@ -346,7 +360,7 @@ function ManageClubScreen() {
 
   const submitAnnouncement = useCallback(async () => {
     if (!annTitle.trim() || !annBody.trim()) {
-      toast('Add a title and a message.', 'error');
+      toast("Add a title and a message.", "error");
       return;
     }
     setBusy(true);
@@ -354,11 +368,13 @@ function ManageClubScreen() {
       ? await updateAnnouncement(annId, annTitle, annBody)
       : await createAnnouncement(clubId, annTitle, annBody);
     setBusy(false);
-    if (toastResult(res, annId ? 'Announcement updated.' : 'Announcement posted.')) {
+    if (
+      toastResult(res, annId ? "Announcement updated." : "Announcement posted.")
+    ) {
       setAnnOpen(false);
       setAnnId(null);
-      setAnnTitle('');
-      setAnnBody('');
+      setAnnTitle("");
+      setAnnBody("");
       setAnnouncements(await fetchClubAnnouncements(clubId));
     }
   }, [annId, annTitle, annBody, clubId, toast, toastResult]);
@@ -366,12 +382,21 @@ function ManageClubScreen() {
   const submitEvent = useCallback(async () => {
     const startsAt = fromLocalInput(eventForm.startsAtLocal);
     if (!eventForm.title.trim() || !startsAt) {
-      toast('A title and a start time (YYYY-MM-DD HH:MM) are required.', 'error');
+      toast(
+        "A title and a start time (YYYY-MM-DD HH:MM) are required.",
+        "error",
+      );
       return;
     }
-    const endsAt = eventForm.endsAtLocal.trim() ? fromLocalInput(eventForm.endsAtLocal) : null;
+    const endsAt = eventForm.endsAtLocal.trim()
+      ? fromLocalInput(eventForm.endsAtLocal)
+      : null;
     if (eventForm.endsAtLocal.trim() && !endsAt) {
-      toast('End time must look like 2026-09-04 16:30.', 'error');
+      toast("End time must look like 2026-09-04 16:30.", "error");
+      return;
+    }
+    if (endsAt && Date.parse(endsAt) < Date.parse(startsAt)) {
+      toast("End time must be after the start time.", "error");
       return;
     }
     const payload: EventInput = {
@@ -384,9 +409,16 @@ function ManageClubScreen() {
       organizer: eventForm.organizer,
     };
     setBusy(true);
-    const res = eventId ? await updateEvent(eventId, payload) : await createEvent(clubId, payload);
+    const res = eventId
+      ? await updateEvent(eventId, payload)
+      : await createEvent(clubId, payload);
     setBusy(false);
-    if (toastResult(res, eventId ? 'Event updated; members were notified.' : 'Event created.')) {
+    if (
+      toastResult(
+        res,
+        eventId ? "Event updated; members were notified." : "Event created.",
+      )
+    ) {
       setEventOpen(false);
       setEventId(null);
       setEvents(await fetchClubEvents(clubId, true));
@@ -395,22 +427,26 @@ function ManageClubScreen() {
 
   const submitNote = useCallback(async () => {
     if (!noteForm.title.trim() || !noteForm.body.trim()) {
-      toast('Notes need a title and a body.', 'error');
+      toast("Notes need a title and a body.", "error");
       return;
     }
     setBusy(true);
-    const res = noteId ? await updateNote(noteId, noteForm) : await createNote(clubId, noteForm);
+    const res = noteId
+      ? await updateNote(noteId, noteForm)
+      : await createNote(clubId, noteForm);
     setBusy(false);
-    if (toastResult(res, noteId ? 'Note updated.' : 'Note posted.')) {
+    if (toastResult(res, noteId ? "Note updated." : "Note posted.")) {
       setNoteOpen(false);
       setNoteId(null);
-      setNoteForm({ title: '', body: '', category: 'General', pinned: false });
+      setNoteForm({ title: "", body: "", category: "General", pinned: false });
       setNotes(await fetchClubNotes(clubId));
     }
   }, [noteForm, noteId, clubId, toast, toastResult]);
 
   const pickAndUpload = useCallback(async () => {
-    const picked = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+    const picked = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+    });
     if (picked.canceled || !picked.assets?.[0]) return;
     const asset = picked.assets[0];
     setBusy(true);
@@ -420,8 +456,8 @@ function ManageClubScreen() {
       { title: fileTitle.trim() || asset.name, folder: fileFolder },
     );
     setBusy(false);
-    if (toastResult(res, 'File uploaded; members were notified.')) {
-      setFileTitle('');
+    if (toastResult(res, "File uploaded; members were notified.")) {
+      setFileTitle("");
       setFiles(await fetchClubFiles(clubId));
     }
   }, [clubId, fileFolder, fileTitle, toastResult]);
@@ -431,7 +467,7 @@ function ManageClubScreen() {
     setBusy(true);
     const res = await updateClubSettings(clubId, settings);
     setBusy(false);
-    if (toastResult(res, 'Club settings saved.')) {
+    if (toastResult(res, "Club settings saved.")) {
       await refreshClubs();
     }
   }, [settings, clubId, toastResult, refreshClubs]);
@@ -440,13 +476,13 @@ function ManageClubScreen() {
     async (member: ClubMemberRow, approve: boolean) => {
       setBusy(true);
       const permissions = approve
-        ? (POSITION_PRESETS[member.position ?? 'Officer'] ?? ['announcements'])
+        ? (POSITION_PRESETS[member.position ?? "Officer"] ?? ["announcements"])
         : [];
       const res = await reviewBoardRequest(
         clubId,
         member.userId,
         approve,
-        member.position ?? 'Officer',
+        member.position ?? "Officer",
         permissions as ClubPermission[],
       );
       setBusy(false);
@@ -455,7 +491,7 @@ function ManageClubScreen() {
           res,
           approve
             ? `${member.displayName ?? member.email} is now on the board.`
-            : 'Board request declined.',
+            : "Board request declined.",
         )
       ) {
         setMembers(await fetchClubMembers(clubId));
@@ -469,7 +505,9 @@ function ManageClubScreen() {
       setBusy(true);
       const res = await reviewJoinRequest(clubId, member.userId, approve);
       setBusy(false);
-      if (toastResult(res, approve ? 'Member approved.' : 'Request declined.')) {
+      if (
+        toastResult(res, approve ? "Member approved." : "Request declined.")
+      ) {
         setMembers(await fetchClubMembers(clubId));
         await refreshClubs();
       }
@@ -487,7 +525,7 @@ function ManageClubScreen() {
       editPermissions,
     );
     setBusy(false);
-    if (toastResult(res, 'Permissions updated.')) {
+    if (toastResult(res, "Permissions updated.")) {
       setEditingMember(null);
       setMembers(await fetchClubMembers(clubId));
     }
@@ -509,7 +547,10 @@ function ManageClubScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-light-bg px-5 dark:bg-dark-bg" style={{ paddingTop: insets.top + 40 }}>
+      <View
+        className="flex-1 bg-light-bg px-5 dark:bg-dark-bg"
+        style={{ paddingTop: insets.top + 40 }}
+      >
         <SkeletonRow count={4} />
       </View>
     );
@@ -536,7 +577,10 @@ function ManageClubScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
       >
-        <View className="flex-row items-start gap-3 px-5" style={{ paddingTop: insets.top + 8 }}>
+        <View
+          className="flex-row items-start gap-3 px-5"
+          style={{ paddingTop: insets.top + 8 }}
+        >
           <PressableScale
             onPress={() => router.back()}
             accessibilityRole="button"
@@ -558,32 +602,49 @@ function ManageClubScreen() {
             </Text>
             <View className="mt-1.5 flex-row flex-wrap gap-1.5">
               <Tag
-                label={access.memberRole === 'president' ? 'President' : access.position ?? 'Board'}
-                tone={access.memberRole === 'president' ? 'brand' : 'info'}
+                label={
+                  access.memberRole === "president"
+                    ? "President"
+                    : (access.position ?? "Board")
+                }
+                tone={access.memberRole === "president" ? "brand" : "info"}
               />
-              <Tag label={`${access.permissions.length} permissions`} tone="neutral" />
+              <Tag
+                label={`${access.permissions.length} permissions`}
+                tone="neutral"
+              />
             </View>
           </View>
         </View>
 
         <View className="px-5 pt-4">
-          <SectionTabs sections={sections} value={section} onChange={setSection} />
+          <SectionTabs
+            sections={sections}
+            value={section}
+            onChange={setSection}
+          />
         </View>
 
         <View className="px-5 pt-5">
           {/* ------------------------------------------------ Overview */}
-          {section === 'Overview' ? (
+          {section === "Overview" ? (
             <Animated.View entering={FadeIn.duration(240)} className="gap-3">
               <View className="flex-row gap-3">
                 <View className="flex-1">
-                  <StatTile icon="people-outline" value={String(club.memberCount)} label="Members" />
+                  <StatTile
+                    icon="people-outline"
+                    value={String(club.memberCount)}
+                    label="Members"
+                  />
                 </View>
                 <View className="flex-1">
                   <StatTile
                     icon="calendar-outline"
                     value={String(
                       events.filter(
-                        (e) => e.status === 'scheduled' && new Date(e.startsAt) > new Date(),
+                        (e) =>
+                          e.status === "scheduled" &&
+                          new Date(e.startsAt) > new Date(),
                       ).length,
                     )}
                     label="Upcoming"
@@ -614,12 +675,16 @@ function ManageClubScreen() {
                   What you can do here
                 </Text>
                 <Text className="mt-1.5 text-xs leading-5 text-light-muted dark:text-dark-muted">
-                  These are the permissions the database granted your account. Every action is
-                  re-checked server-side when you use it.
+                  These are the permissions the database granted your account.
+                  Every action is re-checked server-side when you use it.
                 </Text>
                 <View className="mt-3 flex-row flex-wrap gap-1.5">
                   {access.permissions.map((permission) => (
-                    <Tag key={permission} label={PERMISSION_LABELS[permission]} tone="brand" />
+                    <Tag
+                      key={permission}
+                      label={PERMISSION_LABELS[permission]}
+                      tone="brand"
+                    />
                   ))}
                 </View>
               </Card>
@@ -627,15 +692,20 @@ function ManageClubScreen() {
           ) : null}
 
           {/* ------------------------------------------- Announcements */}
-          {section === 'Announcements' ? (
+          {section === "Announcements" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {annOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
                   <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
-                    {annId ? 'Edit announcement' : 'New announcement'}
+                    {annId ? "Edit announcement" : "New announcement"}
                   </Text>
                   <View className="gap-3">
-                    <Input label="Title" value={annTitle} onChangeText={setAnnTitle} placeholder="What's happening?" />
+                    <Input
+                      label="Title"
+                      value={annTitle}
+                      onChangeText={setAnnTitle}
+                      placeholder="What's happening?"
+                    />
                     <Input
                       label="Message"
                       value={annBody}
@@ -658,7 +728,7 @@ function ManageClubScreen() {
                       </View>
                       <View className="flex-1">
                         <Button
-                          label={annId ? 'Save' : 'Post'}
+                          label={annId ? "Save" : "Post"}
                           variant="primary"
                           size="md"
                           fullWidth
@@ -679,8 +749,8 @@ function ManageClubScreen() {
                   icon="megaphone-outline"
                   className="mb-4"
                   onPress={() => {
-                    setAnnTitle('');
-                    setAnnBody('');
+                    setAnnTitle("");
+                    setAnnBody("");
                     setAnnId(null);
                     setAnnOpen(true);
                   }}
@@ -708,12 +778,14 @@ function ManageClubScreen() {
                       }}
                       onDelete={() =>
                         setConfirm({
-                          title: 'Delete announcement?',
+                          title: "Delete announcement?",
                           message: `"${a.title}" will be removed for every member.`,
                           action: async () => {
                             const res = await deleteAnnouncement(a.id);
-                            if (toastResult(res, 'Announcement deleted.')) {
-                              setAnnouncements(await fetchClubAnnouncements(clubId));
+                            if (toastResult(res, "Announcement deleted.")) {
+                              setAnnouncements(
+                                await fetchClubAnnouncements(clubId),
+                              );
                             }
                           },
                         })
@@ -726,18 +798,20 @@ function ManageClubScreen() {
           ) : null}
 
           {/* -------------------------------------------------- Events */}
-          {section === 'Events' ? (
+          {section === "Events" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {eventOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
                   <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
-                    {eventId ? 'Edit event' : 'New event'}
+                    {eventId ? "Edit event" : "New event"}
                   </Text>
                   <View className="gap-3">
                     <Input
                       label="Title"
                       value={eventForm.title}
-                      onChangeText={(title) => setEventForm((f) => ({ ...f, title }))}
+                      onChangeText={(title) =>
+                        setEventForm((f) => ({ ...f, title }))
+                      }
                       placeholder="Weekly meeting"
                     />
                     <View>
@@ -748,21 +822,25 @@ function ManageClubScreen() {
                         {EVENT_TYPES.map((type) => (
                           <PressableScale
                             key={type}
-                            onPress={() => setEventForm((f) => ({ ...f, eventType: type }))}
+                            onPress={() =>
+                              setEventForm((f) => ({ ...f, eventType: type }))
+                            }
                             accessibilityRole="button"
-                            accessibilityState={{ selected: eventForm.eventType === type }}
+                            accessibilityState={{
+                              selected: eventForm.eventType === type,
+                            }}
                             scaleTo={0.96}
                             className={`h-8 items-center justify-center rounded-full px-3 ${
                               eventForm.eventType === type
-                                ? 'bg-python-blue'
-                                : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
+                                ? "bg-python-blue"
+                                : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
                             }`}
                           >
                             <Text
                               className={`text-2xs font-semibold ${
                                 eventForm.eventType === type
-                                  ? 'text-white'
-                                  : 'text-light-secondary dark:text-dark-secondary'
+                                  ? "text-white"
+                                  : "text-light-secondary dark:text-dark-secondary"
                               }`}
                             >
                               {type}
@@ -772,35 +850,45 @@ function ManageClubScreen() {
                       </View>
                     </View>
                     <Input
-                      label="Starts (YYYY-MM-DD HH:MM)"
+                      label="Starts (Pacific time, YYYY-MM-DD HH:MM)"
                       value={eventForm.startsAtLocal}
-                      onChangeText={(startsAtLocal) => setEventForm((f) => ({ ...f, startsAtLocal }))}
+                      onChangeText={(startsAtLocal) =>
+                        setEventForm((f) => ({ ...f, startsAtLocal }))
+                      }
                       placeholder="2026-09-04 15:30"
                       autoCapitalize="none"
                     />
                     <Input
-                      label="Ends (optional)"
+                      label="Ends (Pacific time, optional)"
                       value={eventForm.endsAtLocal}
-                      onChangeText={(endsAtLocal) => setEventForm((f) => ({ ...f, endsAtLocal }))}
+                      onChangeText={(endsAtLocal) =>
+                        setEventForm((f) => ({ ...f, endsAtLocal }))
+                      }
                       placeholder="2026-09-04 16:30"
                       autoCapitalize="none"
                     />
                     <Input
                       label="Location"
                       value={eventForm.location}
-                      onChangeText={(location) => setEventForm((f) => ({ ...f, location }))}
+                      onChangeText={(location) =>
+                        setEventForm((f) => ({ ...f, location }))
+                      }
                       placeholder="RM 121"
                     />
                     <Input
                       label="Organizer"
                       value={eventForm.organizer}
-                      onChangeText={(organizer) => setEventForm((f) => ({ ...f, organizer }))}
+                      onChangeText={(organizer) =>
+                        setEventForm((f) => ({ ...f, organizer }))
+                      }
                       placeholder="Who's running it"
                     />
                     <Input
                       label="Description"
                       value={eventForm.description}
-                      onChangeText={(description) => setEventForm((f) => ({ ...f, description }))}
+                      onChangeText={(description) =>
+                        setEventForm((f) => ({ ...f, description }))
+                      }
                       multiline
                       placeholder="Agenda, what to bring…"
                     />
@@ -819,7 +907,7 @@ function ManageClubScreen() {
                       </View>
                       <View className="flex-1">
                         <Button
-                          label={eventId ? 'Save' : 'Create'}
+                          label={eventId ? "Save" : "Create"}
                           variant="primary"
                           size="md"
                           fullWidth
@@ -842,15 +930,15 @@ function ManageClubScreen() {
                   onPress={() => {
                     setEventId(null);
                     setEventForm({
-                      title: '',
-                      description: '',
-                      eventType: 'Meeting',
-                      startsAt: '',
+                      title: "",
+                      description: "",
+                      eventType: "Meeting",
+                      startsAt: "",
                       endsAt: null,
-                      location: '',
-                      organizer: '',
-                      startsAtLocal: '',
-                      endsAtLocal: '',
+                      location: "",
+                      organizer: "",
+                      startsAtLocal: "",
+                      endsAtLocal: "",
                     });
                     setEventOpen(true);
                   }}
@@ -874,24 +962,31 @@ function ManageClubScreen() {
                         setEventId(event.id);
                         setEventForm({
                           title: event.title,
-                          description: event.description ?? '',
+                          description: event.description ?? "",
                           eventType: event.eventType,
                           startsAt: event.startsAt,
                           endsAt: event.endsAt,
-                          location: event.location ?? '',
-                          organizer: event.organizer ?? '',
+                          location: event.location ?? "",
+                          organizer: event.organizer ?? "",
                           startsAtLocal: toLocalInput(event.startsAt),
-                          endsAtLocal: event.endsAt ? toLocalInput(event.endsAt) : '',
+                          endsAtLocal: event.endsAt
+                            ? toLocalInput(event.endsAt)
+                            : "",
                         });
                         setEventOpen(true);
                       }}
                       onCancel={() =>
                         setConfirm({
-                          title: 'Cancel this event?',
+                          title: "Cancel this event?",
                           message: `Members will be notified that "${event.title}" is cancelled.`,
                           action: async () => {
                             const res = await cancelEvent(event.id);
-                            if (toastResult(res, 'Event cancelled; members notified.')) {
+                            if (
+                              toastResult(
+                                res,
+                                "Event cancelled; members notified.",
+                              )
+                            ) {
                               setEvents(await fetchClubEvents(clubId, true));
                             }
                           },
@@ -899,11 +994,12 @@ function ManageClubScreen() {
                       }
                       onDelete={() =>
                         setConfirm({
-                          title: 'Delete this event?',
-                          message: 'It disappears from every calendar. Cancelling instead keeps the record.',
+                          title: "Delete this event?",
+                          message:
+                            "It disappears from every calendar. Cancelling instead keeps the record.",
                           action: async () => {
                             const res = await deleteEvent(event.id);
-                            if (toastResult(res, 'Event deleted.')) {
+                            if (toastResult(res, "Event deleted.")) {
                               setEvents(await fetchClubEvents(clubId, true));
                             }
                           },
@@ -917,7 +1013,7 @@ function ManageClubScreen() {
           ) : null}
 
           {/* ------------------------------------------------- Members */}
-          {section === 'Members' ? (
+          {section === "Members" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {pendingJoins.length > 0 ? (
                 <View className="mb-5">
@@ -926,12 +1022,18 @@ function ManageClubScreen() {
                   </Text>
                   <View className="gap-2.5">
                     {pendingJoins.map((member) => (
-                      <Card key={member.userId} elevation="ambient" className="p-4">
+                      <Card
+                        key={member.userId}
+                        elevation="ambient"
+                        className="p-4"
+                      >
                         <View className="flex-row items-center gap-3">
                           <Avatar
                             size="md"
                             tone="info"
-                            initials={(member.displayName ?? member.email).slice(0, 2).toUpperCase()}
+                            initials={(member.displayName ?? member.email)
+                              .slice(0, 2)
+                              .toUpperCase()}
                           />
                           <View className="flex-1">
                             <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
@@ -949,7 +1051,9 @@ function ManageClubScreen() {
                               variant="secondary"
                               size="sm"
                               fullWidth
-                              onPress={() => void decideJoinRequest(member, false)}
+                              onPress={() =>
+                                void decideJoinRequest(member, false)
+                              }
                             />
                           </View>
                           <View className="flex-1">
@@ -958,7 +1062,9 @@ function ManageClubScreen() {
                               variant="primary"
                               size="sm"
                               fullWidth
-                              onPress={() => void decideJoinRequest(member, true)}
+                              onPress={() =>
+                                void decideJoinRequest(member, true)
+                              }
                             />
                           </View>
                         </View>
@@ -969,7 +1075,7 @@ function ManageClubScreen() {
                 </View>
               ) : null}
 
-              {members.filter((m) => m.status === 'active').length === 0 ? (
+              {members.filter((m) => m.status === "active").length === 0 ? (
                 <EmptyState
                   icon="people-outline"
                   title="No members yet"
@@ -979,7 +1085,7 @@ function ManageClubScreen() {
               ) : (
                 <View className="gap-2.5">
                   {members
-                    .filter((m) => m.status === 'active')
+                    .filter((m) => m.status === "active")
                     .map((member) => (
                       <Card
                         key={member.userId}
@@ -988,8 +1094,12 @@ function ManageClubScreen() {
                       >
                         <Avatar
                           size="sm"
-                          tone={member.role === 'president' ? 'brand' : 'neutral'}
-                          initials={(member.displayName ?? member.email).slice(0, 2).toUpperCase()}
+                          tone={
+                            member.role === "president" ? "brand" : "neutral"
+                          }
+                          initials={(member.displayName ?? member.email)
+                            .slice(0, 2)
+                            .toUpperCase()}
                         />
                         <View className="flex-1">
                           <Text
@@ -1007,29 +1117,32 @@ function ManageClubScreen() {
                         </View>
                         <Tag
                           label={
-                            member.role === 'president'
-                              ? 'President'
-                              : member.role === 'board'
-                                ? member.position ?? 'Board'
-                                : 'Member'
+                            member.role === "president"
+                              ? "President"
+                              : member.role === "board"
+                                ? (member.position ?? "Board")
+                                : "Member"
                           }
                           tone={
-                            member.role === 'president'
-                              ? 'brand'
-                              : member.role === 'board'
-                                ? 'info'
-                                : 'neutral'
+                            member.role === "president"
+                              ? "brand"
+                              : member.role === "board"
+                                ? "info"
+                                : "neutral"
                           }
                         />
-                        {member.role !== 'president' ? (
+                        {member.role !== "president" ? (
                           <PressableScale
                             onPress={() =>
                               setConfirm({
-                                title: 'Remove member?',
+                                title: "Remove member?",
                                 message: `${member.displayName ?? member.email} will lose access to this club's files, notes, and updates.`,
                                 action: async () => {
-                                  const res = await removeClubMember(clubId, member.userId);
-                                  if (toastResult(res, 'Member removed.')) {
+                                  const res = await removeClubMember(
+                                    clubId,
+                                    member.userId,
+                                  );
+                                  if (toastResult(res, "Member removed.")) {
                                     setMembers(await fetchClubMembers(clubId));
                                     await refreshClubs();
                                   }
@@ -1041,7 +1154,11 @@ function ManageClubScreen() {
                             scaleTo={0.9}
                             className="h-8 w-8 items-center justify-center rounded-full bg-danger/10 dark:bg-danger/20"
                           >
-                            <Ionicons name="person-remove-outline" size={14} color={semantic.danger} />
+                            <Ionicons
+                              name="person-remove-outline"
+                              size={14}
+                              color={semantic.danger}
+                            />
                           </PressableScale>
                         ) : null}
                       </Card>
@@ -1052,7 +1169,7 @@ function ManageClubScreen() {
           ) : null}
 
           {/* --------------------------------------------------- Board */}
-          {section === 'Board' ? (
+          {section === "Board" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {boardRequests.length > 0 ? (
                 <View className="mb-5">
@@ -1061,19 +1178,25 @@ function ManageClubScreen() {
                   </Text>
                   <View className="gap-2.5">
                     {boardRequests.map((member) => (
-                      <Card key={member.userId} elevation="ambient" className="p-4">
+                      <Card
+                        key={member.userId}
+                        elevation="ambient"
+                        className="p-4"
+                      >
                         <View className="flex-row items-center gap-3">
                           <Avatar
                             size="md"
                             tone="info"
-                            initials={(member.displayName ?? member.email).slice(0, 2).toUpperCase()}
+                            initials={(member.displayName ?? member.email)
+                              .slice(0, 2)
+                              .toUpperCase()}
                           />
                           <View className="flex-1">
                             <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
                               {member.displayName ?? member.email}
                             </Text>
                             <Text className="text-2xs text-light-muted dark:text-dark-muted">
-                              Claims to be: {member.position ?? 'Officer'}
+                              Claims to be: {member.position ?? "Officer"}
                             </Text>
                           </View>
                         </View>
@@ -1083,8 +1206,8 @@ function ManageClubScreen() {
                           </Text>
                         ) : null}
                         <Text className="mt-3 text-2xs text-light-subtle dark:text-dark-subtle">
-                          Approving grants the default permissions for that position; you can adjust
-                          them right after.
+                          Approving grants the default permissions for that
+                          position; you can adjust them right after.
                         </Text>
                         <View className="mt-3 flex-row gap-2.5">
                           <View className="flex-1">
@@ -1093,7 +1216,9 @@ function ManageClubScreen() {
                               variant="secondary"
                               size="sm"
                               fullWidth
-                              onPress={() => void decideBoardRequest(member, false)}
+                              onPress={() =>
+                                void decideBoardRequest(member, false)
+                              }
                             />
                           </View>
                           <View className="flex-1">
@@ -1103,7 +1228,9 @@ function ManageClubScreen() {
                               size="sm"
                               fullWidth
                               loading={busy}
-                              onPress={() => void decideBoardRequest(member, true)}
+                              onPress={() =>
+                                void decideBoardRequest(member, true)
+                              }
                             />
                           </View>
                         </View>
@@ -1123,7 +1250,11 @@ function ManageClubScreen() {
                     Position and exact permissions
                   </Text>
                   <View className="mt-3">
-                    <Input label="Position" value={editPosition} onChangeText={setEditPosition} />
+                    <Input
+                      label="Position"
+                      value={editPosition}
+                      onChangeText={setEditPosition}
+                    />
                   </View>
                   <View className="mt-2 flex-row flex-wrap gap-2">
                     {BOARD_POSITIONS.map((position) => (
@@ -1131,7 +1262,10 @@ function ManageClubScreen() {
                         key={position}
                         onPress={() => {
                           setEditPosition(position);
-                          setEditPermissions((POSITION_PRESETS[position] ?? []) as ClubPermission[]);
+                          setEditPermissions(
+                            (POSITION_PRESETS[position] ??
+                              []) as ClubPermission[],
+                          );
                         }}
                         accessibilityRole="button"
                         scaleTo={0.96}
@@ -1187,12 +1321,18 @@ function ManageClubScreen() {
               ) : (
                 <View className="gap-2.5">
                   {activeBoard.map((member) => (
-                    <Card key={member.userId} elevation="ambient" className="p-3.5">
+                    <Card
+                      key={member.userId}
+                      elevation="ambient"
+                      className="p-3.5"
+                    >
                       <View className="flex-row items-center gap-3">
                         <Avatar
                           size="sm"
-                          tone={member.role === 'president' ? 'brand' : 'info'}
-                          initials={(member.displayName ?? member.email).slice(0, 2).toUpperCase()}
+                          tone={member.role === "president" ? "brand" : "info"}
+                          initials={(member.displayName ?? member.email)
+                            .slice(0, 2)
+                            .toUpperCase()}
                         />
                         <View className="flex-1">
                           <Text
@@ -1202,17 +1342,20 @@ function ManageClubScreen() {
                             {member.displayName ?? member.email}
                           </Text>
                           <Text className="text-2xs text-light-muted dark:text-dark-muted">
-                            {member.position ?? (member.role === 'president' ? 'President' : 'Officer')}
+                            {member.position ??
+                              (member.role === "president"
+                                ? "President"
+                                : "Officer")}
                           </Text>
                         </View>
-                        {member.role === 'board' ? (
+                        {member.role === "board" ? (
                           <Button
                             label="Permissions"
                             variant="ghost"
                             size="sm"
                             onPress={() => {
                               setEditingMember(member);
-                              setEditPosition(member.position ?? 'Officer');
+                              setEditPosition(member.position ?? "Officer");
                               setEditPermissions(member.permissions);
                             }}
                           />
@@ -1223,7 +1366,9 @@ function ManageClubScreen() {
                           {member.permissions.map((permission) => (
                             <Tag
                               key={permission}
-                              label={PERMISSION_LABELS[permission] ?? permission}
+                              label={
+                                PERMISSION_LABELS[permission] ?? permission
+                              }
                               tone="neutral"
                             />
                           ))}
@@ -1237,7 +1382,7 @@ function ManageClubScreen() {
           ) : null}
 
           {/* --------------------------------------------------- Files */}
-          {section === 'Files' ? (
+          {section === "Files" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               <Card elevation="ambient" className="mb-4 p-4">
                 <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
@@ -1257,7 +1402,7 @@ function ManageClubScreen() {
                     placeholder="General"
                   />
                   <Button
-                    label={busy ? 'Uploading…' : 'Choose file & upload'}
+                    label={busy ? "Uploading…" : "Choose file & upload"}
                     variant="primary"
                     size="md"
                     icon="cloud-upload-outline"
@@ -1266,7 +1411,8 @@ function ManageClubScreen() {
                     onPress={() => void pickAndUpload()}
                   />
                   <Text className="text-2xs leading-4 text-light-subtle dark:text-dark-subtle">
-                    PDFs, docs, slides, images, and forms. Only club members can see the file list.
+                    PDFs, docs, slides, images, and forms. Only club members can
+                    see the file list.
                   </Text>
                 </View>
               </Card>
@@ -1286,11 +1432,11 @@ function ManageClubScreen() {
                       file={file}
                       onDelete={() =>
                         setConfirm({
-                          title: 'Delete file?',
+                          title: "Delete file?",
                           message: `"${file.title}" will be removed for every member.`,
                           action: async () => {
                             const res = await deleteClubFile(file);
-                            if (toastResult(res, 'File deleted.')) {
+                            if (toastResult(res, "File deleted.")) {
                               setFiles(await fetchClubFiles(clubId));
                             }
                           },
@@ -1304,35 +1450,43 @@ function ManageClubScreen() {
           ) : null}
 
           {/* ----------------------------------------------- Resources */}
-          {section === 'Resources' ? (
+          {section === "Resources" ? (
             <Animated.View entering={FadeIn.duration(240)}>
               {noteOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
                   <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
-                    {noteId ? 'Edit note' : 'New note'}
+                    {noteId ? "Edit note" : "New note"}
                   </Text>
                   <View className="gap-3">
                     <Input
                       label="Title"
                       value={noteForm.title}
-                      onChangeText={(title) => setNoteForm((f) => ({ ...f, title }))}
+                      onChangeText={(title) =>
+                        setNoteForm((f) => ({ ...f, title }))
+                      }
                       placeholder="Meeting notes, Sept 4"
                     />
                     <Input
                       label="Category"
                       value={noteForm.category}
-                      onChangeText={(category) => setNoteForm((f) => ({ ...f, category }))}
+                      onChangeText={(category) =>
+                        setNoteForm((f) => ({ ...f, category }))
+                      }
                       placeholder="Meeting notes, Links, Competition…"
                     />
                     <Input
                       label="Body"
                       value={noteForm.body}
-                      onChangeText={(body) => setNoteForm((f) => ({ ...f, body }))}
+                      onChangeText={(body) =>
+                        setNoteForm((f) => ({ ...f, body }))
+                      }
                       multiline
                       placeholder="Notes, instructions, links…"
                     />
                     <PressableScale
-                      onPress={() => setNoteForm((f) => ({ ...f, pinned: !f.pinned }))}
+                      onPress={() =>
+                        setNoteForm((f) => ({ ...f, pinned: !f.pinned }))
+                      }
                       accessibilityRole="switch"
                       accessibilityState={{ checked: noteForm.pinned }}
                       accessibilityLabel="Pin this note"
@@ -1340,7 +1494,7 @@ function ManageClubScreen() {
                       className="flex-row items-center gap-2.5 py-1"
                     >
                       <Ionicons
-                        name={noteForm.pinned ? 'checkbox' : 'square-outline'}
+                        name={noteForm.pinned ? "checkbox" : "square-outline"}
                         size={18}
                         color={brand.blue}
                       />
@@ -1363,7 +1517,7 @@ function ManageClubScreen() {
                       </View>
                       <View className="flex-1">
                         <Button
-                          label={noteId ? 'Save' : 'Post'}
+                          label={noteId ? "Save" : "Post"}
                           variant="primary"
                           size="md"
                           fullWidth
@@ -1384,7 +1538,12 @@ function ManageClubScreen() {
                   className="mb-4"
                   onPress={() => {
                     setNoteId(null);
-                    setNoteForm({ title: '', body: '', category: 'General', pinned: false });
+                    setNoteForm({
+                      title: "",
+                      body: "",
+                      category: "General",
+                      pinned: false,
+                    });
                     setNoteOpen(true);
                   }}
                 />
@@ -1415,11 +1574,11 @@ function ManageClubScreen() {
                       }}
                       onDelete={() =>
                         setConfirm({
-                          title: 'Delete note?',
+                          title: "Delete note?",
                           message: `"${note.title}" will be removed for every member.`,
                           action: async () => {
                             const res = await deleteNote(note.id);
-                            if (toastResult(res, 'Note deleted.')) {
+                            if (toastResult(res, "Note deleted.")) {
                               setNotes(await fetchClubNotes(clubId));
                             }
                           },
@@ -1433,55 +1592,96 @@ function ManageClubScreen() {
           ) : null}
 
           {/* ------------------------------------------------ Settings */}
-          {section === 'Settings' && settings ? (
+          {section === "Settings" && settings ? (
             <Animated.View entering={FadeIn.duration(240)} className="gap-3">
+              <Text className="font-semibold text-light-text dark:text-dark-text">
+                Related career goals
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {Object.keys(CAREERS).map((career) => (
+                  <Chip
+                    key={career}
+                    label={career}
+                    active={settings.careerTags.includes(career)}
+                    onPress={() =>
+                      setSettings((s) =>
+                        s
+                          ? {
+                              ...s,
+                              careerTags: s.careerTags.includes(career)
+                                ? s.careerTags.filter((tag) => tag !== career)
+                                : [...s.careerTags, career],
+                            }
+                          : s,
+                      )
+                    }
+                  />
+                ))}
+              </View>
               <Input
                 label="Description"
                 value={settings.description}
-                onChangeText={(description) => setSettings((s) => (s ? { ...s, description } : s))}
+                onChangeText={(description) =>
+                  setSettings((s) => (s ? { ...s, description } : s))
+                }
                 multiline
               />
               <Input
                 label="Meeting day"
                 value={settings.meetingDay}
-                onChangeText={(meetingDay) => setSettings((s) => (s ? { ...s, meetingDay } : s))}
+                onChangeText={(meetingDay) =>
+                  setSettings((s) => (s ? { ...s, meetingDay } : s))
+                }
                 placeholder="Wednesday"
               />
               <Input
                 label="Meeting time"
                 value={settings.meetingTime}
-                onChangeText={(meetingTime) => setSettings((s) => (s ? { ...s, meetingTime } : s))}
-                placeholder="At Lunch"
+                onChangeText={(meetingTime) =>
+                  setSettings((s) => (s ? { ...s, meetingTime } : s))
+                }
+                placeholder="3:00 PM – 4:00 PM"
+                helper="Use a start/end time in Pacific time or a school period: At Lunch, After School, Before School."
               />
               <Input
                 label="Location"
                 value={settings.location}
-                onChangeText={(location) => setSettings((s) => (s ? { ...s, location } : s))}
+                onChangeText={(location) =>
+                  setSettings((s) => (s ? { ...s, location } : s))
+                }
                 placeholder="RM 121"
               />
               <Input
                 label="Advisor"
                 value={settings.advisor}
-                onChangeText={(advisor) => setSettings((s) => (s ? { ...s, advisor } : s))}
+                onChangeText={(advisor) =>
+                  setSettings((s) => (s ? { ...s, advisor } : s))
+                }
               />
               <Input
                 label="Contact email"
                 value={settings.contactEmail}
-                onChangeText={(contactEmail) => setSettings((s) => (s ? { ...s, contactEmail } : s))}
+                onChangeText={(contactEmail) =>
+                  setSettings((s) => (s ? { ...s, contactEmail } : s))
+                }
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
               <Input
                 label="Instagram"
                 value={settings.instagram}
-                onChangeText={(instagram) => setSettings((s) => (s ? { ...s, instagram } : s))}
+                onChangeText={(instagram) =>
+                  setSettings((s) => (s ? { ...s, instagram } : s))
+                }
                 autoCapitalize="none"
                 placeholder="@teslastemclub"
               />
               <Input
                 label="Website"
                 value={settings.website}
-                onChangeText={(website) => setSettings((s) => (s ? { ...s, website } : s))}
+                onChangeText={(website) =>
+                  setSettings((s) => (s ? { ...s, website } : s))
+                }
                 autoCapitalize="none"
                 placeholder="https://…"
               />
@@ -1491,27 +1691,35 @@ function ManageClubScreen() {
                   Who can join
                 </Text>
                 <View className="mt-3 flex-row gap-2">
-                  {(['open', 'approval'] as const).map((policy) => (
+                  {(["open", "approval"] as const).map((policy) => (
                     <PressableScale
                       key={policy}
-                      onPress={() => setSettings((s) => (s ? { ...s, joinPolicy: policy } : s))}
+                      onPress={() =>
+                        setSettings((s) =>
+                          s ? { ...s, joinPolicy: policy } : s,
+                        )
+                      }
                       accessibilityRole="button"
-                      accessibilityState={{ selected: settings.joinPolicy === policy }}
+                      accessibilityState={{
+                        selected: settings.joinPolicy === policy,
+                      }}
                       scaleTo={0.97}
                       className={`h-9 flex-1 items-center justify-center rounded-full ${
                         settings.joinPolicy === policy
-                          ? 'bg-python-blue'
-                          : 'border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface'
+                          ? "bg-python-blue"
+                          : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
                       }`}
                     >
                       <Text
                         className={`text-xs font-semibold ${
                           settings.joinPolicy === policy
-                            ? 'text-white'
-                            : 'text-light-secondary dark:text-dark-secondary'
+                            ? "text-white"
+                            : "text-light-secondary dark:text-dark-secondary"
                         }`}
                       >
-                        {policy === 'open' ? 'Anyone can join' : 'Approve each request'}
+                        {policy === "open"
+                          ? "Anyone can join"
+                          : "Approve each request"}
                       </Text>
                     </PressableScale>
                   ))}
@@ -1528,8 +1736,9 @@ function ManageClubScreen() {
                 onPress={() => void saveSettings()}
               />
               <Text className="text-2xs leading-4 text-light-subtle dark:text-dark-subtle">
-                Club name, approval status, and ownership are managed by the school admin; those
-                columns are locked in the database even for presidents.
+                Club name, approval status, and ownership are managed by the
+                school admin; those columns are locked in the database even for
+                presidents.
               </Text>
             </Animated.View>
           ) : null}
@@ -1538,8 +1747,8 @@ function ManageClubScreen() {
 
       <ConfirmDialog
         visible={!!confirm}
-        title={confirm?.title ?? ''}
-        message={confirm?.message ?? ''}
+        title={confirm?.title ?? ""}
+        message={confirm?.message ?? ""}
         confirmLabel="Confirm"
         destructive
         busy={busy}
