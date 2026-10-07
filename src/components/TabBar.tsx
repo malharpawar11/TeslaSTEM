@@ -1,4 +1,4 @@
-import { View, Platform } from "react-native";
+import { View } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,7 +9,7 @@ import { PressableScale } from "./ui/Pressable";
 import { brand, surface } from "@/theme/tokens";
 import { APP_MAX_WIDTH } from "@/theme/layout";
 
-const IS_WEB = Platform.OS === "web";
+
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -34,11 +34,7 @@ const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
   },
 };
 
-/**
- * Docked bottom navigation. This used to be a floating blurred pill; a docked
- * bar with a hairline is what every OS ships, it never crops content behind
- * it, and it keeps the eye on the content instead of the chrome.
- */
+/** Floating navigation with reserved layout space so content stays reachable. */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
@@ -53,36 +49,32 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View
-      style={[
-        {
-          borderTopWidth: 0,
-          shadowColor: "#13213D",
-          shadowOpacity: 0.08,
-          shadowRadius: 18,
-          elevation: 8,
-          borderTopColor: c.border,
-          backgroundColor: c.surface,
-          paddingBottom: IS_WEB ? 8 : insets.bottom > 0 ? insets.bottom : 8,
-        },
-        IS_WEB
-          ? ({
-              position: "fixed",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 50,
-            } as never)
-          : null,
-      ]}
-      className="pt-2"
+      pointerEvents="box-none"
+      style={{
+        paddingHorizontal: Math.max(12, insets.left, insets.right),
+        paddingTop: 8,
+        paddingBottom: Math.max(12, insets.bottom),
+        backgroundColor: c.bg,
+      }}
     >
       <View
         className="flex-row"
-        style={
-          IS_WEB
-            ? { width: "100%", maxWidth: APP_MAX_WIDTH, alignSelf: "center" }
-            : undefined
-        }
+        style={{
+          width: "100%",
+          maxWidth: APP_MAX_WIDTH,
+          alignSelf: "center",
+          backgroundColor: c.surface,
+          borderWidth: 1,
+          borderColor: c.border,
+          borderRadius: 26,
+          paddingVertical: 8,
+          paddingHorizontal: 4,
+          shadowColor: "#13213D",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.16,
+          shadowRadius: 18,
+          elevation: 8,
+        }}
       >
         {visibleRoutes.map((route) => {
           const realIndex = state.routes.findIndex((r) => r.key === route.key);
@@ -159,3 +151,4 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
     </View>
   );
 }
+
