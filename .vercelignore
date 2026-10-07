@@ -1,0 +1,18 @@
+# Deploy only the frontend source and assets. Git's ignore rules are not sufficient.
+.git/**
+.insforge/**
+.vercel/**
+.expo/**
+.env
+.env.*
+node_modules/**
+dist/**
+build/**
+backend/**
+supabase/**
+migrations/**
+scripts/**
+docs/**
+.agent/**
+.agents/**
+.claude/**
