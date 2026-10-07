@@ -32,3 +32,13 @@ Phone browser behavior must be tested over HTTPS. Native iOS/Android export/type
 The existing Expo 51 dependency tree also has npm audit findings, including critical advisories for build-tool dependencies `tar` and `shell-quote`. The encryption packages were not flagged by that audit. These findings still need a separately tested dependency upgrade; a successful messaging test is not a clean audit of the entire application or its build tooling.
 
 References: [TweetNaCl.js documentation and audit](https://github.com/dchest/tweetnacl-js), [Noble hashes PBKDF2](https://github.com/paulmillr/noble-hashes#pbkdf2).
+
+## October 6 verification results
+
+- TypeScript and all unit/regression tests passed. Web, iOS and Android exports built successfully; physical native-device execution has not been verified.
+- The schema-only backend integration suite passed with separate member, president, outsider and administrator accounts. It verified actual encrypted delivery/decryption and database ciphertext, second-device recovery, read receipts, 57-message pagination with timestamp ties, denied plaintext/forged/replayed sends, private key backups, account binding, and denied sends after leaving.
+- A browser test sent a message through the application UI. The president account decrypted it and sent an encrypted reply through the real backend; the open conversation displayed that reply automatically and updated read receipts. The UI safety number matched an independently calculated number for the test identities.
+- Backend catalog checks confirmed key-backup RLS, no anonymous vault execution, no direct client key inserts, and revoked plaintext sending and old unbound key registration.
+- Branch advisor scan `f95ed43b-29a0-4b1e-adaf-207ece59ccf0` reported 51 critical generic SECURITY DEFINER flags, zero performance warnings and 27 informational findings. Required caller-guarded RPCs remain definer functions; this is not a zero-findings audit. New RPCs restrict execution to authenticated users, pin their search paths, bind ownership/membership, and pass access-denial tests. Select-only message/key policies are deliberate: mutations go through guarded RPCs. The advisor's slow-query rule failed again, so that part of its scan is incomplete.
+- InsForge API connections intermittently timed out during verification. Tests passed once it responded. Reported as platform feedback `2ff956c5-f1c2-409e-9e7c-dd63b4158719`; availability is a separate operational concern.
+- Figma MCP inspection/search was attempted, but the Starter-plan tool quota blocked further design work. The mobile filter panel was implemented in code; no completed Figma design is claimed.

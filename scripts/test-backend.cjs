@@ -547,17 +547,21 @@ async function main() {
       random,
     ),
   );
-  const values = olderEnvelopes
-    .map(
-      (e) =>
-        `('${clubId}','${member.id}','${president.id}','[Encrypted message]','${JSON.stringify(e)}'::jsonb,'2020-01-01T12:00:00Z')`,
-    )
-    .join(",");
-  cli(
-    "db",
-    "query",
-    `insert into public.club_messages(club_id,sender_id,recipient_id,body,envelope,created_at) values ${values}`,
-  );
+  // Stay below Windows' command-line length limit for generated ciphertext.
+  for (let offset = 0; offset < olderEnvelopes.length; offset += 10) {
+    const values = olderEnvelopes
+      .slice(offset, offset + 10)
+      .map(
+        (e) =>
+          `('${clubId}','${member.id}','${president.id}','[Encrypted message]','${JSON.stringify(e)}'::jsonb,'2020-01-01T12:00:00Z')`,
+      )
+      .join(",");
+    cli(
+      "db",
+      "query",
+      `insert into public.club_messages(club_id,sender_id,recipient_id,body,envelope,created_at) values ${values}`,
+    );
+  }
   const firstPage = await ok(member, "message_history_page", {
     p_club_id: clubId,
     p_peer: president.id,
