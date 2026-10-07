@@ -1,6 +1,5 @@
 import { insforge } from "@/lib/insforge";
 import {
-  callRpc,
   currentUserId,
   NOT_CONFIGURED,
   type RpcResult,
@@ -102,11 +101,6 @@ export async function createAnnouncement(
       },
     ]);
   if (error) return { ok: false, error: error.message };
-  await callRpc("log_audit", {
-    p_action: "create_announcement",
-    p_entity: "announcement",
-    p_metadata: { club_id: clubId, title: title.trim() },
-  });
   return { ok: true };
 }
 

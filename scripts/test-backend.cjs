@@ -100,6 +100,21 @@ async function main() {
   };
   await denied(member, "approve_club", { p_club_id: clubId });
   await ok(admin, "approve_club", { p_club_id: clubId });
+  for (const patch of [{ president_id: member.id }, { member_count: 9999 }, { is_active: false }]) {
+    const result = await president.sdk.database.from("clubs").update(patch).eq("id", clubId);
+    assert(result.error, "Direct privileged club-field writes must fail");
+  }
+  const forgedClub = await member.sdk.database.from("clubs").insert([{
+    name: "Forged ownership", category: "STEM", description: "Test",
+    created_by: member.id, status: "pending", president_id: member.id,
+  }]);
+  assert(forgedClub.error, "Club submission must not set privileged ownership");
+  await denied(member, "log_audit", { p_action: "approve_club", p_entity: "club", p_entity_id: clubId });
+  for (const name of ["verify_president", "reject_president"]) {
+    await denied(member, name, { p_user_id: member.id });
+  }
+  await denied(member, "assign_club_admin", { p_club_id: clubId, p_email: member.email });
+  await denied(member, "transfer_club_ownership", { p_club_id: clubId, p_email: member.email });
   await denied(president, "leave_club", { p_club_id: clubId });
   await ok(member, "join_club", { p_club_id: clubId });
   const event = await president.sdk.database
@@ -159,6 +174,19 @@ async function main() {
     ])
     .select("id");
   assert.equal(announcement.error, null, announcement.error?.message);
+  const spoofedAuthor = await president.sdk.database.from("announcements")
+    .update({ created_by: member.id }).eq("id", announcement.data[0].id);
+  assert(spoofedAuthor.error, "Content authorship must be immutable");
+  const spoofedUpdater = await president.sdk.database.from("announcements")
+    .update({ title: "Edited meeting update", updated_by: member.id })
+    .eq("id", announcement.data[0].id).select("updated_by");
+  assert.equal(spoofedUpdater.error, null);
+  assert.equal(spoofedUpdater.data[0].updated_by, president.id);
+  const auditEntry = await admin.sdk.database.from("audit_logs").select("actor,entity_id")
+    .eq("entity_id", announcement.data[0].id).eq("action", "create_announcement");
+  assert.equal(auditEntry.error, null);
+  assert.equal(auditEntry.data.length, 1, "Server write must generate exactly one audit entry");
+  assert.equal(auditEntry.data[0].actor, president.id);
   const note = await president.sdk.database
     .from("club_notes")
     .insert([
