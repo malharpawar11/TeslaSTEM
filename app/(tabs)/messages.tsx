@@ -2,7 +2,7 @@ import { PageIntro } from "@/components/CampusVisual";
 import { Avatar, PressableCard, EmptyState } from "@/components/ui";
 import { clubInitials } from "@/types/domain";
 import { useCallback, useState } from "react";
-import { ScrollView, View, RefreshControl } from "react-native";
+import { ScrollView, View, RefreshControl, AppState } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,10 +11,17 @@ import { SignInGate } from "@/components/SignInGate";
 import { fetchMessageThreads, type MessageThread } from "@/data/discoveryRepo";
 import { useClubs } from "@/context/ClubsContext";
 import { useMemberships } from "@/context/MembershipContext";
+import { MessagingGate } from "@/components/MessagingGate";
+import { useMessaging } from "@/context/MessagingContext";
 
 function Inbox() {
+  const { lock } = useMessaging();
   const { clubs } = useClubs();
-  const { isMember, error: membershipError, refresh: refreshMemberships } = useMemberships();
+  const {
+    isMember,
+    error: membershipError,
+    refresh: refreshMemberships,
+  } = useMemberships();
   const joinedClubs = clubs.filter((club) => isMember(club.id));
   const router = useRouter(),
     insets = useSafeAreaInsets();
@@ -25,22 +32,29 @@ function Inbox() {
     useCallback(() => {
       let active = true;
       setLoading(true);
-      void fetchMessageThreads()
-        .then((result) => {
-          if (!active) return;
-          if (result.ok) {
-            setThreads(result.value);
-            setError(null);
-          } else setError(result.error);
-        })
-        .catch(() => {
-          if (active) setError("Could not load your inbox.");
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
+      const load = () => {
+        void fetchMessageThreads()
+          .then((result) => {
+            if (!active) return;
+            if (result.ok) {
+              setThreads(result.value);
+              setError(null);
+            } else setError(result.error);
+          })
+          .catch(() => {
+            if (active) setError("Could not load your inbox.");
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          });
+      };
+      load();
+      const timer = setInterval(() => {
+        if (AppState.currentState === "active") load();
+      }, 15000);
       return () => {
         active = false;
+        clearInterval(timer);
       };
     }, []),
   );
@@ -76,32 +90,54 @@ function Inbox() {
           title="Keep the conversation going."
           description="Your club board is a message away. Find your conversations here."
         />
+        <Button
+          label="Lock encrypted messages"
+          iconRight="lock-closed-outline"
+          variant="ghost"
+          onPress={lock}
+        />
         <Card className="gap-3 p-5">
           <Text className="text-lg font-bold text-light-text dark:text-dark-text">
             Start a conversation
           </Text>
           <Text className="text-sm text-light-muted dark:text-dark-muted">
-            Choose a club to message its board inside the app. Board members can also reply to members here.
+            Choose a club to message its board inside the app. Board members can
+            also reply to members here.
           </Text>
           {membershipError ? (
             <>
               <Text className="text-danger">{membershipError}</Text>
-              <Button label="Reload my clubs" onPress={() => void refreshMemberships()} />
+              <Button
+                label="Reload my clubs"
+                onPress={() => void refreshMemberships()}
+              />
             </>
-          ) : joinedClubs.map((club) => (
-            <Button
-              key={club.id}
-              label={`Message ${club.name}`}
-              variant="secondary"
-              iconRight="chatbubbles-outline"
-              onPress={() => router.push(`/club/${club.id}/messages`)}
-            />
-          ))}
-          <Button label="Find a club" variant="ghost" onPress={() => router.push("/browse")} />
+          ) : (
+            joinedClubs.map((club) => (
+              <Button
+                key={club.id}
+                label={`Message ${club.name}`}
+                variant="secondary"
+                iconRight="chatbubbles-outline"
+                onPress={() => router.push(`/club/${club.id}/messages`)}
+              />
+            ))
+          )}
+          <Button
+            label="Find a club"
+            variant="ghost"
+            onPress={() => router.push("/browse")}
+          />
         </Card>
         <View className="flex-row items-center justify-between">
-          <Text className="text-lg font-bold text-light-text dark:text-dark-text">Your conversations</Text>
-          <Button label="Refresh" variant="ghost" onPress={() => void refresh()} />
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text">
+            Your conversations
+          </Text>
+          <Button
+            label="Refresh"
+            variant="ghost"
+            onPress={() => void refresh()}
+          />
         </View>
         {loading ? (
           <SkeletonRow count={3} />
@@ -148,7 +184,9 @@ function Inbox() {
                     numberOfLines={2}
                     className="mt-2 text-sm text-light-muted dark:text-dark-muted"
                   >
-                    {thread.body}
+                    {thread.body === "[Encrypted message]"
+                      ? "Encrypted message · Open conversation to read"
+                      : `Older unencrypted message · ${thread.body}`}
                   </Text>
                 </View>
                 {Number(thread.unread) > 0 ? (
@@ -169,7 +207,9 @@ function Inbox() {
 export default function MessageInbox() {
   return (
     <SignInGate>
-      <Inbox />
+      <MessagingGate>
+        <Inbox />
+      </MessagingGate>
     </SignInGate>
   );
 }

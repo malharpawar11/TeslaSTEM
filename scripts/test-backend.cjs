@@ -100,21 +100,44 @@ async function main() {
   };
   await denied(member, "approve_club", { p_club_id: clubId });
   await ok(admin, "approve_club", { p_club_id: clubId });
-  for (const patch of [{ president_id: member.id }, { member_count: 9999 }, { is_active: false }]) {
-    const result = await president.sdk.database.from("clubs").update(patch).eq("id", clubId);
+  for (const patch of [
+    { president_id: member.id },
+    { member_count: 9999 },
+    { is_active: false },
+  ]) {
+    const result = await president.sdk.database
+      .from("clubs")
+      .update(patch)
+      .eq("id", clubId);
     assert(result.error, "Direct privileged club-field writes must fail");
   }
-  const forgedClub = await member.sdk.database.from("clubs").insert([{
-    name: "Forged ownership", category: "STEM", description: "Test",
-    created_by: member.id, status: "pending", president_id: member.id,
-  }]);
+  const forgedClub = await member.sdk.database.from("clubs").insert([
+    {
+      name: "Forged ownership",
+      category: "STEM",
+      description: "Test",
+      created_by: member.id,
+      status: "pending",
+      president_id: member.id,
+    },
+  ]);
   assert(forgedClub.error, "Club submission must not set privileged ownership");
-  await denied(member, "log_audit", { p_action: "approve_club", p_entity: "club", p_entity_id: clubId });
+  await denied(member, "log_audit", {
+    p_action: "approve_club",
+    p_entity: "club",
+    p_entity_id: clubId,
+  });
   for (const name of ["verify_president", "reject_president"]) {
     await denied(member, name, { p_user_id: member.id });
   }
-  await denied(member, "assign_club_admin", { p_club_id: clubId, p_email: member.email });
-  await denied(member, "transfer_club_ownership", { p_club_id: clubId, p_email: member.email });
+  await denied(member, "assign_club_admin", {
+    p_club_id: clubId,
+    p_email: member.email,
+  });
+  await denied(member, "transfer_club_ownership", {
+    p_club_id: clubId,
+    p_email: member.email,
+  });
   await denied(president, "leave_club", { p_club_id: clubId });
   await ok(member, "join_club", { p_club_id: clubId });
   const event = await president.sdk.database
@@ -139,16 +162,14 @@ async function main() {
     ).data.length,
     1,
   );
-  const forbiddenEvent = await member.sdk.database
-    .from("club_events")
-    .insert([
-      {
-        club_id: clubId,
-        title: "Unauthorized",
-        starts_at: "2027-01-15T23:00:00Z",
-        created_by: member.id,
-      },
-    ]);
+  const forbiddenEvent = await member.sdk.database.from("club_events").insert([
+    {
+      club_id: clubId,
+      title: "Unauthorized",
+      starts_at: "2027-01-15T23:00:00Z",
+      created_by: member.id,
+    },
+  ]);
   assert(
     forbiddenEvent.error,
     "Members must not publish events without permission",
@@ -174,18 +195,29 @@ async function main() {
     ])
     .select("id");
   assert.equal(announcement.error, null, announcement.error?.message);
-  const spoofedAuthor = await president.sdk.database.from("announcements")
-    .update({ created_by: member.id }).eq("id", announcement.data[0].id);
+  const spoofedAuthor = await president.sdk.database
+    .from("announcements")
+    .update({ created_by: member.id })
+    .eq("id", announcement.data[0].id);
   assert(spoofedAuthor.error, "Content authorship must be immutable");
-  const spoofedUpdater = await president.sdk.database.from("announcements")
+  const spoofedUpdater = await president.sdk.database
+    .from("announcements")
     .update({ title: "Edited meeting update", updated_by: member.id })
-    .eq("id", announcement.data[0].id).select("updated_by");
+    .eq("id", announcement.data[0].id)
+    .select("updated_by");
   assert.equal(spoofedUpdater.error, null);
   assert.equal(spoofedUpdater.data[0].updated_by, president.id);
-  const auditEntry = await admin.sdk.database.from("audit_logs").select("actor,entity_id")
-    .eq("entity_id", announcement.data[0].id).eq("action", "create_announcement");
+  const auditEntry = await admin.sdk.database
+    .from("audit_logs")
+    .select("actor,entity_id")
+    .eq("entity_id", announcement.data[0].id)
+    .eq("action", "create_announcement");
   assert.equal(auditEntry.error, null);
-  assert.equal(auditEntry.data.length, 1, "Server write must generate exactly one audit entry");
+  assert.equal(
+    auditEntry.data.length,
+    1,
+    "Server write must generate exactly one audit entry",
+  );
   assert.equal(auditEntry.data[0].actor, president.id);
   const note = await president.sdk.database
     .from("club_notes")
@@ -329,21 +361,156 @@ async function main() {
     p_recipient: president.id,
     p_body: "Should be blocked",
   });
-  await ok(member, "send_club_message", {
+  await denied(member, "send_club_message", {
     p_club_id: clubId,
     p_recipient: president.id,
     p_body: "When is our next meeting?",
   });
-  await ok(president, "send_club_message", {
+  await denied(president, "send_club_message", {
     p_club_id: clubId,
     p_recipient: member.id,
     p_body: "Wednesday at 3 PM.",
+  });
+  const crypto = require("./load-message-crypto.cjs"),
+    { randomBytes } = require("node:crypto");
+  const random = (size) => new Uint8Array(randomBytes(size));
+  const memberKeys = await crypto.createVault(
+    "test member separate messaging phrase",
+    random,
+  );
+  const presidentKeys = await crypto.createVault(
+    "test president separate messaging phrase",
+    random,
+  );
+  const register = (actor, vault) =>
+    ok(actor, "register_message_vault", {
+      p_public_key: vault.public_key,
+      p_salt: vault.salt,
+      p_nonce: vault.nonce,
+      p_encrypted_key: vault.encrypted_key,
+      p_owner: actor.id,
+    });
+  await register(member, memberKeys.vault);
+  await denied(member, "register_message_vault", {
+    p_public_key: presidentKeys.vault.public_key,
+    p_salt: presidentKeys.vault.salt,
+    p_nonce: presidentKeys.vault.nonce,
+    p_encrypted_key: presidentKeys.vault.encrypted_key,
+    p_owner: member.id,
+  });
+  await denied(outsider, "register_message_vault", {
+    p_public_key: presidentKeys.vault.public_key,
+    p_salt: presidentKeys.vault.salt,
+    p_nonce: presidentKeys.vault.nonce,
+    p_encrypted_key: presidentKeys.vault.encrypted_key,
+    p_owner: member.id,
+  });
+  const questionBinding = {
+    club_id: clubId,
+    sender_id: member.id,
+    recipient_id: president.id,
+  };
+  const question = crypto.encryptMessage(
+    "When is our next meeting?",
+    questionBinding,
+    memberKeys.secretKey,
+    presidentKeys.vault.public_key,
+    random,
+  );
+  const sendArgs = {
+    p_club_id: clubId,
+    p_recipient: president.id,
+    p_envelope: question,
+  };
+  await denied(member, "send_encrypted_club_message", sendArgs); // recipient not set up
+  await register(president, presidentKeys.vault);
+  assert.equal(
+    (
+      await ok(member, "message_peer_key", {
+        p_club_id: clubId,
+        p_peer: president.id,
+      })
+    )[0].public_key,
+    presidentKeys.vault.public_key,
+  );
+  assert.deepEqual(
+    await ok(outsider, "message_peer_key", {
+      p_club_id: clubId,
+      p_peer: president.id,
+    }),
+    [],
+  );
+  assert.deepEqual(await ok(outsider, "my_message_vault"), []);
+  assert.deepEqual(
+    (await outsider.sdk.database.from("message_identity_keys").select("*"))
+      .data,
+    [],
+  );
+  await denied(anon, "my_message_vault");
+  await denied(outsider, "send_encrypted_club_message", sendArgs);
+  await denied(member, "send_encrypted_club_message", {
+    ...sendArgs,
+    p_envelope: { ...question, sender_key: presidentKeys.vault.public_key },
+  });
+  await denied(member, "send_encrypted_club_message", {
+    ...sendArgs,
+    p_envelope: { ...question, plaintext: "Forbidden extra payload" },
+  });
+  await ok(member, "send_encrypted_club_message", sendArgs);
+  await denied(member, "send_encrypted_club_message", sendArgs); // nonce replay
+  const recipientHistory = await ok(president, "message_history", {
+    p_club_id: clubId,
+    p_peer: member.id,
+  });
+  assert.equal(
+    crypto.decryptMessage(
+      recipientHistory[0].envelope,
+      recipientHistory[0],
+      president.id,
+      presidentKeys.secretKey,
+    ),
+    "When is our next meeting?",
+  );
+  const replyBinding = {
+    club_id: clubId,
+    sender_id: president.id,
+    recipient_id: member.id,
+  };
+  await ok(president, "send_encrypted_club_message", {
+    p_club_id: clubId,
+    p_recipient: member.id,
+    p_envelope: crypto.encryptMessage(
+      "Wednesday at 3 PM.",
+      replyBinding,
+      presidentKeys.secretKey,
+      memberKeys.vault.public_key,
+      random,
+    ),
   });
   const history = await ok(member, "message_history", {
     p_club_id: clubId,
     p_peer: president.id,
   });
   assert.equal(history.length, 2);
+  const ownVault = (await ok(member, "my_message_vault"))[0];
+  const secondDeviceKey = await crypto.unlockVault(
+    "test member separate messaging phrase",
+    ownVault,
+  );
+  const reply = history.find((m) => m.sender_id === president.id);
+  assert.equal(
+    crypto.decryptMessage(reply.envelope, reply, member.id, secondDeviceKey),
+    "Wednesday at 3 PM.",
+  );
+  assert(history.every((m) => m.body === "[Encrypted message]" && m.envelope));
+  const stored = cli(
+    "db",
+    "query",
+    `select body,envelope from public.club_messages where club_id='${clubId}'`,
+  ).rows;
+  assert.equal(stored.length, 2);
+  assert(!JSON.stringify(stored).includes("next meeting"));
+  assert(!JSON.stringify(stored).includes("Wednesday at 3"));
   assert.deepEqual(
     await ok(outsider, "message_history", {
       p_club_id: clubId,
@@ -371,6 +538,50 @@ async function main() {
     p_peer: president.id,
   });
   assert.equal(Number((await ok(member, "message_threads"))[0].unread), 0);
+  const olderEnvelopes = Array.from({ length: 55 }, (_, i) =>
+    crypto.encryptMessage(
+      `History ${i}`,
+      questionBinding,
+      memberKeys.secretKey,
+      presidentKeys.vault.public_key,
+      random,
+    ),
+  );
+  const values = olderEnvelopes
+    .map(
+      (e) =>
+        `('${clubId}','${member.id}','${president.id}','[Encrypted message]','${JSON.stringify(e)}'::jsonb,'2020-01-01T12:00:00Z')`,
+    )
+    .join(",");
+  cli(
+    "db",
+    "query",
+    `insert into public.club_messages(club_id,sender_id,recipient_id,body,envelope,created_at) values ${values}`,
+  );
+  const firstPage = await ok(member, "message_history_page", {
+    p_club_id: clubId,
+    p_peer: president.id,
+  });
+  assert.equal(firstPage.length, 50);
+  const cursor = firstPage[firstPage.length - 1];
+  const secondPage = await ok(member, "message_history_page", {
+    p_club_id: clubId,
+    p_peer: president.id,
+    p_before: cursor.created_at,
+    p_before_id: cursor.id,
+  });
+  assert.equal(secondPage.length, 7, "Timestamp ties must not skip messages");
+  assert.equal(
+    new Set([...firstPage, ...secondPage].map((m) => m.id)).size,
+    57,
+  );
+  assert.deepEqual(
+    await ok(outsider, "message_history_page", {
+      p_club_id: clubId,
+      p_peer: president.id,
+    }),
+    [],
+  );
   await ok(member, "leave_club", { p_club_id: clubId });
   assert.deepEqual(
     await ok(anon, "club_reviews_public", { p_club_id: clubId }),
@@ -381,6 +592,16 @@ async function main() {
     p_recipient: president.id,
     p_body: "No longer a member",
   });
+  await denied(member, "send_encrypted_club_message", {
+    ...sendArgs,
+    p_envelope: crypto.encryptMessage(
+      "No longer a member",
+      questionBinding,
+      memberKeys.secretKey,
+      presidentKeys.vault.public_key,
+      random,
+    ),
+  });
   assert.equal(
     (
       await ok(member, "message_history", {
@@ -388,7 +609,7 @@ async function main() {
         p_peer: president.id,
       })
     ).length,
-    2,
+    50,
   );
   const settings = await president.sdk.database
     .from("clubs")
@@ -422,7 +643,7 @@ async function main() {
     p_approve: false,
   });
   console.log(
-    "Backend integration passed: membership, preferences isolation, reviews, private messaging, read receipts, and authorization denials.",
+    "Backend integration passed: encrypted member/board delivery, second-device recovery, ciphertext-only storage, private vaults, read receipts, tied-timestamp pagination, authorization and nonce-replay denials, plus membership, preferences and reviews.",
   );
 }
 main().catch((error) => {

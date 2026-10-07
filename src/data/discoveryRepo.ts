@@ -69,6 +69,8 @@ export interface DirectMessage {
   body: string;
   created_at: string;
   read_at: string | null;
+  club_id: string;
+  envelope: import("@/lib/messageCrypto").Envelope | null;
 }
 export interface MessageThread {
   club_id: string;
@@ -87,17 +89,13 @@ export const fetchMessages = (
   clubId: string,
   peer: string,
   before: string | null = null,
+  beforeId: string | null = null,
 ) =>
-  callRpcValue<DirectMessage[]>("message_history", {
+  callRpcValue<DirectMessage[]>("message_history_page", {
     p_club_id: clubId,
     p_peer: peer,
     p_before: before,
-  });
-export const sendMessage = (clubId: string, peer: string, body: string) =>
-  callRpc("send_club_message", {
-    p_club_id: clubId,
-    p_recipient: peer,
-    p_body: body.trim(),
+    p_before_id: beforeId,
   });
 export const readMessages = (clubId: string, peer: string) =>
   callRpc("read_club_messages", { p_club_id: clubId, p_peer: peer });

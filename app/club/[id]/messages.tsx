@@ -5,6 +5,7 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
+  AppState,
 } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -17,10 +18,14 @@ import {
   fetchMessageContacts,
   fetchMessages,
   readMessages,
-  sendMessage,
   type DirectMessage,
   type MessageContact,
 } from "@/data/discoveryRepo";
+import { MessagingGate } from "@/components/MessagingGate";
+import { MessageIdentity, usePeerIdentity } from "@/components/MessageIdentity";
+import { useMessaging, secureRandom } from "@/context/MessagingContext";
+import { encryptMessage, decryptMessage } from "@/lib/messageCrypto";
+import { sendEncryptedMessage, fetchPeerKey } from "@/data/messageKeysRepo";
 
 function Conversation() {
   const params = useLocalSearchParams<{ id: string; peer?: string }>();
@@ -30,7 +35,11 @@ function Conversation() {
     { session } = useAuth(),
     { toast } = useToast();
   const [contacts, setContacts] = useState<MessageContact[]>([]);
-  const [peer, setPeer] = useState(params.peer ?? "");
+  const [peer, setPeer] = useState(
+    Array.isArray(params.peer) ? params.peer[0] : (params.peer ?? ""),
+  );
+  const { secretKey, lock } = useMessaging();
+  const identity = usePeerIdentity(clubId, peer);
   const [messages, setMessages] = useState<DirectMessage[]>([]),
     [body, setBody] = useState("");
   const [loading, setLoading] = useState(true),
@@ -38,59 +47,124 @@ function Conversation() {
     [hasOlder, setHasOlder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
-  const load = useCallback(async () => {
-    const version = ++generation.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchMessageContacts(clubId);
-      if (version !== generation.current) return;
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setContacts(result.value);
-      if (peer) {
-        const history = await fetchMessages(clubId, peer);
+  const request = useRef<number | null>(null);
+  const scroller = useRef<ScrollView>(null),
+    followLatest = useRef(true);
+  const load = useCallback(
+    async (silent = false) => {
+      const version = generation.current;
+      if (request.current === version) return;
+      request.current = version;
+      if (!silent) setLoading(true);
+      try {
+        const result = await fetchMessageContacts(clubId);
         if (version !== generation.current) return;
-        if (!history.ok) {
-          setError(history.error);
+        if (!result.ok) {
+          setError(result.error);
           return;
         }
-        setMessages([...history.value].reverse());
-        setHasOlder(history.value.length === 50);
-        await readMessages(clubId, peer);
-      } else {
-        setMessages([]);
-        setHasOlder(false);
+        setContacts(result.value);
+        if (peer) {
+          const history = await fetchMessages(clubId, peer);
+          if (version !== generation.current) return;
+          if (!history.ok) {
+            setError(history.error);
+            return;
+          }
+          setMessages((previous) =>
+            silent
+              ? Array.from(
+                  new Map(
+                    [...previous, ...history.value].map((m) => [m.id, m]),
+                  ).values(),
+                ).sort(
+                  (a, b) =>
+                    a.created_at.localeCompare(b.created_at) ||
+                    a.id.localeCompare(b.id),
+                )
+              : [...history.value].reverse(),
+          );
+          if (!silent) setHasOlder(history.value.length === 50);
+          if (
+            secretKey &&
+            session &&
+            history.value.every((m) => {
+              try {
+                if (m.envelope)
+                  decryptMessage(m.envelope, m, session.user.id, secretKey);
+                return true;
+              } catch {
+                return false;
+              }
+            })
+          ) {
+            const read = await readMessages(clubId, peer);
+            if (version !== generation.current) return;
+            if (!read.ok) {
+              setError(read.error);
+              return;
+            }
+          }
+        } else {
+          setMessages([]);
+          setHasOlder(false);
+        }
+        if (version === generation.current) setError(null);
+      } catch {
+        if (version === generation.current)
+          setError("Could not load messages. Pull to retry.");
+      } finally {
+        if (request.current === version) request.current = null;
+        if (version === generation.current) setLoading(false);
       }
-    } catch {
-      if (version === generation.current)
-        setError("Could not load messages. Pull to retry.");
-    } finally {
-      if (version === generation.current) setLoading(false);
-    }
-  }, [clubId, peer]);
+    },
+    [clubId, peer, secretKey, session?.user.id],
+  );
   useFocusEffect(
     useCallback(() => {
+      ++generation.current;
+      followLatest.current = true;
       void load();
+      const timer = setInterval(() => {
+        if (AppState.currentState === "active") void load(true);
+      }, 5000);
       return () => {
+        clearInterval(timer);
         ++generation.current;
       };
     }, [load]),
   );
   const send = async () => {
-    if (!body.trim() || busy) return;
+    if (!body.trim() || busy || !secretKey || !identity.key || !session) return;
     setBusy(true);
     try {
-      const result = await sendMessage(clubId, peer, body);
+      const currentKey = await fetchPeerKey(clubId, peer);
+      if (!currentKey.ok) throw new Error(currentKey.error);
+      if (currentKey.value[0]?.public_key !== identity.key)
+        throw new Error(
+          "Recipient encryption key is unavailable or changed. Sending was blocked.",
+        );
+      const envelope = encryptMessage(
+        body,
+        { club_id: clubId, sender_id: session.user.id, recipient_id: peer },
+        secretKey,
+        identity.key,
+        secureRandom,
+      );
+      const result = await sendEncryptedMessage(clubId, peer, envelope);
       if (!result.ok) toast(result.error, "error");
       else {
+        followLatest.current = true;
         setBody("");
-        await load();
+        await load(true);
       }
-    } catch {
-      toast("Message could not be sent. Try again.", "error");
+    } catch (e) {
+      toast(
+        e instanceof Error
+          ? e.message
+          : "Message could not be sent. Try again.",
+        "error",
+      );
     } finally {
       setBusy(false);
     }
@@ -98,12 +172,28 @@ function Conversation() {
   const older = async () => {
     const version = generation.current;
     setBusy(true);
+    followLatest.current = false;
     try {
-      const result = await fetchMessages(clubId, peer, messages[0]?.created_at);
+      const result = await fetchMessages(
+        clubId,
+        peer,
+        messages[0]?.created_at,
+        messages[0]?.id,
+      );
       if (version !== generation.current) return;
       if (!result.ok) toast(result.error, "error");
       else {
-        setMessages((previous) => [...result.value].reverse().concat(previous));
+        setMessages((previous) =>
+          Array.from(
+            new Map(
+              [...previous, ...result.value].map((m) => [m.id, m]),
+            ).values(),
+          ).sort(
+            (a, b) =>
+              a.created_at.localeCompare(b.created_at) ||
+              a.id.localeCompare(b.id),
+          ),
+        );
         setHasOlder(result.value.length === 50);
       }
     } catch {
@@ -113,6 +203,27 @@ function Conversation() {
     }
   };
   const allowed = contacts.some((contact) => contact.user_id === peer);
+  const messageText = (message: DirectMessage) => {
+    if (!message.envelope) return message.body;
+    try {
+      if (!secretKey || !session || !identity.key)
+        return "Encrypted message · Unlock and check identity to read.";
+      const peerKey =
+        message.sender_id === session.user.id
+          ? message.envelope.recipient_key
+          : message.envelope.sender_key;
+      if (peerKey !== identity.key)
+        return "Identity mismatch · Message blocked.";
+      return decryptMessage(
+        message.envelope,
+        message,
+        session.user.id,
+        secretKey,
+      );
+    } catch {
+      return "Could not authenticate this message. Its content is blocked.";
+    }
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -132,11 +243,28 @@ function Conversation() {
             : "Message club leadership"}
         </Text>
         <Text className="text-xs text-light-muted dark:text-dark-muted">
-          Private messages between active members and the board. Pull to
-          refresh.
+          Member and board conversations · Updates every 5 seconds while open.
         </Text>
+        <Button
+          label="Lock messages"
+          size="sm"
+          variant="ghost"
+          onPress={lock}
+        />
       </View>
       <ScrollView
+        ref={scroller}
+        scrollEventThrottle={100}
+        onScroll={({ nativeEvent }) => {
+          followLatest.current =
+            nativeEvent.contentOffset.y +
+              nativeEvent.layoutMeasurement.height >=
+            nativeEvent.contentSize.height - 80;
+        }}
+        onContentSizeChange={() => {
+          if (followLatest.current)
+            scroller.current?.scrollToEnd({ animated: false });
+        }}
         className="flex-1"
         contentContainerStyle={{ padding: 20 }}
         refreshControl={
@@ -176,6 +304,7 @@ function Conversation() {
             )
           ) : (
             <>
+              <MessageIdentity peer={peer} identity={identity} />
               {hasOlder ? (
                 <Button
                   label="Load older messages"
@@ -204,12 +333,15 @@ function Conversation() {
                     <Text
                       className={`mt-1 text-base leading-6 ${message.sender_id === session?.user.id ? "text-white" : "text-light-text dark:text-dark-text"}`}
                     >
-                      {message.body}
+                      {messageText(message)}
                     </Text>
                     <Text
                       className={`mt-2 text-2xs ${message.sender_id === session?.user.id ? "text-white/70" : "text-light-muted dark:text-dark-muted"}`}
                     >
                       {new Date(message.created_at).toLocaleString()}
+                      {!message.envelope
+                        ? " · Older unencrypted message"
+                        : " · Encrypted"}
                       {message.sender_id === session?.user.id && message.read_at
                         ? " · Read"
                         : ""}
@@ -240,7 +372,7 @@ function Conversation() {
                 label="Send message"
                 iconRight="send"
                 loading={busy}
-                disabled={!body.trim()}
+                disabled={!body.trim() || !identity.key}
                 onPress={() => void send()}
               />
             </>
@@ -258,7 +390,9 @@ function Conversation() {
 export default function MessagesScreen() {
   return (
     <SignInGate>
-      <Conversation />
+      <MessagingGate>
+        <Conversation />
+      </MessagingGate>
     </SignInGate>
   );
 }

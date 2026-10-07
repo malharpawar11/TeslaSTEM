@@ -9,6 +9,7 @@ import { cssInterop } from "nativewind";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { MessagingProvider } from "@/context/MessagingContext";
 import {
   PreferencesProvider,
   usePreferences,
@@ -86,17 +87,19 @@ export default function RootLayout() {
         <ThemeProvider>
           <AccessibilityProvider>
             <AuthProvider>
-              <PreferencesProvider>
-                <ClubsProvider>
-                  <MembershipProvider>
-                    <ToastProvider>
-                      <NotificationsProvider>
-                        <RootStack />
-                      </NotificationsProvider>
-                    </ToastProvider>
-                  </MembershipProvider>
-                </ClubsProvider>
-              </PreferencesProvider>
+              <MessagingProvider>
+                <PreferencesProvider>
+                  <ClubsProvider>
+                    <MembershipProvider>
+                      <ToastProvider>
+                        <NotificationsProvider>
+                          <RootStack />
+                        </NotificationsProvider>
+                      </ToastProvider>
+                    </MembershipProvider>
+                  </ClubsProvider>
+                </PreferencesProvider>
+              </MessagingProvider>
             </AuthProvider>
           </AccessibilityProvider>
         </ThemeProvider>
