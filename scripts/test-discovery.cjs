@@ -85,6 +85,26 @@ const prefs = {
   availability: [],
   completed: true,
 };
+assert.equal(
+  discovery.careerMatches(
+    {
+      ...fixtures[1],
+      name: "AI Innovation",
+      description:
+        "Participate in Artificial Intelligence and Machine Learning projects.",
+    },
+    "Arts and design",
+  ),
+  false,
+  "Art must not match artificial or participate",
+);
+assert.equal(
+  discovery.careerMatches(
+    { ...fixtures[1], description: "Robotics and engineering" },
+    "Engineering",
+  ),
+  true,
+);
 const select = (overrides) =>
   discovery
     .filterClubs(

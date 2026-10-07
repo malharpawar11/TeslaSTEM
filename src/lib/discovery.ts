@@ -151,7 +151,13 @@ export function careerMatches(club: Club, career: string): boolean {
   const text = `${club.name} ${club.description}`.toLowerCase();
   return (
     rule.categories.includes(club.category) ||
-    rule.keywords.some((keyword) => text.includes(keyword))
+    rule.keywords.some((keyword) =>
+      keyword === "art"
+        ? /\b(?:art|arts|artist|artists|artistic|artwork)\b/.test(text)
+        : new RegExp(
+            `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+          ).test(text),
+    )
   );
 }
 
