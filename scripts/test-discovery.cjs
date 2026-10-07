@@ -29,6 +29,88 @@ const calendar = load("src/lib/calendar.ts", {
   "react-native": { Platform: { OS: "web" } },
 });
 const domain = load("src/types/domain.ts");
+const filters = {
+  query: "",
+  category: "All",
+  joinedOnly: false,
+  availableOnly: false,
+  career: "All careers",
+  recommendedOnly: false,
+  day: "Any day",
+  period: "Any time",
+  openOnly: false,
+  sort: "Best fit",
+};
+const fixtures = [
+  {
+    id: "a",
+    name: "Art",
+    category: "Arts",
+    description: "Painting",
+    advisor: "A",
+    location: "1",
+    day: "Tuesday",
+    time: "At Lunch",
+    joinPolicy: "open",
+    memberCount: 5,
+  },
+  {
+    id: "r",
+    name: "Robotics",
+    category: "STEM",
+    description: "Engineering robots",
+    advisor: "B",
+    location: "2",
+    day: "Wednesday",
+    time: "After School",
+    joinPolicy: "approval",
+    memberCount: 20,
+  },
+  {
+    id: "c",
+    name: "Coding",
+    category: "STEM",
+    description: "Computer programming",
+    advisor: "C",
+    location: "3",
+    day: "Wednesday",
+    time: "At Lunch",
+    joinPolicy: "open",
+    memberCount: 10,
+  },
+];
+const prefs = {
+  interests: ["STEM"],
+  careers: ["Engineering"],
+  availability: [],
+  completed: true,
+};
+const select = (overrides) =>
+  discovery
+    .filterClubs(
+      fixtures,
+      { ...filters, ...overrides },
+      prefs,
+      (id) => id === "c",
+    )
+    .map((c) => c.id)
+    .join(",");
+assert.equal(select({}), "r,c,a");
+assert.equal(select({ sort: "Name A–Z" }), "a,c,r");
+assert.equal(select({ sort: "Most members" }), "r,c,a");
+assert.equal(
+  select({
+    day: "Wednesday",
+    period: "At Lunch",
+    openOnly: true,
+    category: "STEM",
+  }),
+  "c",
+);
+assert.equal(select({ joinedOnly: true }), "c");
+assert.equal(select({ career: "Engineering", openOnly: true }), "");
+assert.equal(select({ day: "Monday" }), "");
+assert.equal(select({ query: "PAINT" }), "a");
 const plain = (value) => JSON.parse(JSON.stringify(value));
 assert.deepEqual(plain(discovery.meetingRange("3-4 PM")), [900, 960]);
 assert.deepEqual(

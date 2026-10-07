@@ -182,3 +182,82 @@ export function validateMeeting(
     return "Enter the meeting room or location.";
   return null;
 }
+
+export const CLUB_SORTS = ["Best fit", "Name A–Z", "Most members"];
+export interface DiscoveryFilters {
+  query: string;
+  category: string;
+  joinedOnly: boolean;
+  availableOnly: boolean;
+  career: string;
+  recommendedOnly: boolean;
+  day: string;
+  period: string;
+  openOnly: boolean;
+  sort: string;
+}
+export function filterClubs(
+  clubs: Club[],
+  filters: DiscoveryFilters,
+  preferences: StudentPreferences,
+  isActiveMember: (id: string) => boolean,
+): Club[] {
+  const q = filters.query.trim().toLowerCase();
+  return clubs
+    .filter((club) => {
+      if (filters.joinedOnly && !isActiveMember(club.id)) return false;
+      if (filters.category !== "All" && club.category !== filters.category)
+        return false;
+      if (
+        filters.availableOnly &&
+        !fitsAvailability(club, preferences.availability)
+      )
+        return false;
+      if (
+        filters.career !== "All careers" &&
+        !careerMatches(club, filters.career)
+      )
+        return false;
+      if (
+        filters.recommendedOnly &&
+        !recommendationReasons(club, preferences).length
+      )
+        return false;
+      if (
+        filters.day !== "Any day" &&
+        !meetingDays(club.day).includes(filters.day)
+      )
+        return false;
+      if (
+        filters.period !== "Any time" &&
+        !meetingPeriods(club.time).includes(filters.period)
+      )
+        return false;
+      if (filters.openOnly && club.joinPolicy !== "open") return false;
+      return (
+        !q ||
+        [
+          club.name,
+          club.description,
+          club.advisor,
+          club.location,
+          club.category,
+          club.day,
+          club.time,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    })
+    .sort((a, b) => {
+      const score =
+        filters.sort === "Most members"
+          ? b.memberCount - a.memberCount
+          : filters.sort === "Best fit"
+            ? recommendationReasons(b, preferences).length -
+              recommendationReasons(a, preferences).length
+            : 0;
+      return score || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+    });
+}

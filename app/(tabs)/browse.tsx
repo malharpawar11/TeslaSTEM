@@ -4,7 +4,7 @@ import { View, FlatList, ScrollView } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Club, ClubCategory } from "@/types/domain";
+import { Club } from "@/types/domain";
 import { useClubs } from "@/context/ClubsContext";
 import { useMemberships } from "@/context/MembershipContext";
 import { useToast } from "@/context/ToastContext";
@@ -19,13 +19,15 @@ import {
   EmptyState,
   SkeletonRow,
   PressableScale,
+  Card,
 } from "@/components/ui";
 import { usePreferences } from "@/context/PreferencesContext";
 import {
   CAREERS,
-  fitsAvailability,
-  careerMatches,
-  recommendationReasons,
+  filterClubs,
+  DAYS,
+  MEETING_PERIODS,
+  CLUB_SORTS,
 } from "@/lib/discovery";
 import { brand } from "@/theme/tokens";
 
@@ -55,6 +57,11 @@ export default function BrowseScreen() {
   const [availableOnly, setAvailableOnly] = useState(false);
   const [career, setCareer] = useState("All careers");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [day, setDay] = useState("Any day"),
+    [period, setPeriod] = useState("Any time");
+  const [openOnly, setOpenOnly] = useState(false),
+    [sort, setSort] = useState("Best fit");
 
   // Per-category counts, including 'All'. Computed once per clubs change.
   const counts = useMemo<Record<string, number>>(() => {
@@ -65,51 +72,41 @@ export default function BrowseScreen() {
     return m;
   }, [clubs]);
 
-  const data = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return clubs
-      .filter((club) => {
-        if (joinedOnly && memberships.get(club.id)?.status !== "active")
-          return false;
-        if (availableOnly && !fitsAvailability(club, preferences.availability))
-          return false;
-        if (career !== "All careers" && !careerMatches(club, career))
-          return false;
-        if (recommendedOnly && !recommendationReasons(club, preferences).length)
-          return false;
-        if (filter !== "All" && club.category !== (filter as ClubCategory))
-          return false;
-        if (!q) return true;
-        return [
-          club.name,
-          club.advisor,
-          club.day,
-          club.time,
-          club.category,
-          club.description,
-          club.location,
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(q);
-      })
-      .sort((a, b) =>
-        recommendedOnly
-          ? recommendationReasons(b, preferences).length -
-            recommendationReasons(a, preferences).length
-          : 0,
-      );
-  }, [
-    clubs,
-    query,
-    filter,
-    joinedOnly,
-    memberships,
-    availableOnly,
-    career,
-    recommendedOnly,
-    preferences,
-  ]);
+  const data = useMemo(
+    () =>
+      filterClubs(
+        clubs,
+        {
+          query,
+          category: filter,
+          joinedOnly,
+          availableOnly,
+          career,
+          recommendedOnly,
+          day,
+          period,
+          openOnly,
+          sort,
+        },
+        preferences,
+        (id) => memberships.get(id)?.status === "active",
+      ),
+    [
+      clubs,
+      query,
+      filter,
+      joinedOnly,
+      memberships,
+      availableOnly,
+      career,
+      recommendedOnly,
+      preferences,
+      day,
+      period,
+      openOnly,
+      sort,
+    ],
+  );
 
   const clearFilters = useCallback(() => {
     setQuery("");
@@ -118,6 +115,10 @@ export default function BrowseScreen() {
     setAvailableOnly(false);
     setCareer("All careers");
     setRecommendedOnly(false);
+    setDay("Any day");
+    setPeriod("Any time");
+    setOpenOnly(false);
+    setSort("Best fit");
   }, []);
 
   // Joining is a server action, so the card reports what actually happened:
@@ -169,7 +170,20 @@ export default function BrowseScreen() {
     joinedOnly ||
     availableOnly ||
     career !== "All careers" ||
-    recommendedOnly;
+    recommendedOnly ||
+    day !== "Any day" ||
+    period !== "Any time" ||
+    openOnly;
+  const activeCount = [
+    filter !== "All",
+    joinedOnly,
+    availableOnly,
+    recommendedOnly,
+    career !== "All careers",
+    day !== "Any day",
+    period !== "Any time",
+    openOnly,
+  ].filter(Boolean).length;
 
   const body =
     loading && clubs.length === 0 ? (
@@ -307,18 +321,115 @@ export default function BrowseScreen() {
           onPress={() => router.push("/onboarding")}
         />
       </View>
-      <View className="-mx-5">
-        <FilterChips
-          options={["All careers", ...Object.keys(CAREERS)]}
-          selected={career}
-          onSelect={setCareer}
+      <View className="mt-2 flex-row items-center justify-between gap-2">
+        <Button
+          label={`Filters${activeCount ? ` · ${activeCount}` : ""}`}
+          iconRight="options-outline"
+          variant="secondary"
+          size="sm"
+          onPress={() => setShowFilters((v) => !v)}
         />
+        {filtersActive ? (
+          <Button
+            label="Reset"
+            size="sm"
+            variant="ghost"
+            onPress={clearFilters}
+          />
+        ) : null}
       </View>
+      {showFilters ? (
+        <Card className="mt-3 gap-3 p-4">
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text">
+            Make it your fit
+          </Text>
+          <Text className="text-xs leading-5 text-light-muted dark:text-dark-muted">
+            Combine filters to narrow your search. Meeting times that haven't
+            been published won't match a time filter.
+          </Text>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            Career goal
+          </Text>
+          <View className="-mx-5">
+            <FilterChips
+              options={["All careers", ...Object.keys(CAREERS)]}
+              selected={career}
+              onSelect={setCareer}
+            />
+          </View>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            Meeting day
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {["Any day", ...DAYS].map((value) => (
+              <Chip
+                key={value}
+                label={value}
+                active={day === value}
+                onPress={() => setDay(value)}
+              />
+            ))}
+          </View>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            School period
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {["Any time", ...MEETING_PERIODS].map((value) => (
+              <Chip
+                key={value}
+                label={value}
+                active={period === value}
+                onPress={() => setPeriod(value)}
+              />
+            ))}
+          </View>
+          <Chip
+            label="Join without approval"
+            active={openOnly}
+            onPress={() => setOpenOnly((v) => !v)}
+          />
+          <Text className="text-xs text-light-muted dark:text-dark-muted">
+            For exact time ranges, use “Fits my schedule” and set your
+            availability.
+          </Text>
+          <Button
+            label={`Show ${data.length} clubs`}
+            iconRight="arrow-forward"
+            onPress={() => setShowFilters(false)}
+          />
+        </Card>
+      ) : null}
       {availableOnly ? (
         <Text className="pb-2 text-xs text-light-muted dark:text-dark-muted">
           Pacific time · Unknown meeting times are excluded.
         </Text>
       ) : null}
+      <View className="mt-3 gap-2">
+        <Text
+          accessibilityLiveRegion="polite"
+          className="text-sm font-bold text-light-text dark:text-dark-text"
+        >
+          {data.length} club{data.length === 1 ? "" : "s"} for you
+            {activeCount ? ` · ${activeCount} filter${activeCount === 1 ? "" : "s"}` : ""}
+        </Text>
+        <View className="flex-row flex-wrap gap-2">
+          {CLUB_SORTS.map((value) => (
+            <Chip
+              key={value}
+              label={value}
+              active={sort === value}
+              onPress={() => setSort(value)}
+            />
+          ))}
+        </View>
+        {sort === "Best fit" ? (
+          <Text className="text-xs text-light-muted dark:text-dark-muted">
+            {preferences.completed
+              ? "Ranked by your interests, goals and availability."
+              : "Set your preferences for a personalized ranking."}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 
