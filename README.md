@@ -57,6 +57,18 @@ president approves it and grants an exact set of permissions.
 existing clubs, transfer ownership, archive inactive clubs, and post
 school-wide announcements.
 
+**Messaging** is end-to-end encrypted on the client (NaCl via `tweetnacl`, with
+passphrase-protected key backups and identity verification), so the backend only
+stores ciphertext. See [docs/ENCRYPTED_MESSAGING.md](docs/ENCRYPTED_MESSAGING.md).
+
+## Tests
+
+```bash
+npm run typecheck
+npm test                 # discovery, auth errors, data failures, message crypto
+npm run test:backend     # backend security regression checks
+```
+
 ## Roles and permissions
 
 Two ladders, both enforced in Postgres:
@@ -117,6 +129,19 @@ app/                     expo-router routes
   search.tsx             platform-wide search
 src/data/                one repo per domain; every write returns {ok}|{error}
 src/context/             auth, clubs, memberships, notifications, toasts, theme
-src/lib/                 InsForge client, calendar (.ics / Google), push
+src/lib/                 InsForge client, calendar (.ics / Google), push, message crypto
 migrations/              InsForge SQL, applied in filename order
+scripts/                 test and verification scripts
+docs/                    audits, security notes, messaging, settings, UI notes
+backend/                 legacy Express/Prisma service (not used by the app)
 ```
+
+## Docs
+
+[Audit and features](docs/AUDIT_AND_FEATURES.md) ·
+[Backend security audit](docs/BACKEND_SECURITY_AUDIT.md) ·
+[Encrypted messaging](docs/ENCRYPTED_MESSAGING.md) ·
+[Email verification](docs/EMAIL_VERIFICATION.md) ·
+[Settings](docs/SETTINGS.md) ·
+[UI redesign](docs/UI_REDESIGN.md) ·
+[App Store readiness](docs/APP_STORE_READINESS.md)
