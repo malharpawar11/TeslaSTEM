@@ -58,6 +58,7 @@ interface RawDashboard {
 
 function toEvent(r: Record<string, unknown>): ClubEvent {
   return {
+    dateOnly: r.date_only === true,
     id: r.id as string,
     clubId: r.club_id as string,
     clubName: (r.club_name as string | undefined) ?? undefined,

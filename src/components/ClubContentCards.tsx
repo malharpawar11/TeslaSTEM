@@ -204,7 +204,7 @@ export function EventCard({
                 color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
               />
               <Text className="text-xs text-light-muted dark:text-dark-muted">
-                {formatEventDate(event.startsAt)} · {formatEventTime(event)}
+                {formatEventDate(event.startsAt)}{event.dateOnly ? '' : ` · ${formatEventTime(event)}`}
               </Text>
             </View>
             {event.location ? (

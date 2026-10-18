@@ -1,9 +1,5 @@
 import { insforge } from "@/lib/insforge";
-import {
-  currentUserId,
-  NOT_CONFIGURED,
-  type RpcResult,
-} from "./result";
+import { currentUserId, NOT_CONFIGURED, type RpcResult } from "./result";
 import type {
   Announcement,
   ClubEvent,
@@ -90,16 +86,14 @@ export async function createAnnouncement(
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
   const uid = await currentUserId();
   if (!uid) return { ok: false, error: "Sign in to post an announcement." };
-  const { error } = await insforge.database
-    .from("announcements")
-    .insert([
-      {
-        club_id: clubId,
-        title: title.trim(),
-        body: body.trim(),
-        created_by: uid,
-      },
-    ]);
+  const { error } = await insforge.database.from("announcements").insert([
+    {
+      club_id: clubId,
+      title: title.trim(),
+      body: body.trim(),
+      created_by: uid,
+    },
+  ]);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
@@ -132,9 +126,10 @@ export async function deleteAnnouncement(id: string): Promise<RpcResult> {
 // ---------------------------------------------------------------------------
 
 const EVENT_COLUMNS =
-  "id, club_id, title, description, event_type, starts_at, ends_at, location, organizer, status";
+  "id, club_id, title, description, event_type, starts_at, ends_at, location, organizer, status, date_only";
 
 interface DbEvent {
+  date_only?: boolean;
   id: string;
   club_id: string;
   title: string;
@@ -150,6 +145,7 @@ interface DbEvent {
 
 function toEvent(row: DbEvent): ClubEvent {
   return {
+    dateOnly: row.date_only ?? false,
     id: row.id,
     clubId: row.club_id,
     clubName: row.clubs?.name,

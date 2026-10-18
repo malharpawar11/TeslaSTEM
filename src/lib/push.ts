@@ -68,7 +68,7 @@ export async function registerForPush(): Promise<{ ok: boolean; error?: string }
  * id so the caller can cancel it if the event moves or is cancelled.
  */
 export async function scheduleEventReminder(event: ClubEvent): Promise<string | null> {
-  if (Platform.OS === 'web' || event.status === 'cancelled') return null;
+  if (Platform.OS === 'web' || event.status === 'cancelled' || event.dateOnly) return null;
   const fireAt = new Date(new Date(event.startsAt).getTime() - REMINDER_LEAD_MINUTES * 60 * 1000);
   if (isNaN(fireAt.getTime()) || fireAt.getTime() <= Date.now()) return null;
   try {

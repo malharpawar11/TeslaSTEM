@@ -6,7 +6,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-discovery.cjs && node scripts/test-auth-errors.cjs && node scripts/test-data-failures.cjs && node scripts/test-message-crypto.cjs",
+    "test": "node scripts/test-discovery.cjs && node scripts/test-auth-errors.cjs && node scripts/test-data-failures.cjs && node scripts/test-message-crypto.cjs && node scripts/test-date-only-calendar.cjs",
     "test:backend": "node scripts/test-backend.cjs"
   },
   "dependencies": {

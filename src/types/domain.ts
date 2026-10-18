@@ -94,6 +94,7 @@ export interface Officer {
 export type EventStatus = 'scheduled' | 'cancelled';
 
 export interface ClubEvent {
+  dateOnly?: boolean;
   id: string;
   clubId: string;
   clubName?: string;

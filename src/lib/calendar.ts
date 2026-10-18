@@ -44,10 +44,19 @@ export function eventDescription(event: ClubEvent): string {
 }
 
 export function googleCalendarUrl(event: ClubEvent): string {
+  const date = schoolDayKey(event.startsAt).replace(/-/g, "");
+  const nextDate = new Date(
+    Date.parse(`${schoolDayKey(event.startsAt)}T00:00:00Z`) + 86400000,
+  )
+    .toISOString()
+    .slice(0, 10)
+    .replace(/-/g, "");
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: event.clubName ? `${event.title}: ${event.clubName}` : event.title,
-    dates: `${toCalendarStamp(event.startsAt)}/${toCalendarStamp(endOf(event))}`,
+    dates: event.dateOnly
+      ? `${date}/${nextDate}`
+      : `${toCalendarStamp(event.startsAt)}/${toCalendarStamp(endOf(event))}`,
     details: eventDescription(event),
     location: event.location ?? "",
   });
@@ -71,8 +80,12 @@ export function buildIcs(
       "BEGIN:VEVENT",
       `UID:${event.id}@teslastemclubs`,
       `DTSTAMP:${toCalendarStamp(new Date().toISOString())}`,
-      `DTSTART:${toCalendarStamp(event.startsAt)}`,
-      `DTEND:${toCalendarStamp(endOf(event))}`,
+      event.dateOnly
+        ? `DTSTART;VALUE=DATE:${schoolDayKey(event.startsAt).replace(/-/g, "")}`
+        : `DTSTART:${toCalendarStamp(event.startsAt)}`,
+      event.dateOnly
+        ? `DTEND;VALUE=DATE:${new Date(Date.parse(`${schoolDayKey(event.startsAt)}T00:00:00Z`) + 86400000).toISOString().slice(0, 10).replace(/-/g, "")}`
+        : `DTEND:${toCalendarStamp(endOf(event))}`,
       `SUMMARY:${escapeIcs(event.clubName ? `${event.title}: ${event.clubName}` : event.title)}`,
       `DESCRIPTION:${escapeIcs(eventDescription(event))}`,
       `LOCATION:${escapeIcs(event.location ?? "")}`,
@@ -146,7 +159,9 @@ export function formatEventDate(iso: string): string {
 export function formatEventTime(event: {
   startsAt: string;
   endsAt: string | null;
+  dateOnly?: boolean;
 }): string {
+  if (event.dateOnly) return "";
   const start = new Date(event.startsAt);
   if (isNaN(start.getTime())) return "";
   const fmt = (d: Date) =>
