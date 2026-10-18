@@ -184,6 +184,7 @@ function AccountDashboard() {
       </View>
 
       <View className="mt-5">
+        <Button label="Edit student profile" variant="ghost" onPress={() => router.push('/student-profile')} />
         <Button
           label="Settings"
           icon="settings-outline"

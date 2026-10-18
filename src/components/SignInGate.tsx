@@ -9,6 +9,7 @@ import { Button, Card, Input, PressableScale } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { brand, semantic } from "@/theme/tokens";
+import { StudentProfileGate } from './StudentProfileGate';
 
 // Client-side LWSD gate. The database enforces the same rule independently:
 // a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses, so this
@@ -83,7 +84,7 @@ export function SignInGate({
         </Text>
       </View>
     );
-  if (session) return <>{children}</>;
+  if (session) return <StudentProfileGate key={session.user.id}>{children}</StudentProfileGate>;
   // Brief: the initial session restore is still in flight.
   if (loading) return <View className="flex-1 bg-light-bg dark:bg-dark-bg" />;
 
