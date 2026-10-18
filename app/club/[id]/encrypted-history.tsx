@@ -252,7 +252,6 @@ function Conversation() {
                     label="Message"
                     variant="secondary"
                     onPress={() => {
-                      setBody("");
                       setPeer(contact.user_id);
                     }}
                   />

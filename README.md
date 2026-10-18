@@ -57,9 +57,11 @@ president approves it and grants an exact set of permissions.
 existing clubs, transfer ownership, archive inactive clubs, and post
 school-wide announcements.
 
-**Messaging** is end-to-end encrypted on the client (NaCl via `tweetnacl`, with
-passphrase-protected key backups and identity verification), so the backend only
-stores ciphertext. See [docs/ENCRYPTED_MESSAGING.md](docs/ENCRYPTED_MESSAGING.md).
+**Messaging** uses verified accounts without a separate passphrase. Students can
+search names, unique handles, or an exact school email, then exchange live
+messages. New messages are not end-to-end encrypted; participant-only access is
+enforced by the backend. See [docs/DIRECT_MESSAGING.md](docs/DIRECT_MESSAGING.md).
+Older encrypted conversations remain available in a read-only archive.
 
 ## Tests
 
@@ -121,7 +123,7 @@ Grantable permissions: `announcements`, `events`, `files`, `notes`, `members`,
 
 ```
 app/                     expo-router routes
-  (tabs)/                Home · Clubs · Calendar · Alerts · Profile
+  (tabs)/                Home · Clubs · Calendar · Alerts · Messages · Profile
   club/[id]/index.tsx    club profile + member area
   club/[id]/manage.tsx   club admin dashboard
   club/new.tsx           submit a club for approval
@@ -140,6 +142,7 @@ backend/                 legacy Express/Prisma service (not used by the app)
 
 [Audit and features](docs/AUDIT_AND_FEATURES.md) ·
 [Backend security audit](docs/BACKEND_SECURITY_AUDIT.md) ·
+[Direct messaging](docs/DIRECT_MESSAGING.md) ·
 [Encrypted messaging](docs/ENCRYPTED_MESSAGING.md) ·
 [Email verification](docs/EMAIL_VERIFICATION.md) ·
 [Settings](docs/SETTINGS.md) ·

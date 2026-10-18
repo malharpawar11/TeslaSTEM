@@ -33,4 +33,6 @@ assert(ics.includes("DTSTART;VALUE=DATE:20261024"));
 assert(ics.includes("DTEND;VALUE=DATE:20261025"));
 assert(!ics.includes("DTSTART:"));
 assert(out.formatEventTime({ ...event, dateOnly: false }));
+assert(out.upcomingEventFilter(12, Date.parse('2026-10-25T06:30:00Z')).includes('date_only.eq.true,starts_at.gte.2026-10-24T07:00:00.000Z'));
+assert(out.upcomingEventFilter(12, Date.parse('2026-11-02T07:30:00Z')).includes('date_only.eq.true,starts_at.gte.2026-11-01T07:00:00.000Z'));
 console.log("Date-only FLC display and Google/ICS calendar export passed.");

@@ -1,4 +1,5 @@
 import { insforge } from "@/lib/insforge";
+import { upcomingEventFilter } from '@/lib/calendar';
 import { currentUserId, NOT_CONFIGURED, type RpcResult } from "./result";
 import type {
   Announcement,
@@ -170,10 +171,7 @@ export async function fetchClubEvents(
     .select(EVENT_COLUMNS)
     .eq("club_id", clubId);
   if (!includePast) {
-    query = query.gte(
-      "starts_at",
-      new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    );
+    query = query.or(upcomingEventFilter(2));
   }
   const { data, error } = await query
     .order("starts_at", { ascending: true })
@@ -190,7 +188,7 @@ export async function fetchUpcomingEvents(limit = 100): Promise<ClubEvent[]> {
     .from("club_events")
     .select(`${EVENT_COLUMNS}, clubs:club_id(name)`)
     .eq("status", "scheduled")
-    .gte("starts_at", new Date(Date.now() - 12 * 3600 * 1000).toISOString())
+    .or(upcomingEventFilter(12))
     .order("starts_at", { ascending: true })
     .limit(limit);
   if (error || !data)

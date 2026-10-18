@@ -1,6 +1,14 @@
 import { Platform, Linking, Share } from "react-native";
 import type { ClubEvent } from "@/types/domain";
 
+/** Timed events retain their grace window; date-only entries stay for the whole school day. */
+export function upcomingEventFilter(hours: number, now = Date.now()): string {
+  const cutoff = new Date(now - hours * 3600000).toISOString();
+  const todayStart = fromSchoolInput(`${schoolDayKey(new Date(now).toISOString())}T00:00`);
+  if (!todayStart) throw new Error('Could not determine the school calendar day');
+  return `starts_at.gte.${cutoff},and(date_only.eq.true,starts_at.gte.${todayStart})`;
+}
+
 /**
  * "Add to calendar" without asking for calendar permissions.
  *
