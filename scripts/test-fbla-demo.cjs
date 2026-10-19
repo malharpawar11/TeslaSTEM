@@ -51,6 +51,10 @@ async function main() {
   vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/data/clubsRepo.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:repo,require:name=>name==='@/lib/insforge'?{insforge:member.sdk,isInsforgeConfigured:true}:name==='@/types/domain'?{CATEGORIES:['Business']}:{}});
   const officers=await repo.fetchClubOfficers(club);
   assert(officers.some(o=>o.userId===president.id&&o.role==='President'),'Member club leadership query failed');
+  const loadRepo=(path,deps)=>{const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,require:name=>{if(!(name in deps))throw Error('Unexpected dependency '+name);return deps[name];}});return exports;};
+  const result=loadRepo('src/data/result.ts',{'@/lib/insforge':{insforge:president.sdk}});
+  assert.equal(await result.currentUserId(),president.id,'Actual app identity helper failed');
+  const content=loadRepo('src/data/contentRepo.ts',{'@/lib/insforge':{insforge:president.sdk},'./result':result,'@/lib/calendar':{}});
   let announcementId, eventId;
   const waitFor = (actor, area) =>
     new Promise((resolve, reject) => {
@@ -89,19 +93,11 @@ async function main() {
       waitFor(member, "announcements"),
       waitFor(member2, "announcements"),
     ];
-    const announcement = await president.sdk.database
-      .from("announcements")
-      .insert([
-        {
-          club_id: club,
-          title: "Recording validation announcement",
-          body: "Two demo members must receive this.",
-          created_by: president.id,
-        },
-      ])
-      .select("id");
-    assert.equal(announcement.error, null, announcement.error?.message);
-    announcementId = announcement.data[0].id;
+    const posted=await content.createAnnouncement(club,'Recording validation announcement','Two demo members must receive this.');
+    assert.equal(posted.ok,true,posted.error);
+    const announcement=await president.sdk.database.from('announcements').select('id').eq('club_id',club).eq('title','Recording validation announcement').single();
+    assert.equal(announcement.error,null,announcement.error?.message);
+    announcementId=announcement.data.id;
     await Promise.all(announcementUpdates);
     for (const a of [member, member2]) {
       const r = await a.sdk.database
@@ -119,22 +115,11 @@ async function main() {
       waitFor(member, "events"),
       waitFor(member2, "events"),
     ];
-    const event = await president.sdk.database
-      .from("club_events")
-      .insert([
-        {
-          club_id: club,
-          title: "Recording validation event",
-          event_type: "Meeting",
-          starts_at: "2026-11-19T19:15:00Z",
-          ends_at: "2026-11-19T19:45:00Z",
-          location: "Wrenchey's Room",
-          created_by: president.id,
-        },
-      ])
-      .select("id");
-    assert.equal(event.error, null, event.error?.message);
-    eventId = event.data[0].id;
+    const created=await content.createEvent(club,{title:'Recording validation event',description:'Test',eventType:'Meeting',startsAt:'2026-11-19T19:15:00Z',endsAt:'2026-11-19T19:45:00Z',location:"Wrenchey's Room",organizer:'FBLA'});
+    assert.equal(created.ok,true,created.error);
+    const event=await president.sdk.database.from('club_events').select('id').eq('club_id',club).eq('title','Recording validation event').single();
+    assert.equal(event.error,null,event.error?.message);
+    eventId=event.data.id;
     await Promise.all(eventUpdates);
     for (const a of [member, member2]) {
       const r = await a.sdk.database

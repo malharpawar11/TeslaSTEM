@@ -34,6 +34,10 @@ export async function callRpcValue<T>(
 /** The signed-in user's id, or null when signed out. */
 export async function currentUserId(): Promise<string | null> {
   if (!insforge) return null;
-  const { data } = await insforge.auth.getCurrentUser();
-  return data?.user?.id ?? null;
+  // Resolve the actor from the authenticated database request, rather than
+  // depending on the auth endpoint's version-specific user response shape.
+  try {
+    const { data, error } = await insforge.database.rpc('current_account_id');
+    return !error && typeof data === 'string' ? data : null;
+  } catch { return null; }
 }
