@@ -46,6 +46,11 @@ async function main() {
   }
   const { president, member, member2 } = actors,
     club = saved.clubId;
+  // Exercise the actual repository query: club_members has both user/reviewer FKs.
+  const ts=require('typescript'),vm=require('node:vm'),repo={};
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/data/clubsRepo.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:repo,require:name=>name==='@/lib/insforge'?{insforge:member.sdk,isInsforgeConfigured:true}:name==='@/types/domain'?{CATEGORIES:['Business']}:{}});
+  const officers=await repo.fetchClubOfficers(club);
+  assert(officers.some(o=>o.userId===president.id&&o.role==='President'),'Member club leadership query failed');
   let announcementId, eventId;
   const waitFor = (actor, area) =>
     new Promise((resolve, reject) => {

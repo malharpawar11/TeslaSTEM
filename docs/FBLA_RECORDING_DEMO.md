@@ -25,6 +25,7 @@ These are in-app calendar updates. Downloaded ICS files and events manually adde
 - `scripts/test-fbla-demo.cjs` validated actual announcement/event publishing, delivery to both members, member calendar/dashboard visibility, notifications, edits/cancellations, blocked member publishing, and rejected anonymous/cross-account subscriptions. It cleans up its validation content.
 - `scripts/test-recording-demo.cjs` verifies that the demo flag cannot enable demo presentation on the production backend or an unrelated project.
 - Fixed the preferences-loading race that could send an already-onboarded account back into the onboarding survey at sign-in.
+- Fixed the ambiguous user/reviewer profile join in the leadership query, which previously prevented the club's announcement/event content from loading. The backend test exercises the actual repository query.
 
 ## Maintenance
 

@@ -104,7 +104,7 @@ export async function fetchClubOfficers(
   if (!insforge) return [];
   const { data, error } = await insforge.database
     .from("club_members")
-    .select("user_id, role, position, profiles(display_name, email)")
+    .select("user_id, role, position, profiles!club_members_user_id_fkey(display_name, email)")
     .eq("club_id", clubId)
     .eq("status", "active")
     .in("role", ["president", "board"])
