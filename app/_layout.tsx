@@ -19,6 +19,9 @@ import { MembershipProvider } from "@/context/MembershipContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { APP_MAX_WIDTH } from "@/theme/layout";
+import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { isRecordingDemo } from "@/lib/recordingDemo";
 
 cssInterop(GestureHandlerRootView, { className: "style" });
 
@@ -62,6 +65,13 @@ function RootStack() {
       }
     >
       <StatusBar style={isDark ? "light" : "dark"} />
+      {isRecordingDemo ? (
+        <View className="bg-python-blue px-4 py-1">
+          <Text className="text-center text-xs text-white">
+            FBLA recording demo · isolated accounts and data
+          </Text>
+        </View>
+      ) : null}
       <Stack
         screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       >
@@ -87,19 +97,21 @@ export default function RootLayout() {
         <ThemeProvider>
           <AccessibilityProvider>
             <AuthProvider>
-              <MessagingProvider>
-                <PreferencesProvider>
-                  <ClubsProvider>
-                    <MembershipProvider>
-                      <ToastProvider>
-                        <NotificationsProvider>
-                          <RootStack />
-                        </NotificationsProvider>
-                      </ToastProvider>
-                    </MembershipProvider>
-                  </ClubsProvider>
-                </PreferencesProvider>
-              </MessagingProvider>
+              <CampusUpdatesProvider>
+                <MessagingProvider>
+                  <PreferencesProvider>
+                    <ClubsProvider>
+                      <MembershipProvider>
+                        <ToastProvider>
+                          <NotificationsProvider>
+                            <RootStack />
+                          </NotificationsProvider>
+                        </ToastProvider>
+                      </MembershipProvider>
+                    </ClubsProvider>
+                  </PreferencesProvider>
+                </MessagingProvider>
+              </CampusUpdatesProvider>
             </AuthProvider>
           </AccessibilityProvider>
         </ThemeProvider>

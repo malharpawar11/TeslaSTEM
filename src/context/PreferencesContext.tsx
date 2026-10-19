@@ -26,11 +26,15 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   current.current = userId;
   const [preferences, setPreferences] = useState(EMPTY_PREFERENCES);
   const [loading, setLoading] = useState(true);
+  const [resolvedUser, setResolvedUser] = useState<string | undefined>(
+    undefined,
+  );
   const [error, setError] = useState<string | null>(null);
   const refresh = useCallback(async () => {
     setPreferences(EMPTY_PREFERENCES);
     setError(null);
     if (!userId) {
+      setResolvedUser(undefined);
       setLoading(false);
       return;
     }
@@ -44,7 +48,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (current.current === userId)
         setError("Could not load your club preferences.");
     } finally {
-      if (current.current === userId) setLoading(false);
+      if (current.current === userId) {
+        setResolvedUser(userId);
+        setLoading(false);
+      }
     }
   }, [userId]);
   useEffect(() => {
@@ -73,9 +80,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   return (
     <Context.Provider
       value={{
-        preferences,
-        loading: loading || authLoading,
-        error,
+        preferences: resolvedUser === userId ? preferences : EMPTY_PREFERENCES,
+        loading: loading || authLoading || resolvedUser !== userId,
+        error: resolvedUser === userId ? error : null,
         refresh,
         save,
       }}

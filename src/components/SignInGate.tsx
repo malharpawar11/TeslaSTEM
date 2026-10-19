@@ -9,7 +9,7 @@ import { Button, Card, Input, PressableScale } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { brand, semantic } from "@/theme/tokens";
-import { StudentProfileGate } from './StudentProfileGate';
+import { StudentProfileGate } from "./StudentProfileGate";
 
 // Client-side LWSD gate. The database enforces the same rule independently:
 // a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses, so this
@@ -28,6 +28,8 @@ interface SignInGateProps {
   /** Short reason shown above the form, e.g. "Sign in to submit a club". */
   title?: string;
   subtitle?: string;
+  initialEmail?: string;
+  allowSignUp?: boolean;
 }
 
 /**
@@ -44,6 +46,8 @@ export function SignInGate({
   children,
   title = "Sign in to continue",
   subtitle = "Use your Lake Washington School District (@lwsd.org) account.",
+  initialEmail = "",
+  allowSignUp = true,
 }: SignInGateProps) {
   const {
     configured,
@@ -57,7 +61,7 @@ export function SignInGate({
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>("signIn");
   const [step, setStep] = useState<Step>("form");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +88,10 @@ export function SignInGate({
         </Text>
       </View>
     );
-  if (session) return <StudentProfileGate key={session.user.id}>{children}</StudentProfileGate>;
+  if (session)
+    return (
+      <StudentProfileGate key={session.user.id}>{children}</StudentProfileGate>
+    );
   // Brief: the initial session restore is still in flight.
   if (loading) return <View className="flex-1 bg-light-bg dark:bg-dark-bg" />;
 
@@ -244,30 +251,32 @@ export function SignInGate({
                       Sign in
                     </Text>
                   </PressableScale>
-                  <PressableScale
-                    onPress={() => {
-                      setMode("signUp");
-                      setError(null);
-                      setNotice(null);
-                    }}
-                    className={`flex-1 items-center rounded-lg py-2 ${
-                      mode === "signUp"
-                        ? "bg-light-surface dark:bg-dark-surface"
-                        : ""
-                    }`}
-                    accessibilityRole="button"
-                    accessibilityLabel="Sign up"
-                  >
-                    <Text
-                      className={`text-sm font-semibold ${
+                  {allowSignUp ? (
+                    <PressableScale
+                      onPress={() => {
+                        setMode("signUp");
+                        setError(null);
+                        setNotice(null);
+                      }}
+                      className={`flex-1 items-center rounded-lg py-2 ${
                         mode === "signUp"
-                          ? "text-python-blue-dark dark:text-python-blue-light"
-                          : "text-light-muted dark:text-dark-muted"
+                          ? "bg-light-surface dark:bg-dark-surface"
+                          : ""
                       }`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Sign up"
                     >
-                      Sign up
-                    </Text>
-                  </PressableScale>
+                      <Text
+                        className={`text-sm font-semibold ${
+                          mode === "signUp"
+                            ? "text-python-blue-dark dark:text-python-blue-light"
+                            : "text-light-muted dark:text-dark-muted"
+                        }`}
+                      >
+                        Sign up
+                      </Text>
+                    </PressableScale>
+                  ) : null}
                 </View>
 
                 <Input

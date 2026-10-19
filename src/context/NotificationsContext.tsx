@@ -21,6 +21,7 @@ import {
   type PrefsRow,
 } from "@/data/notificationsRepo";
 import { setBadgeCount } from "@/lib/push";
+import { useCampusUpdates } from "./CampusUpdatesContext";
 import type { AppNotification, NotificationPrefs } from "@/types/domain";
 
 /**
@@ -52,6 +53,11 @@ const NotificationsContext = createContext<
 >(undefined);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const {
+    events: eventVersion,
+    announcements: announcementVersion,
+    reconnected,
+  } = useCampusUpdates();
   const { session } = useAuth();
   const { toast } = useToast();
   const userId = session?.user?.id ?? null;
@@ -103,6 +109,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setError(null);
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (userId) void refresh();
+  }, [userId, refresh, eventVersion, announcementVersion, reconnected]);
 
   // Coming back from the background is the moment the inbox is most likely
   // stale, and it costs one request.

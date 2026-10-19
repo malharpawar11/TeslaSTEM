@@ -17,6 +17,7 @@ import { dayLabel, downloadIcs, schoolDayKey } from "@/lib/calendar";
 import { scheduleEventReminder } from "@/lib/push";
 import { brand } from "@/theme/tokens";
 import type { ClubEvent } from "@/types/domain";
+import { useCampusUpdates } from "@/context/CampusUpdatesContext";
 
 type Scope = "My clubs" | "All clubs";
 
@@ -28,6 +29,7 @@ type Scope = "My clubs" | "All clubs";
  * card still offers a single-event Google/ICS add.
  */
 export default function CalendarScreen() {
+  const { events: eventsVersion, reconnected } = useCampusUpdates();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { toast } = useToast();
@@ -58,7 +60,7 @@ export default function CalendarScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
-    }, [load]),
+    }, [load, eventsVersion, reconnected]),
   );
 
   const onRefresh = useCallback(async () => {

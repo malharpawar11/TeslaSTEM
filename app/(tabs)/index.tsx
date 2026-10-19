@@ -231,7 +231,14 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
   );
 }
 
+import { useCampusUpdates } from "@/context/CampusUpdatesContext";
+
 function DashboardScreen() {
+  const {
+    events: eventVersion,
+    announcements: announcementVersion,
+    reconnected,
+  } = useCampusUpdates();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile } = useAuth();
@@ -267,7 +274,7 @@ function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
-    }, [load]),
+    }, [load, eventVersion, announcementVersion, reconnected]),
   );
 
   const onRefresh = useCallback(async () => {

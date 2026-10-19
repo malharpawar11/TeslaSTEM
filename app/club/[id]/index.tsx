@@ -57,6 +57,7 @@ import {
   type Officer,
 } from "@/types/domain";
 import { brand, palette, semantic } from "@/theme/tokens";
+import { useCampusUpdates } from "@/context/CampusUpdatesContext";
 
 /**
  * A club's public profile and, once a student joins, its member area.
@@ -285,13 +286,15 @@ export default function ClubProfileScreen() {
     setLoading(true);
   }, [clubId, session?.user.id]);
 
+  const { clubs: clubUpdates, reconnected } = useCampusUpdates();
+  const contentVersion = clubUpdates[clubId] ?? 0;
   useFocusEffect(
     useCallback(() => {
       void load();
       return () => {
         ++loadGeneration.current;
       };
-    }, [load]),
+    }, [load, contentVersion, reconnected]),
   );
 
   const tabs = useMemo(
