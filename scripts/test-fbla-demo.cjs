@@ -55,6 +55,65 @@ async function main() {
   const result=loadRepo('src/data/result.ts',{'@/lib/insforge':{insforge:president.sdk}});
   assert.equal(await result.currentUserId(),president.id,'Actual app identity helper failed');
   const content=loadRepo('src/data/contentRepo.ts',{'@/lib/insforge':{insforge:president.sdk},'./result':result,'@/lib/calendar':{},'@/lib/canvasAnnouncements':loadRepo('src/lib/canvasAnnouncements.ts',{})});
+  const guest = createClient({ baseUrl: config.oss_host, anonKey, isServerMode: true });
+  const publicSearch = await guest.database.rpc("search_platform", {
+    p_query: "FBLA",
+  });
+  assert.equal(publicSearch.error, null, publicSearch.error?.message);
+  assert(publicSearch.data.clubs.some((row) => row.id === club));
+  assert.deepEqual(publicSearch.data.files, []);
+  assert.deepEqual(publicSearch.data.notes, []);
+  for (const name of ["my_app_role", "is_special_admin", "can_admin_club", "is_club_member", "has_club_permission"]) {
+    const args = name === "has_club_permission" ? { c: club, perm: "members" } :
+      ["can_admin_club", "is_club_member"].includes(name) ? { c: club } : {};
+    assert((await guest.database.rpc(name, args)).error, `Guest can call ${name}`);
+  }
+  for (const actor of [president, member]) {
+    const result = await actor.sdk.database.rpc("my_club_access", { p_club_id: club });
+    assert.equal(result.error, null, result.error?.message);
+    assert.equal(result.data.is_member, true);
+    assert.equal(result.data.can_admin, actor === president);
+  }
+  const claims = await actors.admin.sdk.database.rpc("list_club_claims");
+  assert.equal(claims.error, null, claims.error?.message);
+  const otherClaims = await member.sdk.database.rpc("list_club_claims");
+  assert.equal(otherClaims.error, null, otherClaims.error?.message);
+  assert.deepEqual(otherClaims.data, []);
+  assert((await member.sdk.database.rpc("approve_club", { p_club_id: club })).error);
+  assert((await member.sdk.database.from("club_members").update({ role: "president" }).eq("user_id", member.id).eq("club_id", club)).error);
+  for (const table of ["club_messages", "direct_messages", "message_identity_keys", "message_blocks", "student_directory"]) {
+    assert((await member.sdk.database.from(table).select("*").limit(1)).error, `Archived ${table} is readable`);
+  }
+  const ownPrefs = await member.sdk.database.from("student_preferences").select("interests,careers,availability,completed").eq("user_id", member.id).single();
+  assert.equal(ownPrefs.error, null, ownPrefs.error?.message);
+  const samePrefs = await member.sdk.database.rpc("save_student_preferences", {
+    p_interests: ownPrefs.data.interests, p_careers: ownPrefs.data.careers,
+    p_availability: ownPrefs.data.availability, p_completed: ownPrefs.data.completed,
+  });
+  assert.equal(samePrefs.error, null, samePrefs.error?.message);
+  const badPrefs = await member.sdk.database.from("student_preferences").update({ availability: [{ day: "Not a weekday" }] }).eq("user_id", member.id);
+  assert.match(badPrefs.error?.message ?? "", /Invalid weekday/);
+  const foreignPrefs = await member.sdk.database.from("student_preferences").select("user_id").eq("user_id", member2.id);
+  assert.deepEqual(foreignPrefs.data, []);
+  const forgedReview = await member.sdk.database.from("club_reviews").insert([
+    { club_id: club, user_id: member2.id, rating: 5, body: "Forged authorization test" },
+  ]);
+  assert(forgedReview.error, "Member can impersonate another reviewer");
+  const ownReview = await member.sdk.database.from("club_reviews").select("rating,body").eq("club_id", club).eq("user_id", member.id).maybeSingle();
+  assert.equal(ownReview.error, null, ownReview.error?.message);
+  try {
+    const savedReview = await member.sdk.database.rpc("save_club_review", {
+      p_club_id: club, p_rating: ownReview.data?.rating ?? 5,
+      p_body: ownReview.data?.body ?? "Temporary authorization test review",
+    });
+    assert.equal(savedReview.error, null, savedReview.error?.message);
+    const reviews = await guest.database.rpc("club_reviews_public", { p_club_id: club });
+    assert.equal(reviews.error, null, reviews.error?.message);
+    assert(reviews.data.some((row) => row.user_id === member.id));
+    assert(reviews.data.every((row) => !("email" in row)));
+  } finally {
+    if (!ownReview.data) await member.sdk.database.from("club_reviews").delete().eq("club_id", club).eq("user_id", member.id);
+  }
   let announcementId, eventId;
   const waitFor = (actor, area) =>
     new Promise((resolve, reject) => {
@@ -143,6 +202,17 @@ async function main() {
         .eq("entity_id", eventId);
       assert(n.data?.length, "Event notification missing");
     }
+    const inbox = await member.sdk.database.from("notifications").select("id").eq("entity_id", eventId).single();
+    assert.equal(inbox.error, null, inbox.error?.message);
+    assert((await member.sdk.database.from("notifications").update({ title: "Forged" }).eq("id", inbox.data.id)).error);
+    const otherRead = await member2.sdk.database.rpc("mark_notifications_read", { p_ids: [inbox.data.id] });
+    assert.equal(otherRead.error, null, otherRead.error?.message);
+    const stillUnread = await member.sdk.database.from("notifications").select("read_at").eq("id", inbox.data.id).single();
+    assert.equal(stillUnread.data?.read_at, null);
+    const marked = await member.sdk.database.rpc("mark_notifications_read", { p_ids: [inbox.data.id] });
+    assert.equal(marked.error, null, marked.error?.message);
+    const nowRead = await member.sdk.database.from("notifications").select("read_at").eq("id", inbox.data.id).single();
+    assert(nowRead.data?.read_at, "Owner could not mark their notification read");
     const edits = [waitFor(member, "events"), waitFor(member2, "events")];
     const edited = await president.sdk.database
       .from("club_events")
@@ -228,7 +298,7 @@ async function main() {
     const rejection = await publishDenied;
     assert(rejection, "Clients cannot forge broadcasts");
     console.log(
-      "FBLA demo passed: president announcement/event publishing, both members live delivery, club feed, personal calendars, notifications, edits/cancellations, and denied member publishing/private-channel access.",
+      "FBLA demo passed: president announcement/event publishing, both members live delivery, club feed, personal calendars, notifications, edits/cancellations, and denied member publishing, private-channel access, archived messaging, privilege escalation, and cross-user notification updates.",
     );
   } finally {
     if (announcementId)
