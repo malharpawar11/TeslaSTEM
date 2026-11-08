@@ -171,6 +171,7 @@ function Hero() {
  * -------------------------------------------------------------------------- */
 function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
   const router = useRouter();
+  const { wide } = useWebsiteLayout();
   if (dashboard.clubs.length === 0) {
     return (
       <EmptyState
@@ -183,12 +184,8 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
       />
     );
   }
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 10 }}
-    >
+  const clubs = (
+    <>
       {dashboard.clubs.map((club) => (
         <PressableScale
           key={club.id}
@@ -223,6 +220,13 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
           </Text>
         </PressableScale>
       ))}
+    </>
+  );
+  return wide ? (
+    <View className="flex-row flex-wrap gap-3">{clubs}</View>
+  ) : (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+      {clubs}
     </ScrollView>
   );
 }
@@ -406,6 +410,8 @@ function DashboardScreen() {
             </Animated.View>
           ) : null}
 
+          <View className={wide && dashboard.events.length > 0 && (dashboard.announcements.length > 0 || dashboard.files.length > 0) ? "flex-row items-start" : ""}>
+          <View className={wide && dashboard.events.length > 0 ? "min-w-0 flex-1" : ""}>
           {dashboard.events.length > 0 ? (
             <View className="px-5 pt-6">
               <SectionHeader
@@ -429,6 +435,8 @@ function DashboardScreen() {
             </View>
           ) : null}
 
+          </View>
+          <View className={wide && (dashboard.announcements.length > 0 || dashboard.files.length > 0) ? "min-w-0 flex-1" : ""}>
           {dashboard.announcements.length > 0 ? (
             <View className="px-5 pt-6">
               <SectionHeader title="Announcements" size="sm" />
@@ -455,6 +463,8 @@ function DashboardScreen() {
             </View>
           ) : null}
 
+          </View>
+          </View>
           {nothingNew ? (
             <View className="px-5 pt-8">
               <EmptyState
