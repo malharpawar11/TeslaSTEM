@@ -20,3 +20,7 @@ Key patterns:
 - Reference users with `auth.users(id)`; use `auth.uid()` in RLS policies.
 - For storage uploads, persist both the returned `url` and `key`.
 <!-- INSFORGE:END -->
+
+## Design
+
+Read `DESIGN.md` before changing any screen. It defines the type, colour, spacing, motion and prohibitions for this site.

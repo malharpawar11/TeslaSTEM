@@ -28,7 +28,7 @@ export function FilterSection({
         <Pressable
           onPress={() => setOpen((v) => !v)}
           accessibilityRole="button"
-          accessibilityState={{ expanded: open }}
+          aria-expanded={open}
           accessibilityLabel={summary ? `${title}: ${summary}` : title}
           className="min-h-11 flex-row items-center justify-between gap-3"
         >

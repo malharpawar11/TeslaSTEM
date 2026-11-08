@@ -75,7 +75,7 @@ function CareerOption({
       onPress={onPress}
       {...hoverProps}
       accessibilityRole="radio"
-      accessibilityState={{ checked: active }}
+      aria-checked={active}
       accessibilityLabel={label}
       className="min-h-10 flex-row items-center gap-2.5"
     >
@@ -578,7 +578,7 @@ export default function BrowseScreen() {
                   key={f}
                   onPress={() => setFilter(f)}
                   accessibilityRole="radio"
-                  accessibilityState={{ checked: filter === f }}
+                  aria-checked={filter === f}
                   accessibilityLabel={`${f}, ${counts[f] ?? 0} clubs`}
                   className="min-h-12 flex-row items-start"
                   style={[

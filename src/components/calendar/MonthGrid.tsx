@@ -66,7 +66,7 @@ const Day = memo(function Day({
       {...hoverProps}
       accessibilityRole="button"
       accessibilityLabel={`${label(dateKey, { weekday: "long", month: "long", day: "numeric" })}${today ? ", today" : ""}, ${count ? `${count} ${count === 1 ? "event" : "events"}${deadlines ? `, ${deadlines} ${deadlines === 1 ? "deadline" : "deadlines"}` : ""}` : "no events"}`}
-      accessibilityState={{ selected }}
+      aria-pressed={selected}
       className={`border-b border-light-hairline p-1.5 dark:border-dark-hairline ${hovered && !selected ? "bg-light-surface-2 dark:bg-dark-surface" : ""}`}
       style={[
         { height },

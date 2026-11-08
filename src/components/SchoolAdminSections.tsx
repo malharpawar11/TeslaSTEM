@@ -364,7 +364,7 @@ export function ClubLifecycleSection({ clubs }: { clubs: Club[] }) {
               key={club.id}
               onPress={() => setSelectedId(club.id)}
               accessibilityRole="button"
-              accessibilityState={{ selected: selectedId === club.id }}
+              aria-pressed={selectedId === club.id}
               scaleTo={0.96}
               className={`h-8 items-center justify-center rounded-full px-3 ${
                 selectedId === club.id

@@ -12,7 +12,9 @@ import { useReducedMotion } from "@/components/CampusVisual";
 import { useTheme } from "@/context/ThemeContext";
 import type { PythonSceneProps } from "./types";
 
-const PythonCanvas = lazy(() => import("./PythonCanvas"));
+const PythonCanvas = lazy(() =>
+  import("@/components/Scenes3D").then((m) => ({ default: m.PythonCanvas })),
+);
 
 function webGLAvailable() {
   if (Platform.OS !== "web" || typeof document === "undefined") return false;

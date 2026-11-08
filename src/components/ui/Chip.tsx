@@ -95,7 +95,7 @@ export function Chip({
     <PressableScale
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityState={{ selected: active }}
+      aria-pressed={active}
       accessibilityLabel={label}
       pressedOpacity={0.8}
       scaleTo={0.96}

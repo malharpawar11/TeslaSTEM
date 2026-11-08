@@ -135,7 +135,7 @@ function SectionTabs({
             key={s}
             onPress={() => onChange(s)}
             accessibilityRole="button"
-            accessibilityState={{ selected: active }}
+            aria-pressed={active}
             scaleTo={0.97}
             className={`h-9 items-center justify-center rounded-full px-4 ${
               active
@@ -173,7 +173,7 @@ function PermissionPicker({
             key={permission}
             onPress={() => onToggle(permission)}
             accessibilityRole="checkbox"
-            accessibilityState={{ checked: on }}
+            aria-checked={on}
             accessibilityLabel={PERMISSION_LABELS[permission]}
             scaleTo={0.96}
             className={`h-8 flex-row items-center gap-1.5 rounded-full px-3 ${
@@ -930,9 +930,7 @@ function ManageClubScreen() {
                               setEventForm((f) => ({ ...f, eventType: type }))
                             }
                             accessibilityRole="button"
-                            accessibilityState={{
-                              selected: eventForm.eventType === type,
-                            }}
+                            aria-pressed={eventForm.eventType === type}
                             scaleTo={0.96}
                             className={`h-8 items-center justify-center rounded-full px-3 ${
                               eventForm.eventType === type
@@ -1628,7 +1626,7 @@ function ManageClubScreen() {
                         setNoteForm((f) => ({ ...f, pinned: !f.pinned }))
                       }
                       accessibilityRole="switch"
-                      accessibilityState={{ checked: noteForm.pinned }}
+                      aria-checked={noteForm.pinned}
                       accessibilityLabel="Pin this note"
                       scaleTo={0.98}
                       className="flex-row items-center gap-2.5 py-1"
@@ -1849,9 +1847,7 @@ function ManageClubScreen() {
                         )
                       }
                       accessibilityRole="button"
-                      accessibilityState={{
-                        selected: settings.joinPolicy === policy,
-                      }}
+                      aria-pressed={settings.joinPolicy === policy}
                       scaleTo={0.97}
                       className={`h-9 flex-1 items-center justify-center rounded-full ${
                         settings.joinPolicy === policy

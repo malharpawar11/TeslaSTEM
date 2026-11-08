@@ -44,6 +44,16 @@ html input[data-underlined="true"]:focus-visible {
   outline: none !important;
 }
 
+/* The sign-in field is solid blue, so the usual blue ring would disappear. */
+html [data-onblue="true"] :focus-visible {
+  outline-color: #ffffff !important;
+}
+html [data-onblue="true"] input:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff;
+  box-shadow: 0 0 0 1000px #3068f0 inset;
+  caret-color: #ffffff;
+}
+
 html {
   scrollbar-color: rgba(120, 136, 200, 0.5) transparent;
   scrollbar-width: thin;

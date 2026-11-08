@@ -13,6 +13,7 @@ import { AccessibleText as Text } from "@/components/AccessibleText";
 import {
   AuthBrand,
   AuthBrandCompact,
+  AuthSpotlight,
   type AuthPurpose,
 } from "@/components/auth/AuthBrand";
 import { AuthField } from "@/components/auth/AuthField";
@@ -20,6 +21,7 @@ import { useReducedMotion } from "@/components/CampusVisual";
 import { ViewSwitch } from "@/components/clubs/ViewSwitch";
 import { Display, TextLink, useHover, webFade } from "@/components/system";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { StemWorld } from "@/components/stem/StemWorld";
 import { useAuth } from "@/context/AuthContext";
 import { useLayout } from "@/theme/layout";
 
@@ -260,8 +262,9 @@ export function SignInGate({
       {...submitHoverProps}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ busy, disabled: busy || disabled }}
-      className="h-[68px] flex-row items-center justify-between rounded-sm bg-python-blue px-5"
+      aria-busy={busy}
+      aria-disabled={busy || disabled}
+      className="h-[68px] flex-row items-center justify-between rounded-sm bg-white px-5"
       style={[
         {
           opacity: busy ? 0.75 : disabled ? 0.45 : submitHover ? 0.9 : 1,
@@ -269,10 +272,10 @@ export function SignInGate({
         webFade("opacity"),
       ]}
     >
-      <Display fontSize={34} className="text-white">
+      <Display fontSize={34} className="text-python-blue">
         {busy ? "One moment" : label}
       </Display>
-      {busy ? <ActivityIndicator color="#FFFFFF" /> : null}
+      {busy ? <ActivityIndicator color="#3068F0" /> : null}
     </Pressable>
   );
 
@@ -282,14 +285,17 @@ export function SignInGate({
         <Animated.View entering={FadeIn.duration(160)} className="mb-3">
           <Text
             accessibilityLiveRegion="polite"
-            className="text-base font-bold text-python-green dark:text-python-green-light"
+            className="text-base font-bold text-white"
           >
             {notice}
           </Text>
         </Animated.View>
       ) : null}
       {error ? (
-        <Animated.View style={nudgeStyle} className="mb-3">
+        <Animated.View
+          style={nudgeStyle}
+          className="mb-3 rounded-sm bg-white px-3 py-2"
+        >
           <Text
             accessibilityRole="alert"
             accessibilityLiveRegion="assertive"
@@ -308,18 +314,20 @@ export function SignInGate({
         key={`${step}-${mode}`}
         entering={reduced ? undefined : FadeIn.duration(170)}
       >
-        <Display fontSize={split ? 62 : 48} accessibilityRole="header">
+        <Display
+          fontSize={split ? 54 : 44}
+          accessibilityRole="header"
+          className="text-white"
+        >
           {heading}
         </Display>
-        <Text className="mt-2 text-lg leading-7 text-light-secondary dark:text-dark-secondary">
-          {detail}
-        </Text>
+        <Text className="mt-1 text-base leading-6 text-white">{detail}</Text>
       </Animated.View>
 
       {step === "form" ? (
-        <View className="mt-7">
+        <View className="mt-4">
           {allowSignUp ? (
-            <View className="mb-6 items-start">
+            <View className="mb-4 items-start">
               <ViewSwitch
                 options={MODES}
                 value={mode === "signIn" ? "Sign in" : "Sign up"}
@@ -328,6 +336,7 @@ export function SignInGate({
                 }
                 width={110}
                 label="Sign in or sign up"
+                onBlue
               />
             </View>
           ) : null}
@@ -384,12 +393,13 @@ export function SignInGate({
           <View className="mb-5 flex-row items-center justify-between gap-3">
             <Text
               numberOfLines={1}
-              className="shrink text-base font-bold text-light-text dark:text-dark-text"
+              className="shrink text-base font-bold text-white"
             >
               {email}
             </Text>
             <TextLink
               label="Change email"
+              onBlue
               onPress={() => {
                 setStep("form");
                 setCode("");
@@ -431,6 +441,7 @@ export function SignInGate({
                   : "Didn't get it? Resend code"
               }
               accessibilityLabel="Resend verification code"
+              onBlue
               disabled={cooldown > 0 || busy}
               onPress={resend}
             />
@@ -438,9 +449,8 @@ export function SignInGate({
         </View>
       )}
 
-      <Text className="mt-5 text-sm leading-5 text-light-muted dark:text-dark-muted">
-        Only Lake Washington School District accounts can sign in. The server
-        checks your access on every request.
+      <Text className="mt-3 text-sm leading-5 text-white">
+        Only Lake Washington School District accounts can sign in.
       </Text>
     </View>
   );
@@ -451,6 +461,7 @@ export function SignInGate({
         <TextLink
           label="Settings and accessibility"
           icon="settings-outline"
+          onBlue={split}
           onPress={() => router.push("/settings")}
         />
       ) : (
@@ -464,26 +475,37 @@ export function SignInGate({
     return (
       <View className="flex-1 flex-row bg-light-bg dark:bg-dark-bg">
         <View style={{ flex: 6, minWidth: 0 }}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1, minHeight: 620 }}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, minHeight: 700 }}>
             <AuthBrand
               purpose={purpose}
-              height={Math.max(height, 620)}
+              height={Math.max(height, 700)}
               width={(contentWidth * 6) / 11}
             />
           </ScrollView>
         </View>
-        <View style={{ flex: 5, minWidth: 0 }}>
+        <View
+          style={{ flex: 5, minWidth: 0, backgroundColor: "#3068F0" }}
+          {...({ dataSet: { onblue: "true" } } as object)}
+        >
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingHorizontal: 48,
-              paddingTop: 24,
-              paddingBottom: 48,
-            }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 36 }}
           >
-            {utility}
-            <View className="flex-1 justify-end pt-6">{form}</View>
+            {/* The scene gets all the height the form doesn't need, and stops
+                above it, so it can never sit behind a field. */}
+            <View style={{ flex: 1, minHeight: height >= 720 ? 200 : 64 }}>
+              {height >= 720 ? (
+                <StemWorld
+                  fallback={
+                    <View className="absolute inset-x-0 top-12 px-12">
+                      <AuthSpotlight purpose={purpose} compact />
+                    </View>
+                  }
+                />
+              ) : null}
+              <View className="absolute left-12 right-12 top-5">{utility}</View>
+            </View>
+            <View className="px-12 pt-5">{form}</View>
           </ScrollView>
         </View>
       </View>
@@ -493,17 +515,26 @@ export function SignInGate({
     <ScrollView
       keyboardShouldPersistTaps="handled"
       className="flex-1 bg-light-bg dark:bg-dark-bg"
-      contentContainerStyle={{
-        paddingTop: insets.top + 12,
-        paddingBottom: insets.bottom + 40,
-        paddingHorizontal: gutter,
-      }}
+      contentContainerStyle={{ paddingTop: insets.top + 12 }}
     >
-      {utility}
-      <View className="mt-3 border-b border-light-border pb-6 dark:border-dark-border">
-        <AuthBrandCompact purpose={purpose} width={contentWidth - gutter * 2} />
+      <View style={{ paddingHorizontal: gutter }}>
+        {utility}
+        <View className="mt-3 pb-6">
+          <AuthBrandCompact purpose={purpose} width={contentWidth - gutter * 2} />
+        </View>
       </View>
-      <View className="mt-6">{form}</View>
+      <View
+        style={{
+          backgroundColor: "#3068F0",
+          paddingBottom: insets.bottom + 40,
+        }}
+        {...({ dataSet: { onblue: "true" } } as object)}
+      >
+        <View style={{ height: contentWidth < 640 ? 210 : 290 }}>
+          <StemWorld size={26} fallback={null} />
+        </View>
+        <View style={{ paddingHorizontal: gutter, paddingTop: 20 }}>{form}</View>
+      </View>
     </ScrollView>
   );
 }

@@ -21,7 +21,7 @@ export function roomParts(location: string) {
 }
 
 /** Mon–Fri at a glance, the same on every entry so a column of them scans. */
-function WeekMarks({ club }: { club: Club }) {
+export function WeekMarks({ club }: { club: Club }) {
   const days = meetingDays(club.day);
   const weekdays = DAYS.slice(0, 5);
   if (!days.some((d) => weekdays.includes(d)))
@@ -96,7 +96,7 @@ function JoinButton({
       }}
       {...hoverProps}
       accessibilityRole="button"
-      accessibilityState={{ selected: joined, busy }}
+      aria-busy={busy}
       accessibilityLabel={joined ? `Leave ${club.name}` : `Join ${club.name}`}
       className={`h-12 flex-row items-center justify-center rounded-sm ${quiet ? "" : "bg-python-blue"}`}
       style={[

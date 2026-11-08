@@ -144,7 +144,7 @@ function NewClubForm() {
                 key={c}
                 onPress={() => setCategory(c)}
                 accessibilityRole="button"
-                accessibilityState={{ selected: category === c }}
+                aria-pressed={category === c}
                 scaleTo={0.96}
                 className={`h-8 items-center justify-center rounded-full px-3 ${
                   category === c
@@ -217,7 +217,7 @@ function NewClubForm() {
                 key={policy}
                 onPress={() => setJoinPolicy(policy)}
                 accessibilityRole="button"
-                accessibilityState={{ selected: joinPolicy === policy }}
+                aria-pressed={joinPolicy === policy}
                 scaleTo={0.97}
                 className={`h-9 flex-1 items-center justify-center rounded-full ${
                   joinPolicy === policy

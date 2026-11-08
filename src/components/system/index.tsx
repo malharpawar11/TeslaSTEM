@@ -234,7 +234,7 @@ export function TextTabs<T extends string>({
             key={option}
             onPress={() => onChange(option)}
             accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
+            aria-selected={active}
             className={`min-h-11 flex-row items-center gap-1.5 border-b-2 ${
               active
                 ? "border-python-blue"
@@ -278,7 +278,7 @@ export function Check({
     <Pressable
       onPress={onToggle}
       accessibilityRole="checkbox"
-      accessibilityState={{ checked }}
+      aria-checked={checked}
       accessibilityLabel={label}
       className="min-h-11 flex-row items-center gap-3"
     >
@@ -330,12 +330,15 @@ export function TextLink({
   icon,
   accessibilityLabel,
   disabled,
+  onBlue = false,
 }: {
   label: string;
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   accessibilityLabel?: string;
   disabled?: boolean;
+  /** Set on the solid blue sign-in field, where theme colours would vanish. */
+  onBlue?: boolean;
 }) {
   const { hovered, hoverProps } = useHover();
   return (
@@ -344,12 +347,18 @@ export function TextLink({
       {...hoverProps}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: !!disabled }}
+      aria-disabled={!!disabled}
       className={`min-h-11 flex-row items-center gap-1.5 ${disabled ? "opacity-50" : ""}`}
     >
-      {icon ? <Glyph name={icon} size={16} tone="secondary" /> : null}
+      {icon ? (
+        onBlue ? (
+          <Ionicons name={icon} size={16} color="#FFFFFF" />
+        ) : (
+          <Glyph name={icon} size={16} tone="secondary" />
+        )
+      ) : null}
       <Text
-        className={`text-sm font-bold text-light-secondary dark:text-dark-secondary ${hovered ? "underline" : ""}`}
+        className={`text-sm font-bold ${onBlue ? "text-white" : "text-light-secondary dark:text-dark-secondary"} ${hovered ? "underline" : ""}`}
       >
         {label}
       </Text>

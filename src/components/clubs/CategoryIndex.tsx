@@ -30,7 +30,7 @@ function Row({
       onPress={onPress}
       {...hoverProps}
       accessibilityRole="radio"
-      accessibilityState={{ checked: active }}
+      aria-checked={active}
       accessibilityLabel={`${label}, ${count} clubs`}
       style={{ height: ROW }}
       className="flex-row items-center justify-between px-3"

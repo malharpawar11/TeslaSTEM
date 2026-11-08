@@ -50,7 +50,8 @@ function Cell({
       {...hoverProps}
       accessibilityRole="button"
       accessibilityLabel={`${day} ${period}, ${count} ${count === 1 ? "club" : "clubs"}`}
-      accessibilityState={{ selected: exact, disabled: empty && !exact }}
+      aria-pressed={exact}
+      aria-disabled={empty && !exact}
       className="flex-1 items-center justify-center rounded-sm"
       style={[
         {
@@ -96,7 +97,7 @@ function AxisLabel({
       {...hoverProps}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected: active }}
+      aria-pressed={active}
       className={`min-h-11 flex-1 justify-center ${align === "center" ? "items-center" : ""}`}
     >
       <Text

@@ -98,7 +98,7 @@ function DayOption({
       {...hoverProps}
       accessibilityRole="radio"
       accessibilityLabel={day}
-      accessibilityState={{ checked: active }}
+      aria-checked={active}
       className="min-h-12 min-w-11 items-center justify-center"
       style={[
         {
@@ -186,7 +186,7 @@ function FieldOptions({
             key={option}
             onPress={() => onChange(option)}
             accessibilityRole="radio"
-            accessibilityState={{ checked: active }}
+            aria-checked={active}
             className="min-h-11 justify-center"
             style={{
               borderBottomWidth: 3,

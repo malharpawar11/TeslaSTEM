@@ -600,7 +600,7 @@ export default function CalendarScreen() {
             disabled={exporting}
             accessibilityRole="button"
             accessibilityLabel={`Export ${plural(exportEvents.length, "event")} to my calendar as an .ics file`}
-            accessibilityState={{ busy: exporting }}
+            aria-busy={exporting}
             className="h-11 flex-row items-center gap-2 rounded-sm bg-python-blue px-4 hover:opacity-90"
           >
             {exporting ? (

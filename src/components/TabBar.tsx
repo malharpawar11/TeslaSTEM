@@ -40,7 +40,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             key={route.key}
             onPress={onPress}
             accessibilityRole="button"
-            accessibilityState={{ selected: focused }}
+            aria-current={focused ? "page" : undefined}
             accessibilityLabel={
               showBadge
                 ? `${LABELS[route.name]}, ${unreadCount} unread`

@@ -33,6 +33,8 @@ import type { AppNotification, NotificationPrefs } from "@/types/domain";
  */
 
 interface NotificationsContextValue {
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
   notifications: AppNotification[];
   unreadCount: number;
   loading: boolean;
@@ -47,6 +49,9 @@ interface NotificationsContextValue {
   markRead: (ids?: number[]) => Promise<void>;
   refresh: () => Promise<void>;
 }
+
+/** How many inbox rows load at a time. */
+const INBOX_PAGE = 60;
 
 const NotificationsContext = createContext<
   NotificationsContextValue | undefined
@@ -68,6 +73,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const currentUser = useRef(userId);
   currentUser.current = userId;
+  const pageSize = useRef(INBOX_PAGE);
+  const latest = useRef(notifications);
+  latest.current = notifications;
+  const [hasMore, setHasMore] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!userId) {
@@ -81,12 +90,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const [rows, prefRows, count] = await Promise.all([
-        fetchNotifications(60),
+        fetchNotifications(pageSize.current),
         fetchNotificationPrefs(userId),
         fetchUnreadCount(),
       ]);
       if (currentUser.current !== userId) return;
       setNotifications(rows);
+      setHasMore(rows.length >= pageSize.current);
       setUnreadCount(count);
       setPrefs(prefRows);
       setError(null);
@@ -102,7 +112,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
+  const loadMore = useCallback(async () => {
+    pageSize.current += INBOX_PAGE;
+    await refresh();
+  }, [refresh]);
+
   useEffect(() => {
+    pageSize.current = INBOX_PAGE;
     setNotifications([]);
     setUnreadCount(0);
     setPrefs([]);
@@ -128,20 +144,23 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     void setBadgeCount(unreadCount);
   }, [unreadCount]);
 
+  // Applied before the server answers so the feed responds to the click; a
+  // failed save reloads the real state.
   const markRead = useCallback(
     async (ids?: number[]) => {
-      const result = await markNotificationsRead(ids);
-      if (currentUser.current !== userId) return;
-      if (!result.ok) {
-        toast(result.error, "error");
-        return;
-      }
       const now = new Date().toISOString();
+      const unread = latest.current.filter(
+        (n) => !n.readAt && (!ids || ids.includes(n.id)),
+      ).length;
       setNotifications((prev) =>
         prev.map((n) =>
           !n.readAt && (!ids || ids.includes(n.id)) ? { ...n, readAt: now } : n,
         ),
       );
+      setUnreadCount((count) => (ids ? Math.max(0, count - unread) : 0));
+      const result = await markNotificationsRead(ids);
+      if (currentUser.current !== userId) return;
+      if (!result.ok) toast(result.error, "error");
       void refresh();
     },
     [userId, toast, refresh],
@@ -179,6 +198,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         savePrefs,
         markRead,
         refresh,
+        hasMore,
+        loadMore,
       }}
     >
       {children}

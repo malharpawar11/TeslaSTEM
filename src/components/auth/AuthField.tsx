@@ -3,13 +3,11 @@ import { Platform, Pressable, TextInput, TextInputProps, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useAccessibility } from "@/context/AccessibilityContext";
-import { useTheme } from "@/context/ThemeContext";
 import { webFade } from "@/components/system";
-import { semantic, surface } from "@/theme/tokens";
 
 const IS_WEB = Platform.OS === "web";
 
-/** A labelled line to write on: the same language as the Clubs search. */
+/** A labelled line to write on, drawn in white for the blue sign-in field. */
 export const AuthField = forwardRef<
   TextInput,
   TextInputProps & {
@@ -23,15 +21,13 @@ export const AuthField = forwardRef<
   { label, error, hint, reveal, large, secureTextEntry, onBlur, onFocus, ...rest },
   ref,
 ) {
-  const { isDark } = useTheme();
-  const { dyslexicFont, fontReady, highContrast } = useAccessibility();
-  const c = surface(isDark);
+  const { dyslexicFont, fontReady } = useAccessibility();
   const [focused, setFocused] = useState(false);
   const [shown, setShown] = useState(false);
-  const rule = error ? semantic.danger : focused ? "#3068F0" : c.borderStrong;
+  const rule = error || focused ? "#FFFFFF" : "rgba(255,255,255,0.6)";
   return (
     <View>
-      <Text className="text-base font-bold text-light-text dark:text-dark-text">
+      <Text className="text-base font-bold text-white">
         {label}
       </Text>
       <View
@@ -53,7 +49,7 @@ export const AuthField = forwardRef<
           accessibilityLabel={label}
           aria-invalid={!!error}
           secureTextEntry={secureTextEntry && !shown}
-          placeholderTextColor={highContrast ? (isDark ? "#FFFFFF" : "#111827") : c.subtle}
+          placeholderTextColor="rgba(255,255,255,0.88)"
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -62,7 +58,7 @@ export const AuthField = forwardRef<
             setFocused(false);
             onBlur?.(e);
           }}
-          className={`h-full flex-1 text-light-text dark:text-dark-text ${large ? "font-display" : ""}`}
+          className={`h-full flex-1 text-white ${large ? "font-display" : ""}`}
           style={[
             {
               fontSize: large ? 52 : 20,
@@ -87,23 +83,24 @@ export const AuthField = forwardRef<
             <Ionicons
               name={shown ? "eye-off-outline" : "eye-outline"}
               size={22}
-              color={c.secondary}
+              color="#FFFFFF"
             />
           </Pressable>
         ) : null}
       </View>
       <View style={{ minHeight: 24 }} className="justify-center">
         {error ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            className="text-sm font-bold text-danger"
-          >
-            {error}
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="alert-circle" size={15} color="#FFFFFF" />
+            <Text
+              accessibilityLiveRegion="polite"
+              className="shrink text-sm font-bold text-white"
+            >
+              {error}
+            </Text>
+          </View>
         ) : hint ? (
-          <Text className="text-sm text-light-muted dark:text-dark-muted">
-            {hint}
-          </Text>
+          <Text className="text-sm text-white">{hint}</Text>
         ) : null}
       </View>
     </View>

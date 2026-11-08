@@ -116,7 +116,7 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
           key={row.key}
           onPress={() => void toggle(row.key)}
           accessibilityRole="switch"
-          accessibilityState={{ checked: prefs[row.key] }}
+          aria-checked={prefs[row.key]}
           accessibilityLabel={`${row.label} notifications`}
           scaleTo={0.99}
           className={`flex-row items-center gap-3 py-3 ${
@@ -728,9 +728,7 @@ export default function ClubProfileScreen() {
                                 key={position}
                                 onPress={() => setRequestPosition(position)}
                                 accessibilityRole="button"
-                                accessibilityState={{
-                                  selected: requestPosition === position,
-                                }}
+                                aria-pressed={requestPosition === position}
                                 scaleTo={0.96}
                                 className={`h-8 items-center justify-center rounded-full px-3 ${
                                   requestPosition === position

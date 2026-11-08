@@ -168,7 +168,8 @@ export function Button({
       onPress={off ? undefined : onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: !!off, busy: !!loading }}
+      aria-disabled={!!off}
+      aria-busy={!!loading}
       pressedOpacity={off ? 1 : v.pressedOpacity}
       scaleTo={off ? 1 : 0.985}
       style={{ height: s.h }}

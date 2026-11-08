@@ -89,7 +89,6 @@ function ClubCardBase({
               onToggleJoin();
             }}
             accessibilityRole="button"
-            accessibilityState={{ selected: joined }}
             accessibilityLabel={
               joined
                 ? `Leave ${club.name}`
