@@ -19,13 +19,13 @@ import { MembershipProvider } from "@/context/MembershipContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WebsiteNavigation } from "@/components/WebsiteNavigation";
-import { APP_MAX_WIDTH, isWebsite } from "@/theme/layout";
+import { isWebsite } from "@/theme/layout";
 import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
 
 cssInterop(GestureHandlerRootView, { className: "style" });
 
 /**
- * A shared website header and centered content frame.
+ * A shared website header above the full-width route viewport.
  */
 
 
@@ -35,7 +35,6 @@ function RootStack() {
   const { preferences, loading, error } = usePreferences();
   const router = useRouter();
   const pathname = usePathname();
-  const pageWidth = ["/settings", "/onboarding", "/club/new", "/policies", "/search", "/account", "/notifications"].includes(pathname) ? 940 : APP_MAX_WIDTH;
   const prompted = useRef<string | null>(null);
   useEffect(() => {
     if (!session) {
@@ -56,14 +55,7 @@ function RootStack() {
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
     {isWebsite ? <WebsiteNavigation /> : null}
-    <View
-      className="flex-1 bg-light-bg dark:bg-dark-bg"
-      style={
-        isWebsite
-          ? { width: "100%", maxWidth: pageWidth, alignSelf: "center" }
-          : undefined
-      }
-    >
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{ headerShown: false, animation: isWebsite ? "none" : "slide_from_right", contentStyle: isWebsite ? { backgroundColor: surface(isDark).bg } : undefined }}

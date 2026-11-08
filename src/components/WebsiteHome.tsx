@@ -15,14 +15,14 @@ const categories = [
 
 export function WebsiteHome() {
   const { clubs, loading } = useClubs();
-  const { wide } = useWebsiteLayout();
+  const { wide, width, gutter } = useWebsiteLayout();
   const featured = categories.flatMap(({ name }) => {
     const club = clubs.find((item) => item.category === name && item.description.trim());
     return club ? [club] : [];
   });
   return (
     <ScrollView className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <View className={`gap-10 ${wide ? "px-8 pb-12 pt-9" : "px-5 pb-8 pt-5"}`}>
+      <View style={{ paddingHorizontal: gutter }} className={`gap-10 ${wide ? "pb-12 pt-9" : "pb-8 pt-5"}`}>
         <View style={{ backgroundColor: "#102952" }} className={`overflow-hidden rounded-2xl border border-white/10 ${wide ? "flex-row items-center gap-10 p-12" : "gap-7 p-6"}`}>
           <View className="flex-1">
             <View className="mb-5 flex-row items-center gap-2">
@@ -40,7 +40,7 @@ export function WebsiteHome() {
               <Link href="/browse" className="rounded-lg border border-white/35 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Browse all clubs</Link>
             </View>
           </View>
-          <View style={wide ? { width: 380 } : undefined} className="gap-2 rounded-xl border border-white/20 bg-white/10 p-4">
+          <View style={wide ? { width: width >= 1600 ? "42%" : "38%" } : undefined} className="gap-2 rounded-xl border border-white/20 bg-white/10 p-4">
             <View className="mb-2 flex-row items-center justify-between gap-3">
               <Text className="text-base font-bold text-white">Explore by interest</Text>
               {!loading && clubs.length ? <Text className="text-xs font-semibold text-python-green-light">{clubs.length} clubs</Text> : null}
@@ -75,7 +75,7 @@ export function WebsiteHome() {
             </Text>
             <Link href="/onboarding" className="mt-2 self-start rounded-lg bg-python-green-dark px-5 py-3 text-sm font-bold text-white hover:bg-python-green-ink dark:bg-python-green-light dark:text-python-green-ink">Start the quiz →</Link>
           </View>
-          <View className={`gap-2 ${wide ? "w-[310px]" : ""}`}>
+          <View className="gap-2" style={wide ? { width: "36%" } : undefined}>
             {["Pick your interests", "Add goals or availability", "Explore your matches"].map((step, index) => (
               <View key={step} className="flex-row items-center gap-3 rounded-lg border border-python-green/20 bg-light-surface p-3 dark:bg-dark-surface">
                 <Text className="text-sm font-bold text-python-green-dark dark:text-python-green-light">0{index + 1}</Text>

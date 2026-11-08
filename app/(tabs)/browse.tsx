@@ -45,8 +45,10 @@ const FILTERS = [
 ];
 
 export default function BrowseScreen() {
-  const { wide, contentWidth } = useWebsiteLayout();
-  const columns = contentWidth >= 1160 ? 3 : 2;
+  const { wide, width, gutter } = useWebsiteLayout();
+  // Reserve the filter rail, gaps, and a scrollbar before sizing the grid.
+  const resultsWidth = width - gutter * 2 - 248 - 24 - 16;
+  const columns = Math.max(2, Math.floor((resultsWidth + 16) / (260 + 16)));
   const { category } = useLocalSearchParams<{ category?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -445,7 +447,7 @@ export default function BrowseScreen() {
   if (wide) {
     const rows = Array.from({ length: Math.ceil(data.length / columns) }, (_, i) => data.slice(i * columns, (i + 1) * columns));
     return (
-      <ScrollView className="flex-1 bg-light-bg dark:bg-dark-bg" contentContainerStyle={{ padding: 32, gap: 24 }}>
+      <ScrollView className="flex-1 bg-light-bg dark:bg-dark-bg" contentContainerStyle={{ paddingHorizontal: gutter, paddingVertical: 32, gap: 24 }}>
         <PageIntro eyebrow="STUDENT ACTIVITIES" title="Club directory" description="Explore Tesla STEM clubs by interest, meeting time, or career goal." trailing={<Link href="/club/new" className="rounded-lg border border-light-border bg-light-surface px-4 py-2.5 text-sm font-semibold text-python-blue-dark dark:border-dark-border dark:bg-dark-surface dark:text-python-blue-light">Submit a club</Link>} />
         <View className="flex-row items-start gap-6">
           <Card style={{ width: 248 }} className="shrink-0 gap-4 p-4">

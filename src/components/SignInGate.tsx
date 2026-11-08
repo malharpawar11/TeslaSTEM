@@ -1,4 +1,4 @@
-import { isWebsite } from "@/theme/layout";
+import { isWebsite, useWebsiteLayout } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
 import { ReactNode, useEffect, useState } from "react";
 import { View, Platform, ScrollView } from "react-native";
@@ -49,6 +49,7 @@ export function SignInGate({
   initialEmail = "",
   allowSignUp = true,
 }: SignInGateProps) {
+  const { wide } = useWebsiteLayout();
   const {
     configured,
     loading,
@@ -196,7 +197,15 @@ export function SignInGate({
         <ThemeToggle />
       </View> : null}
 
-      <View className={isWebsite ? "mx-auto w-full max-w-[480px] py-8" : "flex-1 justify-center py-6"}>
+      <View className={wide ? "mt-6 flex-row items-start gap-8 rounded-2xl border border-light-border bg-light-surface p-8 dark:border-dark-border dark:bg-dark-surface" : ""}>
+        {wide ? (
+          <View className="min-w-0 flex-1 gap-4 rounded-xl bg-python-blue-ink p-8">
+            <Text className="text-xs font-bold uppercase tracking-widest text-python-green-light">Tesla STEM Clubs</Text>
+            <Text accessibilityRole="header" className="text-4xl font-bold tracking-tight text-white">Your school club account</Text>
+            <Text className="max-w-lg text-base leading-7 text-white/80">Sign in with your school email to join clubs, follow events, and save your interests.</Text>
+          </View>
+        ) : null}
+      <View className={wide ? "w-[42%] max-w-[640px] shrink-0 py-4" : isWebsite ? "mx-auto w-full max-w-[480px] py-8" : "flex-1 justify-center py-6"}>
         {!isWebsite ? <PageIntro
           eyebrow="WELCOME TO YOUR CAMPUS"
           title="Good things start together."
@@ -422,6 +431,7 @@ export function SignInGate({
           Only Lake Washington School District accounts can sign in.{"\n"}
           Access is verified by the server on every request.
         </Text>
+      </View>
       </View>
     </ScrollView>
   );

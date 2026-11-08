@@ -4,7 +4,7 @@ import { AccessibleText as Text } from "./AccessibleText";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationsContext";
-import { APP_MAX_WIDTH, useWebsiteLayout } from "@/theme/layout";
+import { useWebsiteLayout } from "@/theme/layout";
 
 const pages = [
   ["/", "Home"],
@@ -16,12 +16,12 @@ export function WebsiteNavigation() {
   const path = usePathname();
   const { session } = useAuth();
   const { unreadCount } = useNotifications();
-  const { wide } = useWebsiteLayout();
+  const { wide, gutter } = useWebsiteLayout();
   const items = session ? [...pages, ["/notifications", "Alerts"], ["/account", "Profile"]] as const : pages;
 
   return (
     <View role="banner" className="z-10 shrink-0 border-b border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface">
-      <View style={{ maxWidth: APP_MAX_WIDTH }} className={`mx-auto w-full px-5 ${wide ? "min-h-[76px] flex-row items-center gap-12 px-8" : "pt-3"}`}>
+      <View style={{ paddingHorizontal: gutter }} className={`w-full ${wide ? "min-h-[76px] flex-row items-center gap-12" : "pt-3"}`}>
         <View className="flex-row items-center justify-between">
           <Link href="/" accessibilityLabel="Tesla STEM Clubs home">
             <View className="flex-row items-center gap-3">

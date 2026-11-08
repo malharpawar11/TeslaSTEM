@@ -7,7 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from "@/context/NotificationsContext";
 import { PressableScale } from "./ui/Pressable";
 import { brand, surface } from "@/theme/tokens";
-import { APP_MAX_WIDTH } from "@/theme/layout";
+import { NATIVE_TAB_MAX_WIDTH } from "@/theme/layout";
 
 
 
@@ -56,7 +56,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         className="flex-row"
         style={{
           width: "100%",
-          maxWidth: APP_MAX_WIDTH,
+          maxWidth: NATIVE_TAB_MAX_WIDTH,
           alignSelf: "center",
           backgroundColor: c.surface,
           borderWidth: 1,
