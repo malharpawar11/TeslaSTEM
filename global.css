@@ -1,3 +1,60 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+  font-family: "BigShoulders";
+  src: url("/fonts/BigShoulders-ExtraBold.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson";
+  src: url("/fonts/Atkinson-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson";
+  src: url("/fonts/Atkinson-Bold.ttf") format("truetype");
+  font-weight: 600 900;
+  font-display: swap;
+}
+
+/* react-native-web pins a system stack on every Text; the html prefix wins that
+   specificity. An inline fontFamily (OpenDyslexic, icon fonts) still beats this. */
+html [dir="auto"],
+html input,
+html textarea {
+  font-family: "Atkinson", system-ui, sans-serif;
+}
+html [dir="auto"].font-display {
+  font-family: "BigShoulders", "Arial Narrow", sans-serif;
+  font-weight: 800;
+}
+
+html :focus-visible {
+  outline: 3px solid #3068f0 !important;
+  outline-offset: 2px;
+}
+
+/* These fields underline themselves in blue on focus; a box would double it. */
+html input[role="combobox"]:focus-visible,
+html input[data-underlined="true"]:focus-visible {
+  outline: none !important;
+}
+
+html {
+  scrollbar-color: rgba(120, 136, 200, 0.5) transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html *,
+  html *::before,
+  html *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

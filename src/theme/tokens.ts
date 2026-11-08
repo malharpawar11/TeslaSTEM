@@ -1,92 +1,99 @@
 /**
  * Runtime color tokens. Tailwind covers className styling; this file is the
- * single source of truth for places Tailwind can't reach (icon `color={...}`,
- * Gradient color stops, status bar tints, native shadow color, etc).
+ * source of truth for places Tailwind can't reach (icon `color={...}`, WebGL
+ * materials, status bar tints).
  *
- * Brand rule: BLUE is the primary. It carries navigation, primary actions,
- * links, focus and selection. GREEN is the accent: reserved for confirmation
- * and membership ("joined", "approved", "success"). Keeping green scarce is
- * what makes it mean something, and what keeps the app from looking like a
- * highlighter.
+ * Black and white sheets with two accents from the Pythons crest: royal blue
+ * and laurel green.
  */
 
 export const palette = {
   blue: {
-    50: '#EDF3FA',
-    100: '#D3E3F4',
-    200: '#A6C6E8',
-    300: '#93B8FF',
-    400: '#2E79C4',
-    500: '#2563EB',
-    600: '#1D4ED8',
-    700: '#1E40AF',
-    800: '#082D55',
-    900: '#06203C',
+    50: '#EDF2FE',
+    100: '#DAE5FD',
+    200: '#B6CBFB',
+    300: '#8AAEFF',
+    400: '#5C8AF6',
+    500: '#3068F0',
+    600: '#2556CC',
+    700: '#1C44A6',
+    800: '#14307A',
+    900: '#0D2052',
   },
   green: {
-    50: '#EDF7F2',
-    100: '#D3EDE1',
-    200: '#A5D9C3',
-    300: '#6EE7B7',
-    400: '#2E9E76',
-    500: '#07825E',
-    600: '#066649',
-    700: '#06543E',
-    800: '#073423',
-    900: '#052117',
+    50: '#EFF9EA',
+    100: '#DBF1CF',
+    200: '#B8E3A0',
+    300: '#7FD955',
+    400: '#5CB82E',
+    500: '#3A8F1E',
+    600: '#2F7518',
+    700: '#255C13',
+    800: '#1A420D',
+    900: '#102A08',
   },
   white: '#FFFFFF',
   black: '#000000',
 } as const;
 
+/**
+ * Backgrounds are plain black or white. Colour is only ever an accent: blue
+ * for actions and selection, green for membership and anything "on".
+ */
+export const ink = {
+  deep: '#000000',
+  night: '#000000',
+  blue: palette.blue[500],
+  laurel: palette.green[400],
+} as const;
+
 export const brand = {
-  /** Primary: navigation, primary buttons, links, focus. */
+  /** Icons and links. A mid-tone that holds 3:1 on both paper and night. */
   blue: palette.blue[500],
   blueDeep: palette.blue[700],
   blueSoft: palette.blue[100],
-  /** Accent: confirmation, membership, success. Use sparingly. */
+  /** Confirmation and membership. */
   green: palette.green[500],
   greenDeep: palette.green[700],
   greenSoft: palette.green[100],
-  /** Two-stop brand gradient, deep green → deep blue. Header surfaces only. */
-  gradient: [palette.green[700], palette.blue[600]] as const,
-  gradientDeep: [palette.green[800], palette.blue[800]] as const,
-  gradientSoft: [palette.green[100], palette.blue[100]] as const,
+  gradient: [palette.blue[500], palette.blue[500]] as const,
+  gradientDeep: [palette.blue[700], palette.blue[700]] as const,
+  gradientSoft: [palette.blue[100], palette.blue[100]] as const,
 } as const;
 
 export const semantic = {
   success: brand.green,
   info: brand.blue,
-  warn: '#B45309',
-  danger: '#B42318',
+  warn: '#A86A00',
+  danger: '#D6402F',
 } as const;
 
 const lightSurface = {
-  bg: '#F3F6FC',
+  bg: '#FFFFFF',
   surface: '#FFFFFF',
-  surface2: '#EAF0FA',
-  surface3: '#E4EAF0',
-  border: '#DCE5F1',
-  borderStrong: '#C3CEDA',
-  hairline: '#E8EDF2',
-  text: '#13213D',
-  secondary: '#33465A',
-  muted: '#63758A',
-  subtle: '#91A0B0',
+  surface2: '#F2F2F2',
+  surface3: '#E8E8E8',
+  border: '#E0E0E0',
+  borderStrong: '#BDBDBD',
+  hairline: '#EEEEEE',
+  text: '#000000',
+  secondary: '#333333',
+  muted: '#666666',
+  subtle: '#767676',
 } as const;
 
 const darkSurface = {
-  bg: '#091224',
-  surface: '#101D33',
-  surface2: '#172940',
-  surface3: '#0E141D',
-  border: '#263B56',
-  borderStrong: '#324357',
-  hairline: '#1A2531',
-  text: '#E9EFF5',
-  secondary: '#B6C4D2',
-  muted: '#8397A9',
-  subtle: '#5E7183',
+  bg: '#000000',
+  surface: '#111111',
+  surface2: '#1C1C1C',
+  surface3: '#0A0A0A',
+  border: '#2A2A2A',
+  borderStrong: '#4A4A4A',
+  hairline: '#1E1E1E',
+  text: '#FFFFFF',
+  secondary: '#D4D4D4',
+  muted: '#A3A3A3',
+  subtle: '#8A8A8A',
 } as const;
 
 export const surfaces = {

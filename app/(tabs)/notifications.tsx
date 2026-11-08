@@ -1,179 +1,166 @@
-import { PageIntro } from "@/components/CampusVisual";
 import { useCallback, useMemo, useState } from "react";
-import { View, ScrollView, RefreshControl } from "react-native";
+import { Pressable, View } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SignInGate } from "@/components/SignInGate";
-import {
-  Button,
-  Card,
-  Chip,
-  EmptyState,
-  PressableScale,
-  SkeletonRow,
-} from "@/components/ui";
+import { Display, Page, TextLink, TextTabs, useHover } from "@/components/system";
+import { Button, EmptyState, SkeletonRow } from "@/components/ui";
 import { relativeDate } from "@/components/ClubContentCards";
 import { useNotifications } from "@/context/NotificationsContext";
 import { useClubs } from "@/context/ClubsContext";
-import { brand, semantic } from "@/theme/tokens";
+import { useLayout } from "@/theme/layout";
 import type { AppNotification, NotificationType } from "@/types/domain";
 
 /**
  * The notification centre. Rows are read-only records written by database
  * triggers; the one action a student has is marking them read, plus tapping
  * through to whatever the notification is about.
+ *
+ * Alerts are sorted into what they ask of the student rather than listed by
+ * time alone, and each kind is set at a weight that matches its importance.
  */
 
-const META: Record<
-  NotificationType,
-  { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string }
-> = {
-  announcement: {
-    icon: "megaphone-outline",
-    tint: brand.green,
-    bg: "bg-python-green/10 dark:bg-python-green/20",
-  },
-  school_announcement: {
-    icon: "school-outline",
-    tint: brand.blue,
-    bg: "bg-python-blue/10 dark:bg-python-blue/20",
-  },
-  event_created: {
-    icon: "calendar-outline",
-    tint: brand.blue,
-    bg: "bg-python-blue/10 dark:bg-python-blue/20",
-  },
-  event_updated: {
-    icon: "refresh-outline",
-    tint: brand.blue,
-    bg: "bg-python-blue/10 dark:bg-python-blue/20",
-  },
-  event_cancelled: {
-    icon: "close-circle-outline",
-    tint: semantic.danger,
-    bg: "bg-danger/10 dark:bg-danger/20",
-  },
-  event_reminder: {
-    icon: "alarm-outline",
-    tint: semantic.warn,
-    bg: "bg-warn/10 dark:bg-warn/20",
-  },
-  file_uploaded: {
-    icon: "document-outline",
-    tint: brand.blue,
-    bg: "bg-python-blue/10 dark:bg-python-blue/20",
-  },
-  note_posted: {
-    icon: "reader-outline",
-    tint: brand.green,
-    bg: "bg-python-green/10 dark:bg-python-green/20",
-  },
-  join_request: {
-    icon: "person-add-outline",
-    tint: semantic.warn,
-    bg: "bg-warn/10 dark:bg-warn/20",
-  },
-  board_request: {
-    icon: "ribbon-outline",
-    tint: semantic.warn,
-    bg: "bg-warn/10 dark:bg-warn/20",
-  },
-  membership_approved: {
-    icon: "checkmark-circle-outline",
-    tint: brand.green,
-    bg: "bg-python-green/10 dark:bg-python-green/20",
-  },
-  board_approved: {
-    icon: "shield-checkmark-outline",
-    tint: brand.green,
-    bg: "bg-python-green/10 dark:bg-python-green/20",
-  },
-  board_rejected: {
-    icon: "close-circle-outline",
-    tint: semantic.danger,
-    bg: "bg-danger/10 dark:bg-danger/20",
-  },
-  club_approved: {
-    icon: "trophy-outline",
-    tint: brand.green,
-    bg: "bg-python-green/10 dark:bg-python-green/20",
-  },
-  club_rejected: {
-    icon: "alert-circle-outline",
-    tint: semantic.danger,
-    bg: "bg-danger/10 dark:bg-danger/20",
-  },
-};
-
-/** Requests need the manager's attention; the rest are informational. */
 const ACTIONABLE: NotificationType[] = ["join_request", "board_request"];
 
-function NotificationRow({
+type Group = {
+  key: string;
+  title: string;
+  types: NotificationType[];
+  weight: "urgent" | "notice" | "row";
+};
+
+const GROUPS: Group[] = [
+  {
+    key: "needs",
+    title: "Waiting on you",
+    types: ["join_request", "board_request"],
+    weight: "urgent",
+  },
+  {
+    key: "school",
+    title: "From the school",
+    types: ["school_announcement"],
+    weight: "notice",
+  },
+  {
+    key: "schedule",
+    title: "Meetings and deadlines",
+    types: ["event_reminder", "event_cancelled", "event_updated", "event_created"],
+    weight: "row",
+  },
+  {
+    key: "clubs",
+    title: "Club updates",
+    types: ["announcement", "file_uploaded", "note_posted"],
+    weight: "row",
+  },
+  {
+    key: "membership",
+    title: "Your memberships",
+    types: [
+      "membership_approved",
+      "board_approved",
+      "board_rejected",
+      "club_approved",
+      "club_rejected",
+    ],
+    weight: "row",
+  },
+];
+
+const VERB: Partial<Record<NotificationType, string>> = {
+  event_created: "New event",
+  event_updated: "Changed",
+  event_cancelled: "Cancelled",
+  event_reminder: "Reminder",
+  file_uploaded: "New file",
+  note_posted: "New note",
+  announcement: "Canvas link",
+  join_request: "Join request",
+  board_request: "Board request",
+  membership_approved: "Approved",
+  board_approved: "Approved",
+  board_rejected: "Declined",
+  club_approved: "Approved",
+  club_rejected: "Declined",
+};
+
+function Alert({
   notification,
   clubName,
+  weight,
   onPress,
 }: {
   notification: AppNotification;
   clubName?: string;
+  weight: Group["weight"];
   onPress: () => void;
 }) {
-  const meta = META[notification.type] ?? META.announcement;
+  const { hovered, hoverProps } = useHover();
   const unread = !notification.readAt;
+  const bad =
+    notification.type === "event_cancelled" ||
+    notification.type.endsWith("rejected");
+  const urgent = weight === "urgent";
+  const meta = [VERB[notification.type], clubName, relativeDate(notification.createdAt)]
+    .filter(Boolean)
+    .join(", ");
+  const titleTone = urgent
+    ? "text-white"
+    : unread
+      ? "text-light-text dark:text-dark-text"
+      : "text-light-muted dark:text-dark-muted";
+  const soft = urgent
+    ? "text-white"
+    : "text-light-muted dark:text-dark-muted";
   return (
-    <PressableScale
+    <Pressable
       onPress={onPress}
+      {...hoverProps}
       accessibilityRole="button"
-      accessibilityLabel={notification.title}
-      scaleTo={0.98}
+      accessibilityLabel={`${unread ? "Unread: " : ""}${notification.title}`}
+      className={
+        urgent
+          ? `mb-2 rounded-md bg-python-blue px-5 py-4 ${hovered ? "opacity-90" : ""}`
+          : `flex-row gap-3 border-b border-light-border py-3 dark:border-dark-border ${hovered ? "opacity-70" : ""}`
+      }
     >
-      <Card
-        elevation="ambient"
-        className={`flex-row items-start gap-4 p-5 ${unread ? "border-python-blue/50" : ""}`}
-      >
+      {!urgent ? (
         <View
-          className={`h-9 w-9 items-center justify-center rounded-lg ${meta.bg}`}
-        >
-          <Ionicons name={meta.icon} size={17} color={meta.tint} />
-        </View>
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2">
-            <Text
-              className="flex-1 text-sm font-semibold text-light-text dark:text-dark-text"
-              numberOfLines={2}
-            >
-              {notification.title}
-            </Text>
-            {unread ? (
-              <View className="h-2 w-2 rounded-full bg-python-blue" />
-            ) : null}
-          </View>
-          {notification.body ? (
-            <Text
-              className="mt-1 text-xs leading-5 text-light-muted dark:text-dark-muted"
-              numberOfLines={3}
-            >
-              {notification.body}
-            </Text>
-          ) : null}
-          <Text className="mt-1.5 text-xs text-light-subtle dark:text-dark-subtle">
-            {[clubName, relativeDate(notification.createdAt)]
-              .filter(Boolean)
-              .join(" · ")}
+          className={`mt-2 h-2.5 w-2.5 rounded-full ${unread ? "bg-python-blue" : ""}`}
+        />
+      ) : null}
+      <View className="flex-1">
+        {weight === "row" ? (
+          <Text
+            className={`text-lg ${unread ? "font-bold" : ""} ${bad && unread ? "text-danger" : titleTone}`}
+          >
+            {notification.title}
           </Text>
-        </View>
-      </Card>
-    </PressableScale>
+        ) : (
+          <Display size={weight === "notice" ? "md" : "sm"} className={titleTone}>
+            {notification.title}
+          </Display>
+        )}
+        {notification.body ? (
+          <Text
+            numberOfLines={3}
+            className={`mt-0.5 max-w-3xl text-base ${urgent ? "text-white" : "text-light-secondary dark:text-dark-secondary"}`}
+          >
+            {notification.body}
+          </Text>
+        ) : null}
+        <Text className={`mt-1 text-sm ${soft}`}>{meta}</Text>
+      </View>
+    </Pressable>
   );
 }
 
 type Filter = "All" | "Unread" | "Requests";
 
 function NotificationsInbox() {
-  const insets = useSafeAreaInsets();
+  const { isDesktop, isWide } = useLayout();
   const router = useRouter();
   const { notifications, unreadCount, loading, error, markRead, refresh } =
     useNotifications();
@@ -211,105 +198,94 @@ function NotificationsInbox() {
     [markRead, router],
   );
 
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    items: visible.filter((n) => group.types.includes(n.type)),
+  })).filter((group) => group.items.length > 0);
+  const name = (n: AppNotification) =>
+    n.clubId ? clubNames.get(n.clubId) : "Tesla STEM";
+
   return (
-    <ScrollView
-      className="flex-1"
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={brand.blue}
-        />
-      }
-    >
-      <View
-        className="flex-row items-start justify-between px-5"
-        style={{ paddingTop: insets.top + 8 }}
-      >
-        <View className="flex-1 pr-3">
-          <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
-            Notifications
-          </Text>
-          <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
-            {error
-              ? "Updates unavailable"
-              : unreadCount > 0
-                ? `${unreadCount} unread`
-                : "All caught up"}
-          </Text>
+    <Page onRefresh={() => void onRefresh()} refreshing={refreshing} maxWidth={1400}>
+      <View className={isWide ? "flex-row items-start gap-16" : ""}>
+        <View style={isWide ? { width: 280 } : undefined}>
+          <View className="flex-row items-start justify-between">
+            <View>
+              <Display
+                fontSize={unreadCount > 0 ? 148 : 96}
+                accessibilityRole="header"
+                accessibilityLabel={
+                  unreadCount > 0 ? `${unreadCount} unread alerts` : "Alerts"
+                }
+              >
+                {unreadCount > 0 ? unreadCount : "Alerts"}
+              </Display>
+              <Text className="text-lg text-light-secondary dark:text-dark-secondary">
+                {error
+                  ? "Updates are unavailable right now."
+                  : unreadCount > 0
+                    ? `unread ${unreadCount === 1 ? "alert" : "alerts"}`
+                    : "You've read everything."}
+              </Text>
+            </View>
+            {!isDesktop ? <ThemeToggle /> : null}
+          </View>
+          <View className="mt-5">
+            <TextTabs
+              label="Filter alerts"
+              options={["All", "Unread", "Requests"] as Filter[]}
+              value={filter}
+              onChange={setFilter}
+            />
+            {unreadCount > 0 ? (
+              <TextLink label="Mark all read" onPress={() => void markRead()} />
+            ) : null}
+          </View>
         </View>
-        <View className="pt-1">
-          <ThemeToggle />
+
+        <View className="flex-1" style={{ minWidth: 0 }}>
+          {error ? (
+            <View className="items-start gap-3 pt-6">
+              <Text className="text-danger">{error}</Text>
+              <Button label="Retry" onPress={() => void refresh()} />
+            </View>
+          ) : loading && notifications.length === 0 ? (
+            <View className="pt-6">
+              <SkeletonRow count={4} />
+            </View>
+          ) : groups.length === 0 ? (
+            <EmptyState
+              title={
+                filter === "All"
+                  ? "Nothing yet"
+                  : `No ${filter.toLowerCase()} alerts`
+              }
+              description="Event changes, new files and membership decisions from your clubs show up here."
+            />
+          ) : (
+            groups.map((group) => (
+              <View key={group.key} className="mb-10">
+                <Display
+                  size="sm"
+                  className={`mb-2 text-light-text dark:text-dark-text ${group.weight === "urgent" ? "" : "border-b-2 border-light-text pb-1 dark:border-dark-text"}`}
+                >
+                  {group.title}
+                </Display>
+                {group.items.map((n) => (
+                  <Alert
+                    key={n.id}
+                    notification={n}
+                    clubName={name(n)}
+                    weight={group.weight}
+                    onPress={() => openNotification(n)}
+                  />
+                ))}
+              </View>
+            ))
+          )}
         </View>
       </View>
-
-      <View className="px-5 pt-5">
-        <PageIntro
-          eyebrow="UPDATES / YOUR CLUBS"
-          title="Stay in the loop."
-          description="Event changes, new resources, and membership decisions from your communities."
-        />
-      </View>
-
-      <View className="mt-4 flex-row flex-wrap items-center gap-2 px-5">
-        {(["All", "Unread", "Requests"] as Filter[]).map((option) => (
-          <Chip
-            key={option}
-            label={option}
-            active={filter === option}
-            onPress={() => setFilter(option)}
-            size="sm"
-          />
-        ))}
-        <View className="flex-1" />
-        {unreadCount > 0 ? (
-          <Button
-            label="Mark all read"
-            variant="ghost"
-            size="sm"
-            onPress={() => void markRead()}
-          />
-        ) : null}
-      </View>
-
-      {error ? (
-        <View className="px-5 pt-6">
-          <Text className="text-danger">{error}</Text>
-          <Button label="Retry" onPress={() => void refresh()} />
-        </View>
-      ) : loading && notifications.length === 0 ? (
-        <View className="px-5 pt-6">
-          <SkeletonRow count={4} />
-        </View>
-      ) : visible.length === 0 ? (
-        <View className="pt-10">
-          <EmptyState
-            icon="notifications-off-outline"
-            title={
-              filter === "All"
-                ? "Nothing yet"
-                : `No ${filter.toLowerCase()} notifications`
-            }
-            description="Event changes, new files, and membership decisions from your clubs show up here."
-            tone="neutral"
-          />
-        </View>
-      ) : (
-        <View className="gap-2.5 px-5 pt-5">
-          {visible.map((n, index) => (
-            <Animated.View key={n.id} entering={FadeIn.duration(180)}>
-              <NotificationRow
-                notification={n}
-                clubName={n.clubId ? clubNames.get(n.clubId) : "Tesla STEM"}
-                onPress={() => openNotification(n)}
-              />
-            </Animated.View>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+    </Page>
   );
 }
 
@@ -317,8 +293,9 @@ export default function NotificationsScreen() {
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <SignInGate
-        title="Sign in for notifications"
-        subtitle="Your club updates are tied to your @lwsd.org account."
+        title="Sign in for alerts"
+        subtitle="See event changes, new files and membership decisions from the clubs you've joined. Alerts are tied to your @lwsd.org account."
+        purpose="alerts"
       >
         <NotificationsInbox />
       </SignInGate>

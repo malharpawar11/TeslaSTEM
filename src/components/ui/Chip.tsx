@@ -38,13 +38,13 @@ export function Chip({
   // Selection is blue by default; green is reserved for membership filters.
   const activeContainer =
     tone === "brand"
-      ? "border-python-green bg-python-green"
+      ? "border-laurel bg-laurel"
       : "border-python-blue bg-python-blue";
   const inactiveContainer =
     "border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface";
 
   const inactiveText = "text-light-secondary dark:text-dark-secondary";
-  const activeText = "text-white";
+  const activeText = tone === "brand" ? "text-ink-night" : "text-white";
 
   const content = (
     <>
@@ -82,7 +82,7 @@ export function Chip({
   if (variant === "static" || !onPress) {
     return (
       <View
-        className={`${h} ${padding} flex-row items-center justify-center gap-1.5 rounded-full border ${
+        className={`${h} ${padding} flex-row items-center justify-center gap-1.5 rounded-md border ${
           active ? activeContainer : inactiveContainer
         }`}
       >
@@ -99,7 +99,7 @@ export function Chip({
       accessibilityLabel={label}
       pressedOpacity={0.8}
       scaleTo={0.96}
-      className={`${h} ${padding} flex-row items-center justify-center gap-1.5 rounded-full border ${
+      className={`${h} ${padding} flex-row items-center justify-center gap-1.5 rounded-md border ${
         active ? activeContainer : inactiveContainer
       }`}
     >

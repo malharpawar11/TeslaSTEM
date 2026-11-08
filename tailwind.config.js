@@ -1,15 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 
 /**
- * Design tokens for the Tesla STEM club platform.
+ * Design tokens for Tesla STEM Clubs: black and white sheets with royal blue
+ * and laurel green accents from the Pythons crest, Big Shoulders Display for
+ * type that carries a page and Atkinson Hyperlegible for reading.
  *
- * Brand: blue is primary (chrome, primary actions, links, focus, selection),
- * green is the accent reserved for confirmation and membership. The class
- * names `python-blue` / `python-green` are kept so markup reads the same, but
- * the ramps below are the deeper, lower-chroma pair the app actually uses.
- *
- * Keep this file in sync with src/theme/tokens.ts, which serves the same
- * colors to the places Tailwind can't reach (icon props, gradient stops).
+ * Keep this file in sync with src/theme/tokens.ts.
  */
 module.exports = {
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
@@ -19,93 +15,93 @@ module.exports = {
     extend: {
       colors: {
         "python-blue": {
-          DEFAULT: "#2563EB",
-          50: "#EDF3FA",
-          100: "#D3E3F4",
-          200: "#A6C6E8",
-          300: "#93B8FF",
-          400: "#2E79C4",
-          500: "#2563EB",
-          600: "#1D4ED8",
-          700: "#1E40AF",
-          800: "#082D55",
-          900: "#06203C",
-          // `-dark` reads on light surfaces, `-light` reads on dark surfaces.
-          dark: "#1E40AF",
-          light: "#93B8FF",
-          ink: "#06203C",
+          DEFAULT: "#3068F0",
+          50: "#EDF2FE",
+          100: "#DAE5FD",
+          200: "#B6CBFB",
+          300: "#8AAEFF",
+          400: "#5C8AF6",
+          500: "#3068F0",
+          600: "#2556CC",
+          700: "#1C44A6",
+          800: "#14307A",
+          900: "#0D2052",
+          dark: "#1C44A6",
+          light: "#8AAEFF",
+          ink: "#0D2052",
         },
         "python-green": {
-          DEFAULT: "#07825E",
-          50: "#EDF7F2",
-          100: "#D3EDE1",
-          200: "#A5D9C3",
-          300: "#6EE7B7",
-          400: "#2E9E76",
-          500: "#07825E",
-          600: "#066649",
-          700: "#06543E",
-          800: "#073423",
-          900: "#052117",
-          dark: "#06543E",
-          light: "#6EE7B7",
-          ink: "#052117",
+          DEFAULT: "#3A8F1E",
+          50: "#EFF9EA",
+          100: "#DBF1CF",
+          200: "#B8E3A0",
+          300: "#7FD955",
+          400: "#5CB82E",
+          500: "#3A8F1E",
+          600: "#2F7518",
+          700: "#255C13",
+          800: "#1A420D",
+          900: "#102A08",
+          dark: "#255C13",
+          light: "#7FD955",
+          ink: "#102A08",
         },
+        ink: { DEFAULT: "#000000", night: "#000000" },
+        laurel: { DEFAULT: "#5CB82E", soft: "#B8E3A0" },
 
         light: {
-          bg: "var(--a11y-light-bg, #F3F6FC)",
+          bg: "var(--a11y-light-bg, #FFFFFF)",
           surface: "var(--a11y-light-surface, #FFFFFF)",
           card: "var(--a11y-light-surface, #FFFFFF)",
-          "surface-2": "var(--a11y-light-surface2, #EAF0FA)",
-          "surface-3": "var(--a11y-light-surface3, #E4EAF0)",
-          border: "var(--a11y-light-border, #DCE5F1)",
-          "border-strong": "var(--a11y-light-borderStrong, #C3CEDA)",
-          hairline: "var(--a11y-light-hairline, #E8EDF2)",
-          text: "var(--a11y-light-text, #13213D)",
-          secondary: "var(--a11y-light-secondary, #33465A)",
-          muted: "var(--a11y-light-muted, #63758A)",
-          subtle: "var(--a11y-light-subtle, #91A0B0)",
+          "surface-2": "var(--a11y-light-surface2, #F2F2F2)",
+          "surface-3": "var(--a11y-light-surface3, #E8E8E8)",
+          border: "var(--a11y-light-border, #E0E0E0)",
+          "border-strong": "var(--a11y-light-borderStrong, #BDBDBD)",
+          hairline: "var(--a11y-light-hairline, #EEEEEE)",
+          text: "var(--a11y-light-text, #000000)",
+          secondary: "var(--a11y-light-secondary, #333333)",
+          muted: "var(--a11y-light-muted, #666666)",
+          subtle: "var(--a11y-light-subtle, #767676)",
         },
         dark: {
-          bg: "var(--a11y-dark-bg, #091224)",
-          surface: "var(--a11y-dark-surface, #101D33)",
-          card: "var(--a11y-dark-surface, #101D33)",
-          "surface-2": "var(--a11y-dark-surface2, #172940)",
-          "surface-3": "var(--a11y-dark-surface3, #0E141D)",
-          border: "var(--a11y-dark-border, #263B56)",
-          "border-strong": "var(--a11y-dark-borderStrong, #324357)",
-          hairline: "var(--a11y-dark-hairline, #1A2531)",
-          text: "var(--a11y-dark-text, #E9EFF5)",
-          secondary: "var(--a11y-dark-secondary, #B6C4D2)",
-          muted: "var(--a11y-dark-muted, #8397A9)",
-          subtle: "var(--a11y-dark-subtle, #5E7183)",
+          bg: "var(--a11y-dark-bg, #000000)",
+          surface: "var(--a11y-dark-surface, #111111)",
+          card: "var(--a11y-dark-surface, #111111)",
+          "surface-2": "var(--a11y-dark-surface2, #1C1C1C)",
+          "surface-3": "var(--a11y-dark-surface3, #0A0A0A)",
+          border: "var(--a11y-dark-border, #2A2A2A)",
+          "border-strong": "var(--a11y-dark-borderStrong, #4A4A4A)",
+          hairline: "var(--a11y-dark-hairline, #1E1E1E)",
+          text: "var(--a11y-dark-text, #FFFFFF)",
+          secondary: "var(--a11y-dark-secondary, #D4D4D4)",
+          muted: "var(--a11y-dark-muted, #A3A3A3)",
+          subtle: "var(--a11y-dark-subtle, #8A8A8A)",
         },
 
         success: {
-          DEFAULT: "#07825E",
+          DEFAULT: "#3A8F1E",
           soft: "rgba(18,128,90,0.12)",
         },
         info: {
-          DEFAULT: "#2563EB",
+          DEFAULT: "#3068F0",
           soft: "rgba(14,90,168,0.12)",
         },
         warn: {
-          DEFAULT: "#B45309",
+          DEFAULT: "#A86A00",
           soft: "rgba(180,83,9,0.12)",
         },
         danger: {
-          DEFAULT: "#B42318",
+          DEFAULT: "#D6402F",
           soft: "rgba(180,35,24,0.12)",
         },
       },
 
       fontFamily: {
         sans: ["System"],
+        display: ["BigShoulders"],
       },
 
-      // Restrained scale: body text sits at 15px, headings top out at 30px.
-      // Nothing here is display type; this is an information app, not a
-      // marketing page.
+      // Reading scale. Display sizes are set on <Display>, not here.
       fontSize: {
         "2xs": ["11px", { lineHeight: "15px", letterSpacing: "0.2px" }],
         xs: ["12px", { lineHeight: "17px" }],
@@ -130,17 +126,17 @@ module.exports = {
         widest: "0.8px",
       },
 
-      // Calmer geometry. Cards land at 12–16px instead of 28–32px pills, which
-      // is what separates "software" from "sticker sheet".
+            // Print-shop corners: small and nearly uniform. Roundness is reserved for
+      // things that are literally circles (avatars, switches, dots).
       borderRadius: {
-        xs: "4px",
-        sm: "6px",
-        md: "8px",
-        lg: "10px",
-        xl: "18px",
-        "2xl": "24px",
-        "3xl": "30px",
-        "4xl": "24px",
+        xs: "2px",
+        sm: "3px",
+        md: "4px",
+        lg: "4px",
+        xl: "5px",
+        "2xl": "6px",
+        "3xl": "8px",
+        "4xl": "8px",
       },
 
       spacing: {
@@ -154,14 +150,11 @@ module.exports = {
         26: "104px",
       },
 
-      // Depth comes from borders first, shadow second. These are deliberately
-      // faint so cards read as surfaces, not floating chips.
+      // Depth comes from ink and rules, not shadow.
       boxShadow: {
-        ambient: "0 1px 2px rgba(14, 26, 38, 0.05)",
-        elevated:
-          "0 2px 8px rgba(14, 26, 38, 0.07), 0 1px 2px rgba(14, 26, 38, 0.04)",
-        floating:
-          "0 12px 32px rgba(14, 26, 38, 0.12), 0 2px 6px rgba(14, 26, 38, 0.06)",
+        ambient: "0 0 0 rgba(0,0,0,0)",
+        elevated: "0 0 0 rgba(0,0,0,0)",
+        floating: "0 10px 30px rgba(11, 22, 80, 0.28)",
       },
     },
   },

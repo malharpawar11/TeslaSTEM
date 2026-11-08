@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Share, Platform, Linking, ScrollView } from "react-native";
+import { View, Share, Platform, Linking, Pressable, ScrollView } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { ClubReviews } from "@/components/ClubReviews";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import {
   Avatar,
   Button,
@@ -25,7 +24,9 @@ import {
   FileRow,
   NoteCard,
 } from "@/components/ClubContentCards";
-import { ClubProfileHeader } from "@/components/ClubProfileHeader";
+import { Display, TextLink, TextTabs, Glyph } from "@/components/system";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useLayout } from "@/theme/layout";
 import { useClubs } from "@/context/ClubsContext";
 import { useMemberships } from "@/context/MembershipContext";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -56,7 +57,7 @@ import {
   type NotificationPrefs,
   type Officer,
 } from "@/types/domain";
-import { brand, palette, semantic } from "@/theme/tokens";
+import { semantic } from "@/theme/tokens";
 import { useCampusUpdates } from "@/context/CampusUpdatesContext";
 
 /**
@@ -86,52 +87,6 @@ const MEMBER_TABS: Tab[] = [
   "Leadership",
 ];
 
-function SegmentedTabs({
-  tabs,
-  value,
-  onChange,
-}: {
-  tabs: Tab[];
-  value: Tab;
-  onChange: (t: Tab) => void;
-}) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 6 }}
-    >
-      {tabs.map((t) => {
-        const active = t === value;
-        return (
-          <PressableScale
-            key={t}
-            onPress={() => onChange(t)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            scaleTo={0.97}
-            className={`h-9 items-center justify-center rounded-full px-3.5 ${
-              active
-                ? "bg-python-blue"
-                : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
-            }`}
-          >
-            <Text
-              className={`text-sm font-medium ${
-                active
-                  ? "text-white"
-                  : "text-light-secondary dark:text-dark-secondary"
-              }`}
-            >
-              {t}
-            </Text>
-          </PressableScale>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
 /** Per-club notification switches, shown to members inside the club. */
 function NotificationSwitches({ clubId }: { clubId: string }) {
   const { prefsFor, savePrefs } = useNotifications();
@@ -155,7 +110,7 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
   ];
 
   return (
-    <Card elevation="ambient" className="mt-4 px-4 py-1">
+    <View className="mt-2">
       {ROWS.map((row, i) => (
         <PressableScale
           key={row.key}
@@ -170,7 +125,7 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
               : "border-b border-light-hairline dark:border-dark-border"
           }`}
         >
-          <Ionicons name={row.icon} size={16} color={brand.blue} />
+          <Glyph name={row.icon} size={16} tone="secondary" />
           <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
             {row.label}
           </Text>
@@ -178,7 +133,7 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
             className={`h-6 w-10 justify-center rounded-full px-0.5 ${
               prefs[row.key]
                 ? "bg-python-green"
-                : "bg-light-border dark:bg-dark-border"
+                : "bg-light-border-strong dark:bg-dark-border-strong"
             }`}
           >
             <View
@@ -189,7 +144,41 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
           </View>
         </PressableScale>
       ))}
-    </Card>
+    </View>
+  );
+}
+
+function Fact({
+  label,
+  value,
+  onPress,
+  half,
+}: {
+  label: string;
+  value: string;
+  onPress?: () => void;
+  /** Sit two to a row on phones so About isn't pushed off the first screen. */
+  half?: boolean;
+}) {
+  const width = half ? ({ width: "50%" } as const) : undefined;
+  const content = (
+    <>
+      <Text className="text-sm text-light-muted dark:text-dark-muted">
+        {label}
+      </Text>
+      <Text
+        className={`text-lg text-light-text dark:text-dark-text ${onPress ? "underline" : ""}`}
+      >
+        {value}
+      </Text>
+    </>
+  );
+  return onPress ? (
+    <Pressable onPress={onPress} accessibilityRole="link" className="w-full py-2">
+      {content}
+    </Pressable>
+  ) : (
+    <View className="py-2" style={width ?? { width: "100%" }}>{content}</View>
   );
 }
 
@@ -207,6 +196,7 @@ export default function ClubProfileScreen() {
     refresh: refreshMemberships,
   } = useMemberships();
   const { isDark } = useTheme();
+  const { isWide, isDesktop, contentWidth, gutter } = useLayout();
   const { session } = useAuth();
   const { toast, toastResult } = useToast();
 
@@ -396,155 +386,187 @@ export default function ClubProfileScreen() {
   const past = events.filter((e) => !upcoming.includes(e));
   const folders = [...new Set(files.map((f) => f.folder))];
 
+  const joinButton = (
+    <>
+      {!session ? (
+        <Button
+          size="xl"
+          fullWidth
+          icon="log-in-outline"
+          label="Sign in to join"
+          onPress={() => router.push("/account")}
+        />
+      ) : membership?.status === "pending" ? (
+        <Button
+          size="xl"
+          fullWidth
+          variant="secondary"
+          icon="hourglass-outline"
+          label="Waiting for approval"
+          onPress={() => setLeaveOpen(true)}
+        />
+      ) : joined ? (
+        <Button
+          size="xl"
+          fullWidth
+          variant="outline"
+          icon="checkmark"
+          label="Joined"
+          loading={busy}
+          onPress={() => setLeaveOpen(true)}
+          accessibilityLabel="Leave club"
+        />
+      ) : (
+        <Button
+          size="xl"
+          fullWidth
+          icon="add"
+          label={club.joinPolicy === "approval" ? "Request to join" : "Join club"}
+          loading={busy}
+          onPress={() => void handleJoin()}
+        />
+      )}
+    </>
+  );
+
+  const fg = isDark ? "#FFFFFF" : "#000000";
+  const longest = Math.max(...club.name.split(" ").map((w) => w.length), 8);
+  const fitted = (contentWidth - gutter * 2) / (longest * 0.5);
+  const titleSize = Math.max(52, Math.min(fitted, contentWidth * 0.12, 168));
+  const showShare = Platform.OS !== "web";
+  const contacts = (
+    <>
+      {club.contactEmail ? (
+        <Fact label="Email" value={club.contactEmail} onPress={() => Linking.openURL(`mailto:${club.contactEmail}`)} />
+      ) : null}
+      {club.instagram ? (
+        <Fact
+          label="Instagram"
+          value={club.instagram}
+          onPress={() => {
+            const handle = club.instagram!.replace(/^@/, "");
+            Linking.openURL(`https://instagram.com/${handle}`);
+          }}
+        />
+      ) : null}
+      {club.website ? (
+        <Fact label="Website" value={club.website} onPress={() => Linking.openURL(club.website!)} />
+      ) : null}
+    </>
+  );
+
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 112 }}
+        contentContainerStyle={{ paddingBottom: isWide ? 64 : insets.bottom + 112 }}
       >
+        <View
+          className="border-b-2 border-python-blue"
+          style={{ paddingTop: insets.top + 16, paddingHorizontal: gutter, paddingBottom: 32 }}
+        >
+          <View className="flex-row items-center justify-between">
+            <Pressable
+              onPress={() => (router.canGoBack() ? router.back() : router.replace("/browse"))}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              className="min-h-11 flex-row items-center gap-1.5"
+            >
+              <Ionicons name="arrow-back" size={20} color={fg} />
+              <Text className="text-base font-bold" style={{ color: fg }}>
+                Clubs
+              </Text>
+            </Pressable>
+            {!isDesktop ? <ThemeToggle /> : null}
+          </View>
+          <Text className="mt-8 text-lg font-bold text-python-blue dark:text-python-blue-light">
+            {club.category}
+          </Text>
+          <Text
+            accessibilityRole="header"
+            className="font-display"
+            style={{ color: fg, fontSize: titleSize, lineHeight: titleSize * 0.94 }}
+          >
+            {club.name}
+          </Text>
+        </View>
+
         {loadError ? (
-          <View className="px-5 py-4">
+          <View className="items-start gap-2 py-4" style={{ paddingHorizontal: gutter }}>
             <Text className="text-danger">{loadError}</Text>
             <Button label="Retry" onPress={() => void load()} />
           </View>
         ) : null}
-        <ClubProfileHeader
-          club={club}
-          onBack={() => router.back()}
-          onShare={handleShare}
-        />
 
-        {/* Role badges + the entry point to the management area */}
-        <View className="flex-row flex-wrap items-center gap-2 px-5 pt-4">
-          {membership?.status === "pending" ? (
-            <Tag label="Approval pending" tone="warn" />
-          ) : null}
-          {membership?.role === "president" ? (
-            <Tag label="You're the president" tone="brand" />
-          ) : null}
-          {membership?.role === "board" ? (
-            <Tag label={membership.position ?? "Board member"} tone="info" />
-          ) : null}
-          {membership?.boardStatus === "pending" ? (
-            <Tag label="Board request pending" tone="warn" />
-          ) : null}
-          {access.permissions.length > 0 ? (
-            <Button
-              label="Manage club"
-              variant="tonal"
-              size="sm"
-              icon="settings-outline"
-              onPress={() => router.push(`/club/${clubId}/manage`)}
-            />
-          ) : null}
-        </View>
+        <View
+          className={`w-full self-center pt-8 ${isWide ? "flex-row-reverse items-start gap-16" : ""}`}
+          style={{ paddingHorizontal: gutter, maxWidth: 1500 }}
+        >
+          <View style={isWide ? { width: 320 } : undefined} className={isWide ? "" : "mb-8"}>
+            <Text className="text-sm text-light-muted dark:text-dark-muted">Meets</Text>
+            <Display size="lg">{club.day}</Display>
+            <Text className="text-lg text-light-text dark:text-dark-text">{club.time}</Text>
+            <View className="mt-3 flex-row flex-wrap border-t border-light-border pt-1 dark:border-dark-border">
+              <Fact half={!isWide} label="Room" value={club.location === "TBD" ? "Not listed yet" : club.location} />
+              <Fact half={!isWide} label="Advisor" value={club.advisor} />
+              <Fact
+                half={!isWide}
+                label="Members"
+                value={club.memberCount === 0 ? "None yet" : `${club.memberCount} member${club.memberCount === 1 ? "" : "s"}`}
+              />
+              <Fact
+                half={!isWide}
+                label="Joining"
+                value={club.joinPolicy === "approval" ? "Leader approves" : "Open to all"}
+              />
+              {contacts}
+            </View>
+            {isWide ? <View className="mt-4">{joinButton}</View> : null}
+            <View className="mt-2 flex-row flex-wrap items-center gap-x-4">
+              {membership?.status === "pending" ? (
+                <Tag label="Approval pending" tone="warn" />
+              ) : null}
+              {membership?.role === "president" ? (
+                <Tag label="You're the president" tone="brand" />
+              ) : null}
+              {membership?.role === "board" ? (
+                <Tag label={membership.position ?? "Board member"} tone="info" />
+              ) : null}
+              {membership?.boardStatus === "pending" ? (
+                <Tag label="Board request pending" tone="warn" />
+              ) : null}
+              {access.permissions.length > 0 ? (
+                <TextLink
+                  label="Manage club"
+                  icon="settings-outline"
+                  onPress={() => router.push(`/club/${clubId}/manage`)}
+                />
+              ) : null}
+            </View>
+          </View>
 
-        <View className="px-5 pt-4">
-          <SegmentedTabs tabs={tabs} value={tab} onChange={setTab} />
-        </View>
-
-        <View className="px-5 pt-5">
+          <View className="flex-1" style={{ minWidth: 0 }}>
+            <View className="mb-6 border-b border-light-border dark:border-dark-border">
+              <TextTabs label="Club sections" options={tabs} value={tab} onChange={setTab} />
+            </View>
           {loading ? (
             <SkeletonRow count={3} />
           ) : tab === "About" ? (
             <Animated.View entering={FadeIn.duration(240)}>
-              <Text className="rounded-2xl bg-light-surface p-5 text-base leading-6 text-light-secondary dark:bg-dark-surface dark:text-dark-secondary">
+              <Text
+                className="max-w-3xl text-light-text dark:text-dark-text"
+                style={{ fontSize: contentWidth < 640 ? 20 : 26, lineHeight: contentWidth < 640 ? 28 : 36 }}
+              >
                 {club.description}
               </Text>
               <ClubReviews clubId={clubId} isMember={joined} />
 
-              <View className="mt-6">
-                <Text className="mb-2 text-sm font-bold text-light-muted dark:text-dark-muted">
-                  Meeting info
-                </Text>
-                <Card elevation="ambient" className="px-4">
-                  <MetaRow
-                    icon="calendar-outline"
-                    label="Meeting"
-                    value={`${club.day} Â· ${club.time}`}
-                  />
-                  <MetaRow
-                    icon="location-outline"
-                    label="Location"
-                    value={club.location}
-                  />
-                  <MetaRow
-                    icon="person-outline"
-                    label="Advisor"
-                    value={club.advisor}
-                  />
-                  <MetaRow
-                    icon="people-outline"
-                    label="Members"
-                    value={`${club.memberCount} member${club.memberCount === 1 ? "" : "s"}`}
-                  />
-                  <MetaRow
-                    icon={
-                      club.joinPolicy === "approval"
-                        ? "lock-closed-outline"
-                        : "lock-open-outline"
-                    }
-                    label="Joining"
-                    value={
-                      club.joinPolicy === "approval"
-                        ? "A club leader approves new members"
-                        : "Open to every student"
-                    }
-                    divider={false}
-                  />
-                </Card>
-              </View>
-
-              <View className="mt-4">
-                <Text className="mb-2 text-sm font-bold text-light-muted dark:text-dark-muted">
-                  Connect
-                </Text>
-                <Card elevation="ambient" className="px-4">
-                  {club.contactEmail ? (
-                    <MetaRow
-                      icon="mail-outline"
-                      label="Contact"
-                      value={club.contactEmail}
-                      divider={!!club.instagram || !!club.website}
-                      onPress={() =>
-                        Linking.openURL(`mailto:${club.contactEmail}`)
-                      }
-                    />
-                  ) : null}
-                  {club.instagram ? (
-                    <MetaRow
-                      icon="logo-instagram"
-                      label="Instagram"
-                      value={club.instagram}
-                      divider={!!club.website}
-                      onPress={() => {
-                        const handle = club.instagram!.replace(/^@/, "");
-                        Linking.openURL(`https://instagram.com/${handle}`);
-                      }}
-                    />
-                  ) : null}
-                  {club.website ? (
-                    <MetaRow
-                      icon="globe-outline"
-                      label="Website"
-                      value={club.website}
-                      divider={false}
-                      onPress={() => Linking.openURL(club.website!)}
-                    />
-                  ) : null}
-                  {!club.contactEmail && !club.instagram && !club.website ? (
-                    <MetaRow
-                      icon="information-circle-outline"
-                      label="Contact"
-                      value="Not shared yet"
-                      iconTone="muted"
-                      divider={false}
-                    />
-                  ) : null}
-                </Card>
-              </View>
-
-              {joined ? <NotificationSwitches clubId={clubId} /> : null}
+              {joined ? (
+                <View className="mt-10 max-w-xl">
+                  <Display size="sm">Tell me about</Display>
+                  <NotificationSwitches clubId={clubId} />
+                </View>
+              ) : null}
             </Animated.View>
           ) : tab === "Announcements" ? (
             <Animated.View entering={FadeIn.duration(240)}>
@@ -556,7 +578,7 @@ export default function ClubProfileScreen() {
                   tone="neutral"
                 />
               ) : (
-                <View className="gap-3">
+                <View>
                   {announcements.map((a, i) => (
                     <Animated.View key={a.id} entering={FadeIn.duration(180)}>
                       <AnnouncementCard announcement={a} />
@@ -575,7 +597,7 @@ export default function ClubProfileScreen() {
                   tone="neutral"
                 />
               ) : (
-                <View className="gap-3">
+                <View>
                   {upcoming.length > 0 ? (
                     <Button
                       label="Add all upcoming to calendar"
@@ -666,27 +688,19 @@ export default function ClubProfileScreen() {
                   tone="neutral"
                 />
               ) : (
-                <View className="gap-3">
+                <View>
                   {officers.map((o, i) => (
-                    <Card
+                    <View
                       key={`${o.userId ?? o.name}-${i}`}
-                      elevation="ambient"
-                      className="flex-row items-center gap-4 p-4"
+                      className="flex-row flex-wrap items-baseline justify-between gap-x-6 border-b border-light-border py-3 dark:border-dark-border"
                     >
-                      <Avatar
-                        size="md"
-                        tone={i === 0 ? "brand" : "info"}
-                        initials={o.name.slice(0, 2).toUpperCase()}
-                      />
-                      <View className="flex-1">
-                        <Text className="text-sm font-bold text-light-muted dark:text-dark-muted">
-                          {o.role}
-                        </Text>
-                        <Text className="mt-0.5 text-base font-semibold text-light-text dark:text-dark-text">
-                          {o.name}
-                        </Text>
-                      </View>
-                    </Card>
+                      <Display size="md" className="shrink text-light-text dark:text-dark-text">
+                        {o.name}
+                      </Display>
+                      <Text className="text-base text-light-muted dark:text-dark-muted">
+                        {o.role}
+                      </Text>
+                    </View>
                   ))}
                 </View>
               )}
@@ -810,90 +824,29 @@ export default function ClubProfileScreen() {
               ) : null}
             </Animated.View>
           )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Sticky join / leave bar */}
-      <View
-        pointerEvents="box-none"
-        className="absolute bottom-0 left-0 right-0"
-      >
-        <BlurView
-          intensity={isDark ? 40 : 60}
-          tint={isDark ? "dark" : "light"}
-          style={{
-            paddingHorizontal: 20,
-            paddingTop: 12,
-            paddingBottom: insets.bottom + 12,
-            borderTopWidth: 1,
-            borderTopColor: isDark
-              ? "rgba(30,33,40,0.7)"
-              : "rgba(238,240,243,0.9)",
-          }}
+      {!isWide ? (
+        <View
+          pointerEvents="box-none"
+          className="absolute bottom-0 left-0 right-0 flex-row items-center gap-3 border-t border-light-border bg-light-bg px-5 pt-3 dark:border-dark-border dark:bg-dark-bg"
+          style={{ paddingBottom: insets.bottom + 12 }}
         >
-          <View className="flex-row items-center gap-3">
-            <View className="flex-1">
-              {!session ? (
-                <Button
-                  size="xl"
-                  fullWidth
-                  variant="primary"
-                  icon="log-in-outline"
-                  label="Sign in to join"
-                  onPress={() => router.push("/account")}
-                />
-              ) : membership?.status === "pending" ? (
-                <Button
-                  size="xl"
-                  fullWidth
-                  variant="secondary"
-                  icon="hourglass-outline"
-                  label="Waiting for approval"
-                  onPress={() => setLeaveOpen(true)}
-                />
-              ) : joined ? (
-                <Button
-                  size="xl"
-                  fullWidth
-                  variant="outline"
-                  icon="checkmark-circle"
-                  label="Joined"
-                  loading={busy}
-                  onPress={() => setLeaveOpen(true)}
-                  accessibilityLabel="Leave club"
-                />
-              ) : (
-                <Button
-                  size="xl"
-                  fullWidth
-                  variant="primary"
-                  icon="add-circle-outline"
-                  label={
-                    club.joinPolicy === "approval"
-                      ? "Request to join"
-                      : "Join club"
-                  }
-                  loading={busy}
-                  onPress={() => void handleJoin()}
-                />
-              )}
-            </View>
-            <PressableScale
+          <View className="flex-1">{joinButton}</View>
+          {showShare ? (
+            <Pressable
               onPress={handleShare}
               accessibilityRole="button"
               accessibilityLabel="Share club"
-              scaleTo={0.94}
-              className="h-14 w-14 items-center justify-center rounded-2xl border border-light-border bg-light-surface-2 dark:border-dark-border dark:bg-dark-surface-2"
+              className="h-14 w-14 items-center justify-center"
             >
-              <Ionicons
-                name="share-outline"
-                size={22}
-                color={isDark ? palette.white : brand.blueDeep}
-              />
-            </PressableScale>
-          </View>
-        </BlurView>
-      </View>
+              <Glyph name="share-outline" size={22} tone="text" />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <ConfirmDialog
         visible={leaveOpen}

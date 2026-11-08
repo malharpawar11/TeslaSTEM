@@ -48,7 +48,8 @@ export default function Settings() {
       />
       <Text
         accessibilityRole="header"
-        className="mt-5 text-3xl font-bold text-light-text dark:text-dark-text"
+        className="mt-5 font-display text-light-text dark:text-dark-text"
+        style={{ fontSize: 54, lineHeight: 54 }}
       >
         Settings
       </Text>

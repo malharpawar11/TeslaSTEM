@@ -3,6 +3,7 @@ import { View, Linking, Platform } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, PressableScale, Tag } from "@/components/ui";
+import { TextLink } from "@/components/system";
 import { useTheme } from "@/context/ThemeContext";
 import {
   formatEventDate,
@@ -78,7 +79,7 @@ export function AnnouncementCard({
   const url = canvasAnnouncementUrl(announcement.body);
   if (!url) return null;
   return (
-    <Card elevation="ambient" className="p-5">
+    <View className="border-b border-light-border py-4 dark:border-dark-border">
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text className="text-xs font-medium text-light-muted dark:text-dark-muted">
@@ -130,7 +131,7 @@ export function AnnouncementCard({
         {announcement.author ? `${announcement.author} · ` : ""}
         {relativeDate(announcement.date)}
       </Text>
-    </Card>
+    </View>
   );
 }
 
@@ -150,181 +151,101 @@ const EVENT_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 export function EventCard({
   event,
   showClub = false,
+  hideDate = false,
   onEdit,
   onCancel,
   onDelete,
 }: {
   event: ClubEvent;
   showClub?: boolean;
+  /** The list is already grouped under this date. */
+  hideDate?: boolean;
   onEdit?: () => void;
   onCancel?: () => void;
   onDelete?: () => void;
 }) {
-  const { isDark } = useTheme();
   const cancelled = event.status === "cancelled";
-  const icon = EVENT_ICON[event.eventType] ?? "calendar-outline";
+  const deadline = event.eventType === "Deadline";
+  const start = new Date(event.startsAt);
+  const zone = { timeZone: "America/Los_Angeles" } as const;
+  const when = event.dateOnly ? "All day" : formatEventTime(event);
+  const meta = [when, event.location, event.organizer].filter(Boolean);
 
   return (
-    <Card elevation="ambient" className="p-5">
-      <View className="flex-row items-start gap-3">
-        <View
-          className={`h-9 w-9 items-center justify-center rounded-lg ${
-            cancelled
-              ? "bg-danger/10 dark:bg-danger/20"
-              : "bg-python-blue/10 dark:bg-python-blue/20"
-          }`}
-        >
-          <Ionicons
-            name={icon}
-            size={18}
-            color={cancelled ? semantic.danger : brand.blue}
-          />
-        </View>
-        <View className="flex-1">
-          <View className="flex-row flex-wrap items-center gap-1.5">
-            <Tag label={event.eventType} tone="info" />
-            {cancelled ? <Tag label="Cancelled" tone="danger" /> : null}
-            {showClub && event.clubName ? (
-              <Text className="text-2xs font-semibold text-light-muted dark:text-dark-muted">
-                {event.clubName}
-              </Text>
-            ) : null}
-          </View>
-          <Text
-            className={`mt-1.5 text-lg font-bold text-light-text dark:text-dark-text ${
-              cancelled ? "line-through" : ""
-            }`}
-          >
-            {event.title}
+    <View className="flex-row gap-5 border-b border-light-border py-4 dark:border-dark-border">
+      {!hideDate ? (
+        <View className="w-12 items-start">
+          <Text className="text-xs text-light-muted dark:text-dark-muted">
+            {start.toLocaleDateString("en-US", { month: "short", ...zone })}
           </Text>
-          <View className="mt-1.5 gap-1">
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons
-                name="time-outline"
-                size={13}
-                color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
-              />
-              <Text className="text-xs text-light-muted dark:text-dark-muted">
-                {formatEventDate(event.startsAt)}{event.dateOnly ? '' : ` · ${formatEventTime(event)}`}
-              </Text>
+          <Text
+            className="font-display text-light-text dark:text-dark-text"
+            style={{ fontSize: 34, lineHeight: 34 }}
+          >
+            {start.toLocaleDateString("en-US", { day: "numeric", ...zone })}
+          </Text>
+        </View>
+      ) : null}
+      <View className="flex-1">
+        <View className="flex-row flex-wrap items-center gap-x-2">
+          {deadline ? (
+            <View className="rounded-sm bg-python-blue px-1.5 py-0.5">
+              <Text className="text-2xs font-bold text-white">Deadline</Text>
             </View>
-            {event.location ? (
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons
-                  name="location-outline"
-                  size={13}
-                  color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
-                />
-                <Text className="text-xs text-light-muted dark:text-dark-muted">
-                  {event.location}
-                </Text>
-              </View>
-            ) : null}
-            {event.organizer ? (
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons
-                  name="person-outline"
-                  size={13}
-                  color={isDark ? surfaces.dark.muted : surfaces.light.subtle}
-                />
-                <Text className="text-xs text-light-muted dark:text-dark-muted">
-                  {event.organizer}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          {event.description ? (
-            <Text className="mt-2 text-sm leading-5 text-light-secondary dark:text-dark-secondary">
-              {event.description}
+          ) : (
+            <Text className="text-xs text-light-muted dark:text-dark-muted">
+              {event.eventType}
+            </Text>
+          )}
+          {cancelled ? (
+            <Text className="text-xs font-bold text-danger">Cancelled</Text>
+          ) : null}
+          {showClub && event.clubName ? (
+            <Text className="text-xs font-bold text-light-secondary dark:text-dark-secondary">
+              {event.clubName}
             </Text>
           ) : null}
         </View>
-      </View>
-
-      {/* Add-to-calendar and management row */}
-      <View className="mt-3 flex-row flex-wrap items-center gap-2">
-        {!cancelled ? (
-          <>
-            <PressableScale
-              onPress={() => void openGoogleCalendar(event)}
-              accessibilityRole="button"
-              accessibilityLabel="Add to Google Calendar"
-              scaleTo={0.95}
-              className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-python-blue/10 px-2.5 dark:bg-python-blue/20"
-            >
-              <Ionicons name="logo-google" size={13} color={brand.blue} />
-              <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
-                Google Calendar
-              </Text>
-            </PressableScale>
-            <PressableScale
-              onPress={() => void downloadIcs([event], event.title)}
-              accessibilityRole="button"
-              accessibilityLabel="Add to Apple or device calendar"
-              scaleTo={0.95}
-              className="min-h-10 flex-row items-center gap-1.5 rounded-full border border-light-border px-2.5 dark:border-dark-border"
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={13}
-                color={
-                  isDark ? surfaces.dark.secondary : surfaces.light.secondary
-                }
+        <Text
+          className={`mt-0.5 font-display text-light-text dark:text-dark-text ${cancelled ? "line-through opacity-60" : ""}`}
+          style={{ fontSize: 26, lineHeight: 28 }}
+        >
+          {event.title}
+        </Text>
+        <Text className="mt-1 text-sm text-light-secondary dark:text-dark-secondary">
+          {meta.join(", ")}
+        </Text>
+        {event.description ? (
+          <Text className="mt-2 max-w-2xl text-sm leading-5 text-light-muted dark:text-dark-muted">
+            {event.description}
+          </Text>
+        ) : null}
+        <View className="mt-1 flex-row flex-wrap items-center gap-x-5">
+          {!cancelled ? (
+            <>
+              <TextLink
+                label="Add to Google Calendar"
+                onPress={() => void openGoogleCalendar(event)}
               />
-              <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
-                {Platform.OS === "web" ? "Download .ics" : "Apple / other"}
-              </Text>
-            </PressableScale>
-          </>
-        ) : null}
-        {onEdit ? (
-          <PressableScale
-            onPress={onEdit}
-            accessibilityRole="button"
-            accessibilityLabel="Edit event"
-            scaleTo={0.95}
-            className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-light-surface-2 px-2.5 dark:bg-dark-surface-2"
-          >
-            <Ionicons
-              name="create-outline"
-              size={13}
-              color={surfaces.light.muted}
-            />
-            <Text className="text-2xs font-semibold text-light-secondary dark:text-dark-secondary">
-              Edit
-            </Text>
-          </PressableScale>
-        ) : null}
-        {onCancel && !cancelled ? (
-          <PressableScale
-            onPress={onCancel}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel event"
-            scaleTo={0.95}
-            className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-warn/10 px-2.5 dark:bg-warn/20"
-          >
-            <Ionicons
-              name="close-circle-outline"
-              size={13}
-              color={semantic.warn}
-            />
-            <Text className="text-2xs font-semibold text-warn">Cancel</Text>
-          </PressableScale>
-        ) : null}
-        {onDelete ? (
-          <PressableScale
-            onPress={onDelete}
-            accessibilityRole="button"
-            accessibilityLabel="Delete event"
-            scaleTo={0.95}
-            className="min-h-10 flex-row items-center gap-1.5 rounded-full bg-danger/10 px-2.5 dark:bg-danger/20"
-          >
-            <Ionicons name="trash-outline" size={13} color={semantic.danger} />
-            <Text className="text-2xs font-semibold text-danger">Delete</Text>
-          </PressableScale>
-        ) : null}
+              <TextLink
+                label={Platform.OS === "web" ? "Download .ics" : "Apple or other"}
+                accessibilityLabel="Add to Apple or device calendar"
+                onPress={() => void downloadIcs([event], event.title)}
+              />
+            </>
+          ) : null}
+          {onEdit ? (
+            <TextLink label="Edit" accessibilityLabel="Edit event" onPress={onEdit} />
+          ) : null}
+          {onCancel && !cancelled ? (
+            <TextLink label="Cancel event" onPress={onCancel} />
+          ) : null}
+          {onDelete ? (
+            <TextLink label="Delete" accessibilityLabel="Delete event" onPress={onDelete} />
+          ) : null}
+        </View>
       </View>
-    </Card>
+    </View>
   );
 }
 

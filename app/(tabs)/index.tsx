@@ -1,23 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Image, ScrollView, RefreshControl } from "react-native";
-import { AccessibleText as Text } from "@/components/AccessibleText";
-import { useIsFocused } from "@react-navigation/native";
-import { CampusVisual, PageIntro } from "@/components/CampusVisual";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Pressable, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { Gradient, BRAND_COLORS_RICH } from "@/components/Gradient";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import { Python } from "@/components/python/Python";
+import type { SaddleClub, TitleBox } from "@/components/python/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
-  Button,
-  Card,
-  EmptyState,
-  PressableScale,
-  SectionHeader,
-  SkeletonRow,
-  Tag,
-} from "@/components/ui";
+  Display,
+  Page,
+  Rule,
+  TextLink,
+  nextSchoolDay,
+  useHover,
+  useRefresher,
+} from "@/components/system";
+import { Button, EmptyState, SkeletonRow } from "@/components/ui";
 import {
   AnnouncementCard,
   EventCard,
@@ -25,207 +29,624 @@ import {
   RoleBadge,
 } from "@/components/ClubContentCards";
 import { useAuth } from "@/context/AuthContext";
+import { useCampusUpdates } from "@/context/CampusUpdatesContext";
 import { useClubs } from "@/context/ClubsContext";
 import { useMemberships } from "@/context/MembershipContext";
 import { useNotifications } from "@/context/NotificationsContext";
+import { useTheme } from "@/context/ThemeContext";
+import { fetchUpcomingEvents } from "@/data/contentRepo";
 import {
-  fetchDashboard,
   EMPTY_DASHBOARD,
+  fetchDashboard,
   type Dashboard,
 } from "@/data/feedRepo";
-import { clubInitials } from "@/types/domain";
-import { duration } from "@/theme/motion";
-import { brand, surfaces } from "@/theme/tokens";
+import { meetingDays, meetingPeriods } from "@/lib/discovery";
+import { useLayout } from "@/theme/layout";
+import { easing } from "@/theme/motion";
+import { ink, surface } from "@/theme/tokens";
+import type { Club, ClubEvent } from "@/types/domain";
 
-/* ----------------------------------------------------------------------------
- * Signed-out hero: the public front door of the directory.
- * -------------------------------------------------------------------------- */
-function Hero() {
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const TITLE = ["TESLA", "STEM", "CLUBS"] as const;
+const SLOTS = [
+  { period: "Before School", phrase: "before school" },
+  { period: "At Lunch", phrase: "at lunch" },
+  { period: "After School", phrase: "after school" },
+] as const;
+
+/** Read synchronously so the title never flashes before its reveal. */
+function prefersCalm() {
+  return (
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function meetsAt(club: Club, day: string, period: string) {
+  return (
+    meetingDays(club.day).includes(day) &&
+    meetingPeriods(club.time).includes(period)
+  );
+}
+
+const FADE =
+  Platform.OS === "web"
+    ? ({
+        transitionProperty: "color, border-bottom-color",
+        transitionDuration: "140ms",
+      } as object)
+    : null;
+
+function DayOption({
+  day,
+  active,
+  compact,
+  onPress,
+}: {
+  day: string;
+  active: boolean;
+  compact: boolean;
+  onPress: () => void;
+}) {
+  const { isDark } = useTheme();
+  const { hovered, hoverProps } = useHover();
+  const page = surface(isDark);
+  return (
+    <Pressable
+      onPress={onPress}
+      {...hoverProps}
+      accessibilityRole="radio"
+      accessibilityLabel={day}
+      accessibilityState={{ checked: active }}
+      className="min-h-12 min-w-11 items-center justify-center"
+      style={[
+        {
+          borderBottomWidth: 4,
+          borderBottomColor: active
+            ? ink.blue
+            : hovered
+              ? `${ink.blue}66`
+              : "transparent",
+        },
+        FADE,
+      ]}
+    >
+      {/* Every state is bold, so choosing a day never nudges its neighbours. */}
+      <Text
+        style={[
+          {
+            fontSize: 20,
+            lineHeight: 26,
+            fontWeight: "700",
+            color: active ? ink.blue : hovered ? page.text : page.secondary,
+          },
+          FADE,
+        ]}
+      >
+        {compact ? day.slice(0, 3) : day}
+      </Text>
+    </Pressable>
+  );
+}
+
+function DaySelector({
+  value,
+  onChange,
+  compact,
+}: {
+  value: string;
+  onChange: (day: string) => void;
+  /** Three-letter days, so all five stay on one line in narrow columns. */
+  compact: boolean;
+}) {
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Day of the week"
+      className={`mb-1 flex-row flex-wrap ${compact ? "gap-x-6" : "gap-x-7"}`}
+    >
+      {WEEKDAYS.map((option) => (
+        <DayOption
+          key={option}
+          day={option}
+          active={option === value}
+          compact={compact}
+          onPress={() => onChange(option)}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** Option row printed directly on the hero's coloured field. */
+function FieldOptions({
+  label,
+  options,
+  value,
+  onChange,
+  fg,
+}: {
+  label: string;
+  options: readonly string[];
+  value: string;
+  onChange: (next: string) => void;
+  fg: string;
+}) {
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={label}
+      className="flex-row flex-wrap gap-x-4"
+    >
+      {options.map((option) => {
+        const active = option === value;
+        return (
+          <Pressable
+            key={option}
+            onPress={() => onChange(option)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: active }}
+            className="min-h-11 justify-center"
+            style={{
+              borderBottomWidth: 3,
+              borderBottomColor: active ? ink.blue : "transparent",
+            }}
+          >
+            <Text
+              className="text-base"
+              style={{
+                color: fg,
+                opacity: active ? 1 : 0.72,
+                fontWeight: active ? "700" : "400",
+              }}
+            >
+              {option}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** One line of the title, rising out from behind its own baseline. */
+function TitleLine({
+  text,
+  size,
+  delay,
+  color,
+  indent = 0,
+}: {
+  text: string;
+  size: number;
+  delay: number;
+  color: string;
+  indent?: number;
+}) {
+  const [calm] = useState(prefersCalm);
+  const progress = useSharedValue(calm ? 1 : 0);
+  useEffect(() => {
+    if (!calm)
+      progress.value = withDelay(
+        delay,
+        withTiming(1, { duration: 1100, easing: easing.emphasized }),
+      );
+  }, [calm, delay, progress]);
+  const rise = useAnimatedStyle(() => ({
+    transform: [{ translateY: (1 - progress.value) * size * 0.92 }],
+  }));
+  const height = size * 0.86;
+  return (
+    <View style={{ height, overflow: "hidden", marginLeft: indent }}>
+      <Animated.View style={rise}>
+        <Text
+          className="font-display"
+          style={{ color, fontSize: size, lineHeight: height }}
+        >
+          {text}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+function Hero({ scroll }: { scroll: { current: number } }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const focused = useIsFocused();
-  const { clubs, loading } = useClubs();
+  const { isDark } = useTheme();
+  const { clubs, loading, error, refresh } = useClubs();
+  const { contentWidth, height, isDesktop, gutter } = useLayout();
+  const [day, setDay] = useState(nextSchoolDay);
+  const [phrase, setPhrase] = useState<string>("after school");
+  const [hoverClub, setHoverClub] = useState<SaddleClub | null>(null);
+  const [onScreen, setOnScreen] = useState(true);
+  const [titleY, setTitleY] = useState<number | null>(null);
+  const slot = SLOTS.find((s) => s.phrase === phrase) ?? SLOTS[2];
+
+  // The render loop stops once the hero has left the screen.
+  useEffect(() => {
+    const id = setInterval(() => setOnScreen(scroll.current < 1), 400);
+    return () => clearInterval(id);
+  }, [scroll]);
+
+  const matches = useMemo(
+    () => clubs.filter((club) => meetsAt(club, day, slot.period)),
+    [clubs, day, slot.period],
+  );
+  const lit = useMemo(() => new Set(matches.map((c) => c.id)), [matches]);
+  const poles = useMemo(
+    () =>
+      clubs
+        .map((c) => ({ id: c.id, name: c.name, category: c.category }))
+        .sort(
+          (a, b) =>
+            a.category.localeCompare(b.category) ||
+            a.name.localeCompare(b.name),
+        ),
+    [clubs],
+  );
+  const hovered = clubs.find((c) => c.id === hoverClub?.id);
+
+  const fg = surface(isDark).text;
+  const side = contentWidth >= 760;
+  const heroHeight = isDesktop ? Math.max(height, 640) : undefined;
+  const titleSize = side
+    ? Math.min((heroHeight ?? height) * 0.262, contentWidth * 0.19)
+    : Math.min((contentWidth - gutter * 2) / 2.3, 230);
+  const indent = titleSize * (side ? 0.46 : 0.18);
+  const controlsWidth = side
+    ? Math.min(contentWidth * 0.5, 560)
+    : contentWidth - gutter * 2;
+  const titleBox = useMemo<TitleBox | null>(
+    () =>
+      titleY === null
+        ? null
+        : {
+            left: gutter,
+            top: titleY,
+            size: titleSize,
+            indent,
+            lineHeight: titleSize * 0.86,
+            lines: TITLE,
+            right: contentWidth - gutter,
+          },
+    [titleY, gutter, titleSize, indent, contentWidth],
+  );
+  const browseSlot = `/browse?day=${day}&period=${encodeURIComponent(slot.period)}`;
+  const preview = matches.slice(0, 3).map((c) => c.name);
+  const extra = matches.length - preview.length;
+
   return (
-    <ScrollView
-      className="flex-1 bg-light-bg dark:bg-dark-bg"
-      contentContainerStyle={{ paddingBottom: 40 }}
+    <View
+      style={{
+        minHeight: heroHeight,
+        paddingTop: insets.top + (isDesktop ? 36 : 20),
+        paddingHorizontal: gutter,
+        paddingBottom: isDesktop ? 36 : 28,
+        overflow: "hidden",
+      }}
+      className="justify-between"
     >
-      <Gradient
-        colors={["#10285D", "#104A51"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ paddingTop: insets.top + 20, overflow: "hidden" }}
+      {!isDesktop ? (
+        <View className="mb-5 flex-row justify-end" style={{ zIndex: 3 }}>
+          <ThemeToggle />
+        </View>
+      ) : null}
+
+      {/* Type sits under the canvas; the python's depth mask reveals it. */}
+      <View
+        accessibilityRole="header"
+        aria-level={1}
+        accessibilityLabel="Tesla STEM Clubs"
+        style={{ zIndex: 1 }}
+        onLayout={(e) => setTitleY(e.nativeEvent.layout.y)}
       >
-        <CampusVisual active={focused} />
-        <View className="px-7 pb-10">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <Image
-                source={require("../../assets/teslastemlogo.png")}
-                style={{ width: 32, height: 32 }}
-                resizeMode="contain"
-                accessibilityLabel="Tesla STEM Pythons logo"
-              />
-              <Text className="text-base font-bold text-white">
-                Tesla STEM Clubs
-              </Text>
-            </View>
-            <ThemeToggle variant="translucent" />
-          </View>
-          <View className="mt-12 self-start rounded-full border border-white/20 bg-white/10 px-3 py-2">
-            <Text className="text-2xs font-bold tracking-widest text-white/80">
-              YOUR CAMPUS. YOUR COMMUNITY.
-            </Text>
-          </View>
+        <TitleLine text={TITLE[0]} size={titleSize} delay={120} color={fg} />
+        <TitleLine
+          text={TITLE[1]}
+          size={titleSize}
+          delay={240}
+          color={fg}
+          indent={indent}
+        />
+        <TitleLine text={TITLE[2]} size={titleSize} delay={360} color={fg} />
+      </View>
+
+      <View
+        className="absolute inset-0"
+        style={{ zIndex: 2 }}
+        pointerEvents="box-none"
+      >
+        {titleBox ? (
+          <Python
+            clubs={poles}
+            lit={lit}
+            placement={side ? "side" : "stacked"}
+            title={titleBox}
+            pulseKey={`${day}-${phrase}`}
+            scroll={scroll}
+            visible={onScreen}
+            onHover={setHoverClub}
+            onSelect={(club) => router.push(`/club/${club.id}`)}
+          />
+        ) : null}
+      </View>
+
+      {hovered ? (
+        <View
+          pointerEvents="none"
+          className="absolute items-end"
+          style={{ zIndex: 3, right: gutter, top: insets.top + 36 }}
+        >
           <Text
-            accessibilityRole="header"
-            className="mt-6 max-w-xl text-5xl font-bold tracking-tight text-white"
+            className="font-display"
+            style={{ color: fg, fontSize: 40, lineHeight: 42, textAlign: "right" }}
           >
-            Find your people.{"\n"}Build your future.
+            {hovered.name}
           </Text>
-          <Text className="mt-4 max-w-md text-base leading-6 text-white/75">
-            Explore the clubs that match your curiosity. Make connections,
-            discover opportunities, and keep every deadline in view.
+          <Text className="text-base" style={{ color: fg }}>
+            {hovered.day}, {hovered.time}
           </Text>
-          <View className="mt-7 self-start">
-            <Button
-              label="Explore clubs"
-              iconRight="arrow-forward"
-              size="xl"
-              variant="success"
-              onPress={() => router.push("/browse")}
-            />
-          </View>
-          {!loading && clubs.length > 0 ? (
-            <View className="mt-7 flex-row items-center gap-2">
-              <View className="h-2 w-2 rounded-full bg-python-green-light" />
-              <Text className="text-sm text-white/75">
-                {clubs.length} clubs. A place for every interest.
+        </View>
+      ) : null}
+
+      <View
+        pointerEvents="box-none"
+        style={{
+          zIndex: 3,
+          marginTop: side ? 20 : titleSize * 2.1,
+          maxWidth: side ? controlsWidth : undefined,
+        }}
+      >
+        <DaySelector
+          value={day}
+          onChange={setDay}
+          compact={controlsWidth < 520}
+        />
+        <FieldOptions
+          label="Time of day"
+          options={SLOTS.map((s) => s.phrase)}
+          value={phrase}
+          onChange={setPhrase}
+          fg={fg}
+        />
+        <View className="mt-3 min-h-[52px]" accessibilityLiveRegion="polite">
+          {error ? (
+            <View className="flex-row items-center gap-3">
+              <Text className="text-base" style={{ color: fg }}>
+                The club list didn't load.
               </Text>
+              <TextLink label="Try again" onPress={refresh} />
             </View>
+          ) : loading && clubs.length === 0 ? null : (
+            <Text className="text-base" style={{ color: fg }}>
+              <Text className="font-bold" style={{ color: fg }}>
+                {matches.length === 0
+                  ? `Nothing meets ${day} ${phrase}.`
+                  : `${matches.length} ${matches.length === 1 ? "club meets" : "clubs meet"} ${day} ${phrase}: `}
+              </Text>
+              {preview.join(", ")}
+              {extra > 0 ? `, and ${extra} more.` : matches.length ? "." : ""}
+            </Text>
+          )}
+        </View>
+        <View className="mt-3 flex-row flex-wrap items-center gap-x-6 gap-y-2">
+          <Pressable
+            onPress={() =>
+              router.push(matches.length ? (browseSlot as never) : "/browse")
+            }
+            accessibilityRole="link"
+            className="h-12 flex-row items-center rounded-md bg-python-blue px-6"
+          >
+            <Text
+              className="font-display"
+              style={{ color: "#FFFFFF", fontSize: 24, lineHeight: 26 }}
+            >
+              {matches.length ? `See ${day}'s clubs` : "Browse every club"}
+            </Text>
+          </Pressable>
+          {matches.length ? (
+            <Pressable
+              onPress={() => router.push("/browse")}
+              accessibilityRole="link"
+              className="min-h-11 justify-center"
+            >
+              <Text className="text-base underline" style={{ color: fg }}>
+                Browse all {clubs.length}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
-      </Gradient>
-      <View className="gap-5 px-6 pt-7">
-        <SectionHeader
-          eyebrow="MADE FOR STUDENTS"
-          title="Your next chapter starts here"
-          size="lg"
-        />
-        {(
-          [
-            {
-              icon: "compass-outline",
-              title: "Discover your fit",
-              body: "Filter by interests, career goals, and when you are free.",
-              route: "/browse",
-            },
-            {
-              icon: "calendar-outline",
-              title: "Stay one step ahead",
-              body: "Meetings and deadlines from all your clubs in one calendar.",
-              route: "/calendar",
-            },
-          ] as const
-        ).map((item) => (
-          <PressableScale
-            key={item.title}
-            accessibilityRole="button"
-            accessibilityLabel={item.title}
-            onPress={() => router.push(item.route)}
-            className="flex-row items-center gap-4 rounded-2xl border border-light-border bg-light-surface p-5 dark:border-dark-border dark:bg-dark-surface"
-          >
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-python-blue/10">
-              <Ionicons name={item.icon} size={24} color={brand.blue} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-base font-bold text-light-text dark:text-dark-text">
-                {item.title}
-              </Text>
-              <Text className="mt-1 text-sm text-light-muted dark:text-dark-muted">
-                {item.body}
-              </Text>
-            </View>
-            <Ionicons name="arrow-forward" size={18} color={brand.blue} />
-          </PressableScale>
-        ))}
-        <Button
-          label="Sign in with your @lwsd.org account"
-          variant="outline"
-          size="lg"
-          fullWidth
-          onPress={() => router.push("/account")}
-        />
-        <Text className="text-center text-xs text-light-muted dark:text-dark-muted">
-          Explore freely. Sign in to join clubs and personalize your campus.
-        </Text>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
-/* ----------------------------------------------------------------------------
- * Signed-in dashboard: everything from every club the student joined.
- * -------------------------------------------------------------------------- */
-function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
-  const router = useRouter();
-  if (dashboard.clubs.length === 0) {
-    return (
-      <EmptyState
-        icon="people-outline"
-        title="You haven't joined any clubs yet"
-        description="Browse the directory and join a club to see its announcements, files, and events here."
-        actionLabel="Browse clubs"
-        onAction={() => router.push("/browse")}
-        tone="brand"
-      />
-    );
-  }
+function InterestWord({
+  label,
+  count,
+  scale,
+  onPress,
+}: {
+  label: string;
+  count: number;
+  scale: number;
+  onPress: () => void;
+}) {
+  const { hovered, hoverProps } = useHover();
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 10 }}
+    <Pressable
+      onPress={onPress}
+      {...hoverProps}
+      accessibilityRole="link"
+      accessibilityLabel={`${label}, ${count} clubs`}
+      className="flex-row items-start"
     >
-      {dashboard.clubs.map((club) => (
-        <PressableScale
-          key={club.id}
-          onPress={() => router.push(`/club/${club.id}`)}
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${club.name}`}
-          scaleTo={0.96}
-          className="w-[240px] rounded-2xl border border-light-border bg-light-surface p-5 dark:border-dark-border dark:bg-dark-surface"
+      <Display
+        fontSize={scale}
+        className={
+          hovered
+            ? "text-python-blue dark:text-python-blue-light"
+            : "text-light-text dark:text-dark-text"
+        }
+      >
+        {label}
+      </Display>
+      <Text className="ml-1 mt-1 text-sm font-bold text-light-muted dark:text-dark-muted">
+        {count}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Signed-out landing: the hero, then what's in the directory and what's next. */
+function Landing() {
+  const router = useRouter();
+  const { clubs } = useClubs();
+  const { gutter, contentWidth, isWide, height } = useLayout();
+  const scroll = useRef(0 as number) as { current: number };
+  const [events, setEvents] = useState<ClubEvent[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      fetchUpcomingEvents(5)
+        .then((next) => alive && setEvents(next))
+        .catch(() => alive && setEvents([]));
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  const categories = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const club of clubs)
+      map.set(club.category, (map.get(club.category) ?? 0) + 1);
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [clubs]);
+  const most = categories[0]?.[1] ?? 1;
+  const wordSize = (count: number) => {
+    const top = Math.min(contentWidth * 0.14, 190);
+    return Math.round(38 + (top - 38) * Math.sqrt(count / most) * 0.9);
+  };
+
+  return (
+    <Page bleed onScrollY={(y) => (scroll.current = Math.min(1, y / Math.max(height * 0.9, 480)))}>
+      <Hero scroll={scroll} />
+      <View
+        style={{ paddingHorizontal: gutter, maxWidth: 1560 }}
+        className="w-full self-center pt-16"
+      >
+        <Text className="mb-5 max-w-md text-lg text-light-secondary dark:text-dark-secondary">
+          Or start from what you already like.
+        </Text>
+        <View className="flex-row flex-wrap items-end gap-x-9 gap-y-1">
+          {categories.map(([category, count]) => (
+            <InterestWord
+              key={category}
+              label={category}
+              count={count}
+              scale={wordSize(count)}
+              onPress={() =>
+                router.push(`/browse?category=${category}` as never)
+              }
+            />
+          ))}
+        </View>
+
+        <View
+          className={`mt-20 ${isWide ? "flex-row items-start" : ""} gap-14`}
         >
-          <View className="flex-row items-center gap-2.5">
-            <View className="h-9 w-9 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
-              <Text className="text-2xs font-semibold text-python-blue-dark dark:text-python-blue-light">
-                {clubInitials(club.name)}
-              </Text>
+          {events.length > 0 ? (
+            <View className="flex-[3]">
+              <Rule
+                title="Coming up"
+                trailing={
+                  <TextLink
+                    label="Open calendar"
+                    onPress={() => router.push("/calendar")}
+                  />
+                }
+              />
+              {events.map((event) => (
+                <EventCard key={event.id} event={event} showClub />
+              ))}
             </View>
-            <Text
-              className="flex-1 text-sm font-semibold text-light-text dark:text-dark-text"
-              numberOfLines={2}
-            >
-              {club.name}
+          ) : null}
+          <View className={events.length > 0 ? "flex-[2]" : "max-w-xl"}>
+            <Display size="md">Joining takes a school account.</Display>
+            <Text className="mb-5 mt-3 text-base leading-6 text-light-secondary dark:text-dark-secondary">
+              Browse as long as you like. Sign in with your @lwsd.org email to
+              join clubs and get one calendar of just your meetings.
             </Text>
+            <View className="self-start">
+              <Button
+                label="Sign in"
+                size="lg"
+                onPress={() => router.push("/account")}
+              />
+            </View>
           </View>
-          <View className="mt-2.5 flex-row items-center gap-1.5">
-            {club.status === "pending" ? (
-              <Tag label="Pending" tone="warn" />
+        </View>
+      </View>
+    </Page>
+  );
+}
+
+/** Mon–Fri strip of the clubs the student actually belongs to. */
+function MyWeek({ clubs }: { clubs: Club[] }) {
+  const router = useRouter();
+  const today = nextSchoolDay();
+  const { contentWidth } = useLayout();
+  const stacked = contentWidth < 640;
+  return (
+    <View className={stacked ? "gap-4" : "flex-row"}>
+      {WEEKDAYS.map((day) => {
+        const items = clubs.filter((c) => meetingDays(c.day).includes(day));
+        return (
+          <View
+            key={day}
+            className={`flex-1 ${stacked ? "" : "border-l border-light-border pl-3 pr-2 dark:border-dark-border"}`}
+          >
+            <Display
+              fontSize={24}
+              className={
+                day === today
+                  ? "text-python-blue dark:text-python-blue-light"
+                  : "text-light-muted dark:text-dark-muted"
+              }
+            >
+              {day.slice(0, 3)}
+            </Display>
+            {items.length === 0 ? (
+              <Text className="mt-1 text-sm text-light-muted dark:text-dark-muted">
+                Free
+              </Text>
             ) : (
-              <RoleBadge role={club.role} position={club.position} />
+              items.map((club) => (
+                <Pressable
+                  key={club.id}
+                  onPress={() => router.push(`/club/${club.id}`)}
+                  accessibilityRole="link"
+                  className="min-h-11 justify-center py-1"
+                >
+                  <Text className="text-sm font-bold text-light-text dark:text-dark-text">
+                    {club.name}
+                  </Text>
+                  <Text className="text-xs text-light-muted dark:text-dark-muted">
+                    {club.time}, {club.location}
+                  </Text>
+                </Pressable>
+              ))
             )}
           </View>
-          <Text className="mt-1.5 text-xs text-light-muted dark:text-dark-muted">
-            {club.memberCount} member{club.memberCount === 1 ? "" : "s"}
-          </Text>
-        </PressableScale>
-      ))}
-    </ScrollView>
+        );
+      })}
+    </View>
   );
 }
-
-import { useCampusUpdates } from "@/context/CampusUpdatesContext";
 
 function DashboardScreen() {
   const {
@@ -234,19 +655,19 @@ function DashboardScreen() {
     reconnected,
   } = useCampusUpdates();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
+  const { isDark } = useTheme();
+  const { isDesktop, isWide } = useLayout();
+  const { clubs } = useClubs();
   const { refresh: refreshMemberships } = useMemberships();
   const { unreadCount, refresh: refreshNotifications } = useNotifications();
   const [dashboard, setDashboard] = useState<Dashboard>(EMPTY_DASHBOARD);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchDashboard(8);
-      setDashboard(data);
+      setDashboard(await fetchDashboard(8));
       setError(null);
     } catch (failure) {
       setError(
@@ -263,19 +684,18 @@ function DashboardScreen() {
     void load();
   }, [load]);
 
-  // Returning to Home after joining a club should show the change without a
-  // manual pull: one request, only when the screen is actually visible.
   useFocusEffect(
     useCallback(() => {
       void load();
     }, [load, eventVersion, announcementVersion, reconnected]),
   );
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([load(), refreshMemberships(), refreshNotifications()]);
-    setRefreshing(false);
-  }, [load, refreshMemberships, refreshNotifications]);
+  const { refreshing, onRefresh } = useRefresher(
+    useCallback(
+      () => Promise.all([load(), refreshMemberships(), refreshNotifications()]),
+      [load, refreshMemberships, refreshNotifications],
+    ),
+  );
 
   const firstName = useMemo(() => {
     const name =
@@ -283,6 +703,23 @@ function DashboardScreen() {
     return name.split(/[\s.]/)[0];
   }, [profile]);
 
+  const myIds = useMemo(
+    () => new Set(dashboard.clubs.map((c) => c.id)),
+    [dashboard.clubs],
+  );
+  const myClubs = useMemo(
+    () => clubs.filter((c) => myIds.has(c.id)),
+    [clubs, myIds],
+  );
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "America/Los_Angeles",
+  });
+  const nextEvent = dashboard.events[0];
+  const laterEvents = dashboard.events.slice(1, 5);
+  const announcements = dashboard.announcements.slice(0, 4);
   const nothingNew =
     dashboard.clubs.length > 0 &&
     dashboard.events.length === 0 &&
@@ -290,147 +727,141 @@ function DashboardScreen() {
     dashboard.files.length === 0;
 
   return (
-    <ScrollView
-      className="flex-1"
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={brand.blue}
-        />
-      }
-    >
-      <View
-        className="flex-row items-start justify-between px-5"
-        style={{ paddingTop: insets.top + 8 }}
-      >
-        <View className="flex-1 pr-3">
-          <Text className="text-2xl font-semibold tracking-tight text-light-text dark:text-dark-text">
+    <Page onRefresh={() => void onRefresh()} refreshing={refreshing}>
+      <View className="flex-row items-start justify-between gap-6">
+        <View className="flex-1">
+          <Display size="xl" accessibilityRole="header">
             Hi, {firstName}
-          </Text>
-          <Text className="mt-0.5 text-sm text-light-muted dark:text-dark-muted">
-            Updates from your clubs
+          </Display>
+          <Text className="mt-2 text-base text-light-muted dark:text-dark-muted">
+            {today}
           </Text>
           {error ? (
-            <>
-              <Text className="mt-2 text-danger">{error}</Text>
+            <View className="mt-3 items-start gap-2">
+              <Text className="text-danger">{error}</Text>
               <Button label="Retry" onPress={() => void load()} />
-            </>
+            </View>
           ) : null}
         </View>
-        <View className="flex-row items-center gap-2 pt-1">
-          <PressableScale
-            onPress={() => router.push("/search")}
-            accessibilityRole="button"
-            accessibilityLabel="Search clubs, announcements, files, and events"
-            scaleTo={0.92}
-            className="h-9 w-9 items-center justify-center rounded-lg border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
-          >
-            <Ionicons name="search" size={17} color={brand.blue} />
-          </PressableScale>
-          <ThemeToggle />
-        </View>
+        {!isDesktop ? <ThemeToggle /> : null}
       </View>
 
-      <View className="px-5 pt-5">
-        <PageIntro
-          eyebrow="YOUR CAMPUS / TODAY"
-          title="Make room for what matters."
-          description="Your clubs, conversations, and next opportunities. All connected."
+      {unreadCount > 0 ? (
+        <Pressable
+          onPress={() => router.push("/notifications")}
+          accessibilityRole="link"
+          accessibilityLabel={`${unreadCount} unread notifications`}
+          className="mt-6 flex-row items-center justify-between rounded-md bg-python-blue px-5 py-3"
         >
-          <Button
-            label="Discover something new"
-            variant="success"
-            size="md"
-            iconRight="arrow-forward"
-            onPress={() => router.push("/browse")}
-          />
-        </PageIntro>
-      </View>
+          <Display fontSize={26} className="text-white">
+            {unreadCount} new {unreadCount === 1 ? "alert" : "alerts"}
+          </Display>
+          <Text className="text-sm font-bold text-white">Read them</Text>
+        </Pressable>
+      ) : null}
 
       {loading ? (
-        <View className="px-5 pt-6">
+        <View className="pt-10">
           <SkeletonRow count={3} />
         </View>
+      ) : dashboard.clubs.length === 0 ? (
+        <View className="mt-10">
+          <EmptyState
+            title="You haven't joined a club yet"
+            description="Join one and its meetings, Canvas links and files collect here."
+            actionLabel="Browse clubs"
+            onAction={() => router.push("/browse")}
+          />
+        </View>
       ) : (
-        <>
-          <View className="px-5 pt-5">
-            <SectionHeader title="Your clubs" size="sm" />
-            <View className="mt-3">
-              <MyClubsRow dashboard={dashboard} />
+        <View className={`mt-10 gap-14 ${isWide ? "flex-row items-start" : ""}`}>
+          <View className="flex-[5]" style={{ minWidth: 0 }}>
+            {nextEvent ? (
+              <View className="mb-12">
+                <Text className="text-base text-light-muted dark:text-dark-muted">
+                  Next up, {nextEvent.clubName}
+                </Text>
+                <Display size="lg" className="mt-1 text-light-text dark:text-dark-text">
+                  {nextEvent.title}
+                </Display>
+                <Text className="mt-2 text-lg text-light-secondary dark:text-dark-secondary">
+                  {new Date(nextEvent.startsAt).toLocaleString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    ...(nextEvent.dateOnly
+                      ? {}
+                      : { hour: "numeric", minute: "2-digit" }),
+                    timeZone: "America/Los_Angeles",
+                  })}
+                  {nextEvent.location ? `, ${nextEvent.location}` : ""}
+                </Text>
+              </View>
+            ) : null}
+
+            <Rule title="Your week" />
+            <View className="mt-4">
+              <MyWeek clubs={myClubs} />
             </View>
-          </View>
 
-          {unreadCount > 0 ? (
-            <Animated.View
-              entering={FadeIn.duration(180)}
-              className="px-5 pt-5"
-            >
-              <PressableScale
-                onPress={() => router.push("/notifications")}
-                accessibilityRole="button"
-                accessibilityLabel={`${unreadCount} unread notifications`}
-                scaleTo={0.98}
-              >
-                <Card
-                  elevation="ambient"
-                  className="flex-row items-center gap-3 p-3.5"
-                >
-                  <View className="h-9 w-9 items-center justify-center rounded-lg bg-python-blue/10 dark:bg-python-blue/20">
-                    <Ionicons
-                      name="notifications-outline"
-                      size={17}
-                      color={brand.blue}
+            {laterEvents.length > 0 ? (
+              <View className="mt-12">
+                <Rule
+                  title="After that"
+                  trailing={
+                    <TextLink
+                      label="Open calendar"
+                      onPress={() => router.push("/calendar")}
                     />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                      {unreadCount} new update{unreadCount === 1 ? "" : "s"}
-                    </Text>
-                    <Text className="mt-0.5 text-xs text-light-muted dark:text-dark-muted">
-                      Open your notifications
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={17}
-                    color={surfaces.light.subtle}
-                  />
-                </Card>
-              </PressableScale>
-            </Animated.View>
-          ) : null}
-
-          {dashboard.events.length > 0 ? (
-            <View className="px-5 pt-6">
-              <SectionHeader
-                title="Upcoming"
-                size="sm"
-                trailing={
-                  <Button
-                    label="Calendar"
-                    variant="ghost"
-                    size="sm"
-                    iconRight="chevron-forward"
-                    onPress={() => router.push("/calendar")}
-                  />
-                }
-              />
-              <View className="mt-3 gap-3">
-                {dashboard.events.slice(0, 4).map((event) => (
+                  }
+                />
+                {laterEvents.map((event) => (
                   <EventCard key={event.id} event={event} showClub />
                 ))}
               </View>
-            </View>
-          ) : null}
+            ) : null}
 
-          {dashboard.announcements.length > 0 ? (
-            <View className="px-5 pt-6">
-              <SectionHeader title="Announcements" size="sm" />
-              <View className="mt-3 gap-3">
-                {dashboard.announcements.slice(0, 4).map((announcement) => (
+            {nothingNew ? (
+              <EmptyState
+                title="All caught up"
+                description="New Canvas links, files and events from your clubs appear here."
+              />
+            ) : null}
+          </View>
+
+          <View className="flex-[3]" style={{ minWidth: 0 }}>
+            <Rule
+              title="Your clubs"
+              trailing={
+                <TextLink
+                  label="Find more"
+                  onPress={() => router.push("/browse")}
+                />
+              }
+            />
+            {dashboard.clubs.map((club) => (
+              <Pressable
+                key={club.id}
+                onPress={() => router.push(`/club/${club.id}`)}
+                accessibilityRole="link"
+                accessibilityLabel={`Open ${club.name}`}
+                className="flex-row items-center justify-between gap-3 border-b border-light-border py-3 dark:border-dark-border"
+              >
+                <Display fontSize={26} className="flex-1 text-light-text dark:text-dark-text">
+                  {club.name}
+                </Display>
+                {club.status === "pending" ? (
+                  <Text className="text-sm font-bold text-warn">Pending</Text>
+                ) : (
+                  <RoleBadge role={club.role} position={club.position} />
+                )}
+              </Pressable>
+            ))}
+
+            {announcements.length > 0 ? (
+              <View className="mt-12">
+                <Rule title="Canvas links" />
+                {announcements.map((announcement) => (
                   <AnnouncementCard
                     key={announcement.id}
                     announcement={announcement}
@@ -438,45 +869,24 @@ function DashboardScreen() {
                   />
                 ))}
               </View>
-            </View>
-          ) : null}
+            ) : null}
 
-          {dashboard.files.length > 0 ? (
-            <View className="px-5 pt-6">
-              <SectionHeader title="Files" size="sm" />
-              <View className="mt-3 gap-2.5">
+            {dashboard.files.length > 0 ? (
+              <View className="mt-12 gap-2.5">
+                <Rule title="New files" />
                 {dashboard.files.slice(0, 4).map((file) => (
                   <FileRow key={file.id} file={file} showClub />
                 ))}
               </View>
-            </View>
-          ) : null}
-
-          {nothingNew ? (
-            <View className="px-5 pt-8">
-              <EmptyState
-                icon="sparkles-outline"
-                title="All caught up"
-                description="New Canvas links, files, and events from your clubs will appear here."
-                tone="neutral"
-              />
-            </View>
-          ) : null}
-        </>
+            ) : null}
+          </View>
+        </View>
       )}
-    </ScrollView>
+    </Page>
   );
 }
 
 export default function HomeScreen() {
   const { session, configured } = useAuth();
-
-  if (!configured || !session) {
-    return <Hero />;
-  }
-  return (
-    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <DashboardScreen />
-    </View>
-  );
+  return !configured || !session ? <Landing /> : <DashboardScreen />;
 }

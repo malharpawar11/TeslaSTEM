@@ -1,21 +1,12 @@
-import { PageIntro } from "@/components/CampusVisual";
 import { useCallback, useMemo, useState } from "react";
-import { View, ScrollView, Platform } from "react-native";
+import { View, Platform, Pressable } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Avatar,
-  Button,
-  Card,
-  Divider,
-  PressableScale,
-  Tag,
-} from "@/components/ui";
+import { Button } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SignInGate } from "@/components/SignInGate";
+import { Display, Glyph, Page, Rule, TextLink } from "@/components/system";
 import { useAuth } from "@/context/AuthContext";
 import { useClubs } from "@/context/ClubsContext";
 import { useMemberships } from "@/context/MembershipContext";
@@ -23,8 +14,8 @@ import { useNotifications } from "@/context/NotificationsContext";
 import { useToast } from "@/context/ToastContext";
 import { requestPresidentVerification } from "@/data/adminRepo";
 import { registerForPush } from "@/lib/push";
+import { useLayout } from "@/theme/layout";
 import { roleLabel, type NotificationPrefs } from "@/types/domain";
-import { brand, surfaces } from "@/theme/tokens";
 
 const ROLE_LABEL: Record<string, string> = {
   special_admin: "School Admin",
@@ -36,57 +27,72 @@ const ROLE_LABEL: Record<string, string> = {
 const PREF_ROWS: {
   key: keyof NotificationPrefs;
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { key: "events", label: "Events & changes", icon: "calendar-outline" },
-  { key: "files", label: "New files", icon: "document-outline" },
-  { key: "notes", label: "Notes & resources", icon: "reader-outline" },
-  { key: "reminders", label: "Meeting reminders", icon: "alarm-outline" },
+  { key: "events", label: "Events & changes" },
+  { key: "files", label: "New files" },
+  { key: "notes", label: "Notes & resources" },
+  { key: "reminders", label: "Meeting reminders" },
 ];
 
 function ToggleRow({
   label,
-  icon,
   value,
   onToggle,
-  last = false,
 }: {
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
   value: boolean;
   onToggle: () => void;
-  last?: boolean;
 }) {
   return (
-    <PressableScale
+    <Pressable
       onPress={onToggle}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       accessibilityLabel={label}
-      scaleTo={0.99}
-      className={`flex-row items-center gap-3 py-3 ${
-        last ? "" : "border-b border-light-hairline dark:border-dark-border"
-      }`}
+      className="min-h-12 flex-row items-center justify-between gap-3 border-b border-light-border py-2 dark:border-dark-border"
     >
-      <Ionicons name={icon} size={16} color={brand.blue} />
-      <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
+      <Text className="text-base text-light-text dark:text-dark-text">
         {label}
       </Text>
       <View
-        className={`h-6 w-10 justify-center rounded-full px-0.5 ${
-          value ? "bg-python-green" : "bg-light-border dark:bg-dark-border"
+        className={`h-6 w-11 justify-center rounded-full px-0.5 ${
+          value ? "bg-python-green" : "bg-light-border-strong dark:bg-dark-border-strong"
         }`}
       >
         <View
           className={`h-5 w-5 rounded-full bg-white ${value ? "self-end" : "self-start"}`}
         />
       </View>
-    </PressableScale>
+    </Pressable>
+  );
+}
+
+function MoreLink({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      className="min-h-12 flex-row items-center gap-3 border-b border-light-border py-2 hover:opacity-70 dark:border-dark-border"
+    >
+      <Glyph name={icon} tone="secondary" />
+      <Text className="flex-1 text-base text-light-text dark:text-dark-text">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 function AccountDashboard() {
-  const insets = useSafeAreaInsets();
+  const { isDesktop, isWide, contentWidth } = useLayout();
   const router = useRouter();
   const { profile, signOut, refreshProfile, isSpecialAdmin } = useAuth();
   const { clubs } = useClubs();
@@ -104,7 +110,6 @@ function AccountDashboard() {
   const [enablingPush, setEnablingPush] = useState(false);
 
   const displayName = profile?.display_name ?? profile?.email ?? "Student";
-  const initials = displayName.slice(0, 2).toUpperCase();
   const globalPrefs = prefsFor(null);
 
   const myClubs = useMemo(
@@ -164,306 +169,167 @@ function AccountDashboard() {
     profile?.role === "student" &&
     (!presidentStatus || presidentStatus === "rejected");
 
+  const nameSize = Math.max(
+    56,
+    Math.min(contentWidth * 0.11, 148) * Math.min(1, 16 / displayName.length),
+  );
   return (
-    <ScrollView
-      className="flex-1"
-      showsVerticalScrollIndicator={false}
-      contentContainerClassName="px-5 pb-8"
-    >
-      <View
-        className="flex-row items-start justify-between pb-1"
-        style={{ paddingTop: insets.top + 8 }}
-      >
-        <View className="flex-1 pr-3">
-          <Text className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">
-            My account
-          </Text>
-        </View>
-        <ThemeToggle />
+    <Page maxWidth={1400}>
+      <View className="flex-row items-start justify-between gap-4">
+        <Display fontSize={nameSize} accessibilityRole="header" className="flex-1 text-light-text dark:text-dark-text">
+          {displayName}
+        </Display>
+        {!isDesktop ? <ThemeToggle /> : null}
       </View>
-
-      <View className="mt-5">
-        <Button
-          label="Settings"
-          icon="settings-outline"
-          variant="secondary"
-          onPress={() => router.push("/settings")}
-        />
-        <PageIntro
-          eyebrow="PROFILE / PREFERENCES"
-          title="Your campus, your way."
-          description="Manage your memberships, school profile, and notification preferences."
-        />
-      </View>
-
-      <Animated.View entering={FadeIn.duration(180)}>
-        <Card
-          elevation="ambient"
-          className="mt-5 flex-row items-center gap-3 rounded-2xl p-4"
-        >
-          <Avatar size="lg" tone="brand" initials={initials} />
-          <View className="flex-1">
-            <Text
-              className="text-base font-semibold text-light-text dark:text-dark-text"
-              numberOfLines={1}
-            >
-              {displayName}
-            </Text>
-            <Text
-              className="mt-0.5 text-xs text-light-muted dark:text-dark-muted"
-              numberOfLines={1}
-            >
-              {profile?.email}
-            </Text>
-            <View className="mt-2 flex-row flex-wrap items-center gap-1.5">
-              <Tag
-                label={ROLE_LABEL[profile?.role ?? "student"] ?? "Student"}
-                tone="brand"
-              />
-              {presidentStatus === "pending" ? (
-                <Tag label="Verification pending" tone="warn" />
-              ) : null}
-            </View>
-          </View>
-        </Card>
-      </Animated.View>
-
-      {/* My clubs */}
-      <Animated.View entering={FadeIn.duration(180)}>
-        <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
-          My clubs ({myClubs.length})
+      <View className="mt-3 flex-row flex-wrap items-center gap-x-5">
+        <Text className="text-base font-bold text-light-text dark:text-dark-text">
+          {ROLE_LABEL[profile?.role ?? "student"] ?? "Student"}
         </Text>
-        {membershipError ? (
-          <Card className="p-4">
-            <Text className="text-danger">{membershipError}</Text>
-            <Button label="Retry" onPress={() => void refreshMemberships()} />
-          </Card>
-        ) : myClubs.length === 0 ? (
-          <Card elevation="ambient" className="p-4">
-            <Text className="text-xs leading-5 text-light-muted dark:text-dark-muted">
-              You haven't joined any clubs yet.
-            </Text>
-            <Button
-              label="Browse clubs"
-              variant="tonal"
-              size="sm"
-              className="mt-3"
-              onPress={() => router.push("/browse")}
-            />
-          </Card>
-        ) : (
-          <View className="gap-2.5">
-            {myClubs.map(({ membership, club }) => (
-              <PressableScale
+        <Text className="text-base text-light-muted dark:text-dark-muted">
+          {profile?.email}
+        </Text>
+        {presidentStatus === "pending" ? (
+          <Text className="text-base font-bold text-warn">
+            Verification pending
+          </Text>
+        ) : null}
+      </View>
+
+      <View className={`mt-12 gap-14 ${isWide ? "flex-row items-start" : ""}`}>
+        <View className="flex-[3]" style={{ minWidth: 0 }}>
+          <Rule title={`My clubs (${myClubs.length})`} />
+          {membershipError ? (
+            <View className="items-start gap-3 py-4">
+              <Text className="text-danger">{membershipError}</Text>
+              <Button label="Retry" onPress={() => void refreshMemberships()} />
+            </View>
+          ) : myClubs.length === 0 ? (
+            <View className="items-start gap-3 py-5">
+              <Text className="text-base text-light-muted dark:text-dark-muted">
+                You haven't joined any clubs yet.
+              </Text>
+              <Button
+                label="Browse clubs"
+                variant="secondary"
+                onPress={() => router.push("/browse")}
+              />
+            </View>
+          ) : (
+            myClubs.map(({ membership, club }) => (
+              <Pressable
                 key={membership.clubId}
                 onPress={() => router.push(`/club/${membership.clubId}`)}
-                accessibilityRole="button"
+                accessibilityRole="link"
                 accessibilityLabel={`Open ${club!.name}`}
-                scaleTo={0.98}
+                className="flex-row flex-wrap items-baseline justify-between gap-x-6 border-b border-light-border py-3 hover:opacity-70 dark:border-dark-border"
               >
-                <Card
-                  elevation="ambient"
-                  className="flex-row items-center gap-3 p-3.5"
+                <Display size="md" className="shrink text-light-text dark:text-dark-text">
+                  {club!.name}
+                </Display>
+                <Text
+                  className={`text-base ${membership.status === "pending" ? "font-bold text-warn" : "text-light-muted dark:text-dark-muted"}`}
                 >
-                  <View className="flex-1">
-                    <Text
-                      className="text-sm font-semibold text-light-text dark:text-dark-text"
-                      numberOfLines={1}
-                    >
-                      {club!.name}
-                    </Text>
-                    <Text className="mt-0.5 text-2xs text-light-muted dark:text-dark-muted">
-                      {membership.status === "pending"
-                        ? "Waiting for approval"
-                        : roleLabel(membership.role, membership.position)}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={surfaces.light.subtle}
-                  />
-                </Card>
-              </PressableScale>
-            ))}
-          </View>
-        )}
-      </Animated.View>
+                  {membership.status === "pending"
+                    ? "Waiting for approval"
+                    : roleLabel(membership.role, membership.position)}
+                </Text>
+              </Pressable>
+            ))
+          )}
 
-      {/* Notification preferences: the account-wide defaults. Each club can
-          override these from its own page. */}
-      <Animated.View entering={FadeIn.duration(180)}>
-        <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
-          Notifications
-        </Text>
-        <Card elevation="ambient" className="px-4 py-1">
-          {PREF_ROWS.map((row, i) => (
+          {showPresidentCta ? (
+            <View className="mt-12 items-start">
+              <Display size="md">Run a club?</Display>
+              <Text className="mb-4 mt-2 max-w-lg text-base text-light-secondary dark:text-dark-secondary">
+                Ask the school admin to verify you as a club president, or claim
+                your club from its page.
+              </Text>
+              <Button
+                label={
+                  requested ? "Request sent" : "Request president verification"
+                }
+                variant={requested ? "tonal" : "secondary"}
+                icon={requested ? "checkmark" : undefined}
+                loading={requesting}
+                disabled={requesting || requested}
+                onPress={() => void handleRequestPresident()}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        <View className="flex-[2]" style={{ minWidth: 0 }}>
+          <Rule title="Tell me about" />
+          {PREF_ROWS.map((row) => (
             <ToggleRow
               key={row.key}
               label={row.label}
-              icon={row.icon}
               value={globalPrefs[row.key]}
               onToggle={() => void toggleGlobal(row.key)}
-              last={i === PREF_ROWS.length - 1}
             />
           ))}
-        </Card>
-        <Text className="mt-2 text-2xs leading-4 text-light-subtle dark:text-dark-subtle">
-          These are your defaults. Open a club and use its notification switches
-          to change just that club.
-        </Text>
-        {Platform.OS !== "web" ? (
-          <Button
-            label="Enable push on this device"
-            variant="secondary"
-            size="sm"
-            icon="phone-portrait-outline"
-            className="mt-3"
-            loading={enablingPush}
-            onPress={() => void handleEnablePush()}
-          />
-        ) : null}
-      </Animated.View>
-
-      {/* Leadership */}
-      {showPresidentCta ? (
-        <Animated.View entering={FadeIn.duration(180)}>
-          <Card elevation="ambient" className="mt-6 p-4">
-            <View className="flex-row items-center gap-2">
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={16}
-                color={brand.blue}
-              />
-              <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-                Run a club?
-              </Text>
-            </View>
-            <Text className="mt-1.5 text-xs leading-5 text-light-muted dark:text-dark-muted">
-              Ask the school admin to verify you as a club president, or claim
-              your club directly from its page.
-            </Text>
-            <Button
-              label={
-                requested ? "Request sent" : "Request president verification"
-              }
-              variant={requested ? "tonal" : "primary"}
-              size="sm"
-              icon={requested ? "checkmark" : "paper-plane-outline"}
-              loading={requesting}
-              disabled={requesting || requested}
-              onPress={() => void handleRequestPresident()}
-              className="mt-3"
+          <Text className="mt-2 text-sm text-light-muted dark:text-dark-muted">
+            These are your defaults. Open a club to change just that club.
+          </Text>
+          {Platform.OS !== "web" ? (
+            <TextLink
+              label="Enable push on this device"
+              icon="phone-portrait-outline"
+              disabled={enablingPush}
+              onPress={() => void handleEnablePush()}
             />
-          </Card>
-        </Animated.View>
-      ) : null}
-
-      {/* Links */}
-      <Animated.View entering={FadeIn.duration(180)}>
-        <Text className="mb-2 mt-6 text-xs font-semibold text-light-muted dark:text-dark-muted">
-          More
-        </Text>
-        <Card elevation="ambient" className="px-4 py-1">
-          <PressableScale
-            onPress={() => router.push("/club/new")}
-            accessibilityRole="button"
-            accessibilityLabel="Submit a new club"
-            scaleTo={0.99}
-            className="flex-row items-center gap-3 border-b border-light-hairline py-3 dark:border-dark-border"
-          >
-            <Ionicons name="add-circle-outline" size={16} color={brand.blue} />
-            <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
-              Submit a new club
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={surfaces.light.subtle}
-            />
-          </PressableScale>
-          {isSpecialAdmin ? (
-            <PressableScale
-              onPress={() => router.push("/admin")}
-              accessibilityRole="button"
-              accessibilityLabel="School admin tools"
-              scaleTo={0.99}
-              className="flex-row items-center gap-3 border-b border-light-hairline py-3 dark:border-dark-border"
-            >
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={16}
-                color={brand.blue}
-              />
-              <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
-                School admin tools
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={surfaces.light.subtle}
-              />
-            </PressableScale>
           ) : null}
-          <PressableScale
-            onPress={() => router.push("/policies")}
-            accessibilityRole="button"
-            accessibilityLabel="Policies"
-            scaleTo={0.99}
-            className="flex-row items-center gap-3 py-3"
-          >
-            <Ionicons
-              name="document-text-outline"
-              size={16}
-              color={brand.blue}
-            />
-            <Text className="flex-1 text-sm font-medium text-light-text dark:text-dark-text">
-              Privacy & policies
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={surfaces.light.subtle}
-            />
-          </PressableScale>
-        </Card>
-      </Animated.View>
 
-      <Animated.View entering={FadeIn.duration(180)}>
-        <Divider variant="hairline" className="my-5" />
-        <Button
-          label="Sign out"
-          variant="outline"
-          size="md"
-          icon="log-out-outline"
-          loading={signingOut}
-          onPress={() => void handleSignOut()}
-          fullWidth
-        />
-      </Animated.View>
-    </ScrollView>
+          <Rule title="More" className="mt-12" />
+          <MoreLink
+            label="Interests and free time"
+            icon="options-outline"
+            onPress={() => router.push("/onboarding")}
+          />
+          <MoreLink
+            label="Settings and accessibility"
+            icon="settings-outline"
+            onPress={() => router.push("/settings")}
+          />
+          <MoreLink
+            label="Submit a new club"
+            icon="add"
+            onPress={() => router.push("/club/new")}
+          />
+          {isSpecialAdmin ? (
+            <MoreLink
+              label="School admin tools"
+              icon="shield-checkmark-outline"
+              onPress={() => router.push("/admin")}
+            />
+          ) : null}
+          <MoreLink
+            label="Privacy and policies"
+            icon="document-text-outline"
+            onPress={() => router.push("/policies")}
+          />
+          <View className="mt-6 items-start">
+            <Button
+              label="Sign out"
+              variant="secondary"
+              loading={signingOut}
+              onPress={() => void handleSignOut()}
+            />
+          </View>
+        </View>
+      </View>
+    </Page>
   );
 }
 
 export default function AccountScreen() {
-  const router = useRouter();
-  const { session } = useAuth();
-  const insets = useSafeAreaInsets();
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      {!session ? (
-        <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
-          <Button
-            label="Settings"
-            icon="settings-outline"
-            variant="ghost"
-            onPress={() => router.push("/settings")}
-          />
-        </View>
-      ) : null}
       <SignInGate
-        title="Sign in or sign up"
-        subtitle="Access your Tesla STEM Clubs account."
+        title="Sign in"
+        subtitle="Your clubs, your interests and what you hear about, in one place. Use your Lake Washington School District email."
+        showSettings
+        purpose="profile"
       >
         <AccountDashboard />
       </SignInGate>

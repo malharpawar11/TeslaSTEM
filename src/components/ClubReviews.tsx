@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Button, Card, Chip, Input, SkeletonRow } from "./ui";
+import { Display } from "./system";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -78,9 +79,7 @@ export function ClubReviews({
   const own = reviews.find((r) => r.user_id === session?.user.id);
   return (
     <View className="mt-6 gap-3">
-      <Text className="text-lg font-semibold text-light-text dark:text-dark-text">
-        Current member reviews
-      </Text>
+      <Display size="sm">What members say</Display>
       {loading ? (
         <SkeletonRow count={2} />
       ) : error ? (

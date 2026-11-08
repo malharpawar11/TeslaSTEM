@@ -16,11 +16,11 @@ const SIZE: Record<
   NonNullable<Props["size"]>,
   { title: string; description: string }
 > = {
-  sm: { title: "text-base font-bold", description: "text-sm" },
-  md: { title: "text-xl font-bold tracking-tight", description: "text-sm" },
-  lg: { title: "text-2xl font-bold tracking-tight", description: "text-base" },
+  sm: { title: "font-display text-2xl", description: "text-sm" },
+  md: { title: "font-display text-3xl", description: "text-sm" },
+  lg: { title: "font-display text-4xl", description: "text-base" },
   display: {
-    title: "text-3xl font-bold tracking-tight",
+    title: "font-display text-5xl",
     description: "text-base",
   },
 };

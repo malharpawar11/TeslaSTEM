@@ -5,7 +5,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
 import { vars } from "nativewind";
@@ -25,6 +25,13 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [fontReady, fontError] = useFonts({
     OpenDyslexic: require("../../assets/fonts/OpenDyslexic-Regular.ttf"),
     OpenDyslexicBold: require("../../assets/fonts/OpenDyslexic-Bold.ttf"),
+    ...(Platform.OS === "web"
+      ? {}
+      : {
+          BigShoulders: require("../../assets/fonts/BigShoulders-ExtraBold.ttf"),
+          Atkinson: require("../../assets/fonts/Atkinson-Regular.ttf"),
+          AtkinsonBold: require("../../assets/fonts/Atkinson-Bold.ttf"),
+        }),
   });
   useEffect(() => {
     void AsyncStorage.getItem(KEY)

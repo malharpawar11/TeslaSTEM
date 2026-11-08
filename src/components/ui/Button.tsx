@@ -3,7 +3,8 @@ import { ActivityIndicator } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Ionicons } from "@expo/vector-icons";
 import { PressableScale } from "./Pressable";
-import { brand } from "@/theme/tokens";
+import { useTheme } from "@/context/ThemeContext";
+import { ink, surfaces } from "@/theme/tokens";
 
 type Variant =
   | "primary"
@@ -50,7 +51,7 @@ const SIZE: Record<
     text: "text-xs",
     icon: 14,
     gap: "gap-1.5",
-    radius: "rounded-full",
+    radius: "rounded-md",
   },
   md: {
     h: 40,
@@ -58,7 +59,7 @@ const SIZE: Record<
     text: "text-sm",
     icon: 16,
     gap: "gap-2",
-    radius: "rounded-full",
+    radius: "rounded-md",
   },
   lg: {
     h: 48,
@@ -66,7 +67,7 @@ const SIZE: Record<
     text: "text-base",
     icon: 18,
     gap: "gap-2",
-    radius: "rounded-full",
+    radius: "rounded-md",
   },
   xl: {
     h: 54,
@@ -74,57 +75,70 @@ const SIZE: Record<
     text: "text-base",
     icon: 19,
     gap: "gap-2",
-    radius: "rounded-full",
+    radius: "rounded-md",
   },
 };
 
 const VARIANT: Record<
   Variant,
-  { container: string; text: string; iconColor: string; pressedOpacity: number }
+  {
+    container: string;
+    text: string;
+    iconColor: string;
+    iconColorDark: string;
+    pressedOpacity: number;
+  }
 > = {
-  // Blue carries every primary action in the app.
+  // The main action on a page is always solid blue.
   primary: {
     container: "bg-python-blue",
-    text: "text-white font-semibold",
+    text: "text-white font-bold",
     iconColor: "#FFFFFF",
+    iconColorDark: "#FFFFFF",
     pressedOpacity: 0.9,
   },
   secondary: {
     container:
-      "bg-light-surface border border-light-border dark:bg-dark-surface-2 dark:border-dark-border",
-    text: "text-light-text dark:text-dark-text font-semibold",
-    iconColor: brand.blue,
+      "bg-transparent border border-light-border-strong dark:border-dark-border-strong",
+    text: "text-light-text dark:text-dark-text font-bold",
+    iconColor: surfaces.light.secondary,
+    iconColorDark: surfaces.dark.secondary,
     pressedOpacity: 0.8,
   },
   ghost: {
     container: "bg-transparent",
-    text: "text-python-blue-dark dark:text-python-blue-light font-semibold",
-    iconColor: brand.blue,
+    text: "text-light-secondary dark:text-dark-secondary font-bold",
+    iconColor: surfaces.light.secondary,
+    iconColorDark: surfaces.dark.secondary,
     pressedOpacity: 0.6,
   },
   tonal: {
-    container: "bg-python-blue/10 dark:bg-python-blue/20",
-    text: "text-python-blue-dark dark:text-python-blue-light font-semibold",
-    iconColor: brand.blue,
+    container: "bg-light-surface-2 dark:bg-dark-surface-2",
+    text: "text-light-text dark:text-dark-text font-bold",
+    iconColor: surfaces.light.secondary,
+    iconColorDark: surfaces.dark.secondary,
     pressedOpacity: 0.8,
   },
   outline: {
-    container: "bg-transparent border border-python-blue/45",
-    text: "text-python-blue-dark dark:text-python-blue-light font-semibold",
-    iconColor: brand.blue,
+    container:
+      "bg-transparent border-2 border-light-text dark:border-dark-text",
+    text: "text-light-text dark:text-dark-text font-bold",
+    iconColor: surfaces.light.text,
+    iconColorDark: surfaces.dark.text,
     pressedOpacity: 0.7,
   },
-  // Green is the confirmation accent: joining, approving, publishing.
   success: {
-    container: "bg-python-green",
-    text: "text-white font-semibold",
-    iconColor: "#FFFFFF",
+    container: "bg-laurel",
+    text: "text-ink-night font-bold",
+    iconColor: ink.night,
+    iconColorDark: ink.night,
     pressedOpacity: 0.9,
   },
   destructive: {
     container: "bg-danger",
-    text: "text-white font-semibold",
+    text: "text-white font-bold",
     iconColor: "#FFFFFF",
+    iconColorDark: "#FFFFFF",
     pressedOpacity: 0.9,
   },
 };
@@ -146,6 +160,8 @@ export function Button({
   const s = SIZE[size];
   const v = VARIANT[variant];
   const off = disabled || loading;
+  const { isDark } = useTheme();
+  const iconColor = isDark ? v.iconColorDark : v.iconColor;
 
   return (
     <PressableScale
@@ -170,9 +186,9 @@ export function Button({
         .join(" ")}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={v.iconColor} />
+        <ActivityIndicator size="small" color={iconColor} />
       ) : icon ? (
-        <Ionicons name={icon} size={s.icon} color={v.iconColor} />
+        <Ionicons name={icon} size={s.icon} color={iconColor} />
       ) : null}
       {children ?? (
         <Text className={`${s.text} ${v.text}`} numberOfLines={1}>
@@ -180,7 +196,7 @@ export function Button({
         </Text>
       )}
       {!loading && iconRight ? (
-        <Ionicons name={iconRight} size={s.icon} color={v.iconColor} />
+        <Ionicons name={iconRight} size={s.icon} color={iconColor} />
       ) : null}
     </PressableScale>
   );

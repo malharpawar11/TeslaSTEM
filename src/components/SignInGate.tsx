@@ -1,22 +1,36 @@
-import { PageIntro } from "@/components/CampusVisual";
-import { ReactNode, useEffect, useState } from "react";
-import { View, Platform, ScrollView } from "react-native";
-import { AccessibleText as Text } from "@/components/AccessibleText";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, Input, PressableScale } from "@/components/ui";
+import { useRouter } from "expo-router";
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+import { AccessibleText as Text } from "@/components/AccessibleText";
+import {
+  AuthBrand,
+  AuthBrandCompact,
+  type AuthPurpose,
+} from "@/components/auth/AuthBrand";
+import { AuthField } from "@/components/auth/AuthField";
+import { useReducedMotion } from "@/components/CampusVisual";
+import { ViewSwitch } from "@/components/clubs/ViewSwitch";
+import { Display, TextLink, useHover, webFade } from "@/components/system";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
-import { brand, semantic } from "@/theme/tokens";
+import { useLayout } from "@/theme/layout";
 
 // Client-side LWSD gate. The database enforces the same rule independently:
 // a BEFORE INSERT trigger on auth.users rejects non-LWSD addresses, so this
 // is a UX nicety, not the security line.
-const LWSD_RE = /@lwsd\.org$/i;
+const LWSD_RE = /^[^\s@]+@lwsd\.org$/i;
 
 type Mode = "signIn" | "signUp";
 type Step = "form" | "code";
+const MODES = ["Sign in", "Sign up"] as const;
 
 // Matches `min_interval_seconds` in insforge.toml: the backend rejects a
 // resend inside this window, so don't offer the button until it has passed.
@@ -29,6 +43,10 @@ interface SignInGateProps {
   subtitle?: string;
   initialEmail?: string;
   allowSignUp?: boolean;
+  /** Offer Settings to signed-out visitors (reading options work without an account). */
+  showSettings?: boolean;
+  /** Which real data the brand panel highlights. */
+  purpose?: AuthPurpose;
 }
 
 /**
@@ -47,6 +65,8 @@ export function SignInGate({
   subtitle = "Use your Lake Washington School District (@lwsd.org) account.",
   initialEmail = "",
   allowSignUp = true,
+  showSettings = false,
+  purpose = "general",
 }: SignInGateProps) {
   const {
     configured,
@@ -58,6 +78,9 @@ export function SignInGate({
     resendCode,
   } = useAuth();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { isDesktop, contentWidth, height, gutter } = useLayout();
+  const reduced = useReducedMotion();
   const [mode, setMode] = useState<Mode>("signIn");
   const [step, setStep] = useState<Step>("form");
   const [email, setEmail] = useState(initialEmail);
@@ -67,6 +90,25 @@ export function SignInGate({
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const { hovered: submitHover, hoverProps: submitHoverProps } = useHover();
+  // A refused sign-in nudges the form once, so failure is felt as well as read.
+  const nudge = useSharedValue(0);
+  const nudgeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: nudge.value }],
+  }));
+  useEffect(() => {
+    if (!error || reduced) return;
+    nudge.value = withSequence(
+      withTiming(-6, { duration: 50 }),
+      withTiming(5, { duration: 70 }),
+      withTiming(-3, { duration: 60 }),
+      withTiming(0, { duration: 50 }),
+    );
+  }, [error, reduced, nudge]);
 
   // Tick the resend cooldown down to zero, then re-enable the button.
   useEffect(() => {
@@ -91,17 +133,20 @@ export function SignInGate({
   // Brief: the initial session restore is still in flight.
   if (loading) return <View className="flex-1 bg-light-bg dark:bg-dark-bg" />;
 
+  const checkEmail = (value = email) =>
+    LWSD_RE.test(value.trim())
+      ? null
+      : "Use your school email, ending in @lwsd.org.";
+  const checkPassword = (value = password) =>
+    value.length >= 8 ? null : "Passwords are at least 8 characters.";
+
   const validate = () => {
-    const e = email.trim().toLowerCase();
-    if (!LWSD_RE.test(e)) {
-      setError("Enter a valid @lwsd.org school email.");
-      return null;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return null;
-    }
-    return e;
+    const nextEmail = checkEmail();
+    const nextPassword = checkPassword();
+    setEmailError(nextEmail);
+    setPasswordError(nextPassword);
+    if (nextEmail || nextPassword) return null;
+    return email.trim().toLowerCase();
   };
 
   /** Move to the code step and start the resend cooldown for the code just sent. */
@@ -156,9 +201,10 @@ export function SignInGate({
   const verify = async () => {
     const digits = code.replace(/\D/g, "");
     if (digits.length !== 6) {
-      setError("Enter the 6-digit code from your email.");
+      setCodeError("Enter all 6 digits from your email.");
       return;
     }
+    setCodeError(null);
     setError(null);
     setNotice(null);
     setBusy(true);
@@ -184,244 +230,280 @@ export function SignInGate({
     setCooldown(RESEND_COOLDOWN_SECONDS);
   };
 
+  const split = isDesktop && contentWidth >= 860;
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError(null);
+    setNotice(null);
+    setPasswordError(null);
+  };
+  const heading =
+    step === "code"
+      ? "Check your email"
+      : mode === "signUp"
+        ? "Create your account"
+        : title;
+  const detail =
+    step === "code"
+      ? "Enter the code we sent to finish setting up your account."
+      : subtitle;
+  const submitLabel = mode === "signUp" ? "Create account" : "Sign in";
+
+  const primary = (
+    label: string,
+    action: () => void,
+    disabled = false,
+  ) => (
+    <Pressable
+      onPress={action}
+      disabled={busy || disabled}
+      {...submitHoverProps}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ busy, disabled: busy || disabled }}
+      className="h-[68px] flex-row items-center justify-between rounded-sm bg-python-blue px-5"
+      style={[
+        {
+          opacity: busy ? 0.75 : disabled ? 0.45 : submitHover ? 0.9 : 1,
+        },
+        webFade("opacity"),
+      ]}
+    >
+      <Display fontSize={34} className="text-white">
+        {busy ? "One moment" : label}
+      </Display>
+      {busy ? <ActivityIndicator color="#FFFFFF" /> : null}
+    </Pressable>
+  );
+
+  const messages = (
+    <>
+      {notice && !error ? (
+        <Animated.View entering={FadeIn.duration(160)} className="mb-3">
+          <Text
+            accessibilityLiveRegion="polite"
+            className="text-base font-bold text-python-green dark:text-python-green-light"
+          >
+            {notice}
+          </Text>
+        </Animated.View>
+      ) : null}
+      {error ? (
+        <Animated.View style={nudgeStyle} className="mb-3">
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            className="text-base font-bold text-danger"
+          >
+            {error}
+          </Text>
+        </Animated.View>
+      ) : null}
+    </>
+  );
+
+  const form = (
+    <View className="w-full" style={{ maxWidth: 440 }}>
+      <Animated.View
+        key={`${step}-${mode}`}
+        entering={reduced ? undefined : FadeIn.duration(170)}
+      >
+        <Display fontSize={split ? 62 : 48} accessibilityRole="header">
+          {heading}
+        </Display>
+        <Text className="mt-2 text-lg leading-7 text-light-secondary dark:text-dark-secondary">
+          {detail}
+        </Text>
+      </Animated.View>
+
+      {step === "form" ? (
+        <View className="mt-7">
+          {allowSignUp ? (
+            <View className="mb-6 items-start">
+              <ViewSwitch
+                options={MODES}
+                value={mode === "signIn" ? "Sign in" : "Sign up"}
+                onChange={(next) =>
+                  switchMode(next === "Sign in" ? "signIn" : "signUp")
+                }
+                width={110}
+                label="Sign in or sign up"
+              />
+            </View>
+          ) : null}
+          <AuthField
+            label="School email"
+            value={email}
+            onChangeText={(t) => {
+              setEmail(t);
+              if (emailError) setEmailError(null);
+              if (error) setError(null);
+            }}
+            onBlur={() => {
+              if (email.trim()) setEmailError(checkEmail());
+            }}
+            error={emailError}
+            placeholder="you@lwsd.org"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            textContentType="username"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+          />
+          <View className="mt-3">
+            <AuthField
+              ref={passwordRef}
+              label="Password"
+              value={password}
+              onChangeText={(t) => {
+                setPassword(t);
+                if (passwordError) setPasswordError(null);
+                if (error) setError(null);
+              }}
+              error={passwordError}
+              hint={mode === "signUp" ? "At least 8 characters." : undefined}
+              placeholder={mode === "signUp" ? "Choose a password" : "Your password"}
+              secureTextEntry
+              reveal
+              autoCapitalize="none"
+              autoComplete={mode === "signUp" ? "new-password" : "current-password"}
+              textContentType={mode === "signUp" ? "newPassword" : "password"}
+              returnKeyType="go"
+              onSubmitEditing={submit}
+            />
+          </View>
+          <View className="mt-3">
+            {messages}
+            {primary(submitLabel, submit)}
+          </View>
+        </View>
+      ) : (
+        <View className="mt-7">
+          <View className="mb-5 flex-row items-center justify-between gap-3">
+            <Text
+              numberOfLines={1}
+              className="shrink text-base font-bold text-light-text dark:text-dark-text"
+            >
+              {email}
+            </Text>
+            <TextLink
+              label="Change email"
+              onPress={() => {
+                setStep("form");
+                setCode("");
+                setError(null);
+                setNotice(null);
+                setCodeError(null);
+              }}
+            />
+          </View>
+          <AuthField
+            label="6-digit code"
+            large
+            value={code}
+            onChangeText={(t) => {
+              setCode(t.replace(/\D/g, "").slice(0, 6));
+              if (codeError) setCodeError(null);
+              if (error) setError(null);
+            }}
+            error={codeError}
+            hint="The code expires shortly."
+            placeholder="000000"
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            returnKeyType="go"
+            maxLength={6}
+            textContentType="oneTimeCode"
+            autoComplete="one-time-code"
+            onSubmitEditing={verify}
+          />
+          <View className="mt-3">
+            {messages}
+            {primary("Verify and continue", verify)}
+          </View>
+          <View className="mt-2 items-start">
+            <TextLink
+              label={
+                cooldown > 0
+                  ? `Resend code in ${cooldown}s`
+                  : "Didn't get it? Resend code"
+              }
+              accessibilityLabel="Resend verification code"
+              disabled={cooldown > 0 || busy}
+              onPress={resend}
+            />
+          </View>
+        </View>
+      )}
+
+      <Text className="mt-5 text-sm leading-5 text-light-muted dark:text-dark-muted">
+        Only Lake Washington School District accounts can sign in. The server
+        checks your access on every request.
+      </Text>
+    </View>
+  );
+
+  const utility = (
+    <View className="flex-row items-center justify-between">
+      {showSettings ? (
+        <TextLink
+          label="Settings and accessibility"
+          icon="settings-outline"
+          onPress={() => router.push("/settings")}
+        />
+      ) : (
+        <View />
+      )}
+      {!isDesktop ? <ThemeToggle /> : null}
+    </View>
+  );
+
+  if (split)
+    return (
+      <View className="flex-1 flex-row bg-light-bg dark:bg-dark-bg">
+        <View style={{ flex: 6, minWidth: 0 }}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, minHeight: 620 }}>
+            <AuthBrand
+              purpose={purpose}
+              height={Math.max(height, 620)}
+              width={(contentWidth * 6) / 11}
+            />
+          </ScrollView>
+        </View>
+        <View style={{ flex: 5, minWidth: 0 }}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingHorizontal: 48,
+              paddingTop: 24,
+              paddingBottom: 48,
+            }}
+          >
+            {utility}
+            <View className="flex-1 justify-end pt-6">{form}</View>
+          </ScrollView>
+        </View>
+      </View>
+    );
+
   return (
     <ScrollView
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 36 }}
-      className="flex-1 bg-light-bg px-6 dark:bg-dark-bg"
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      className="flex-1 bg-light-bg dark:bg-dark-bg"
+      contentContainerStyle={{
+        paddingTop: insets.top + 12,
+        paddingBottom: insets.bottom + 40,
+        paddingHorizontal: gutter,
+      }}
     >
-      <View className="flex-row justify-end pt-2">
-        <ThemeToggle />
+      {utility}
+      <View className="mt-3 border-b border-light-border pb-6 dark:border-dark-border">
+        <AuthBrandCompact purpose={purpose} width={contentWidth - gutter * 2} />
       </View>
-
-      <View className="flex-1 justify-center py-6">
-        <PageIntro
-          eyebrow="WELCOME TO YOUR CAMPUS"
-          title="Good things start together."
-          description="A school account connects you to your clubs and your community."
-        />
-        <Animated.View entering={FadeIn.duration(180)} className="items-center">
-          <View className="h-14 w-14 items-center justify-center rounded-xl bg-python-blue/10 dark:bg-python-blue/20">
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={26}
-              color={brand.blue}
-            />
-          </View>
-          <Text className="mt-5 text-center text-xl font-semibold tracking-tight text-light-text dark:text-dark-text">
-            {title}
-          </Text>
-          <Text className="mt-2 max-w-xs text-center text-sm leading-5 text-light-muted dark:text-dark-muted">
-            {subtitle}
-          </Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeIn.duration(180)} className="mt-7">
-          <Card elevation="ambient" className="p-5">
-            {step === "form" ? (
-              <View className="gap-4">
-                {/* Sign in / sign up toggle */}
-                <View className="flex-row rounded-xl bg-light-surface-2 p-1 dark:bg-dark-surface-2">
-                  <PressableScale
-                    onPress={() => {
-                      setMode("signIn");
-                      setError(null);
-                      setNotice(null);
-                    }}
-                    className={`flex-1 items-center rounded-lg py-2 ${
-                      mode === "signIn"
-                        ? "bg-light-surface dark:bg-dark-surface"
-                        : ""
-                    }`}
-                    accessibilityRole="button"
-                    accessibilityLabel="Sign in"
-                  >
-                    <Text
-                      className={`text-sm font-semibold ${
-                        mode === "signIn"
-                          ? "text-python-blue-dark dark:text-python-blue-light"
-                          : "text-light-muted dark:text-dark-muted"
-                      }`}
-                    >
-                      Sign in
-                    </Text>
-                  </PressableScale>
-                  {allowSignUp ? (
-                    <PressableScale
-                      onPress={() => {
-                        setMode("signUp");
-                        setError(null);
-                        setNotice(null);
-                      }}
-                      className={`flex-1 items-center rounded-lg py-2 ${
-                        mode === "signUp"
-                          ? "bg-light-surface dark:bg-dark-surface"
-                          : ""
-                      }`}
-                      accessibilityRole="button"
-                      accessibilityLabel="Sign up"
-                    >
-                      <Text
-                        className={`text-sm font-semibold ${
-                          mode === "signUp"
-                            ? "text-python-blue-dark dark:text-python-blue-light"
-                            : "text-light-muted dark:text-dark-muted"
-                        }`}
-                      >
-                        Sign up
-                      </Text>
-                    </PressableScale>
-                  ) : null}
-                </View>
-
-                <Input
-                  label="School email"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@lwsd.org"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  icon="mail-outline"
-                  returnKeyType="next"
-                />
-                <Input
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder={
-                    mode === "signUp"
-                      ? "At least 8 characters"
-                      : "Your password"
-                  }
-                  secureTextEntry
-                  autoCapitalize="none"
-                  icon="lock-closed-outline"
-                  returnKeyType="go"
-                  onSubmitEditing={submit}
-                />
-                <Button
-                  label={mode === "signUp" ? "Create account" : "Sign in"}
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  icon={mode === "signUp" ? "person-add" : "log-in"}
-                  loading={busy}
-                  onPress={submit}
-                />
-              </View>
-            ) : (
-              <View className="gap-4">
-                <View className="flex-row items-center gap-2 rounded-xl bg-light-surface-2 px-3 py-2.5 dark:bg-dark-surface-2">
-                  <Ionicons name="mail-outline" size={15} color={brand.blue} />
-                  <Text
-                    className="flex-1 text-sm font-semibold text-light-secondary dark:text-dark-secondary"
-                    numberOfLines={1}
-                  >
-                    {email}
-                  </Text>
-                  <PressableScale
-                    onPress={() => {
-                      setStep("form");
-                      setCode("");
-                      setError(null);
-                      setNotice(null);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Change email"
-                  >
-                    <Text className="text-xs font-semibold text-python-blue-dark dark:text-python-blue-light">
-                      Change
-                    </Text>
-                  </PressableScale>
-                </View>
-                <Input
-                  label="6-digit code"
-                  value={code}
-                  onChangeText={(t) =>
-                    setCode(t.replace(/\D/g, "").slice(0, 6))
-                  }
-                  placeholder="000000"
-                  keyboardType="number-pad"
-                  autoCapitalize="none"
-                  icon="keypad-outline"
-                  returnKeyType="go"
-                  maxLength={6}
-                  textContentType="oneTimeCode"
-                  autoComplete="one-time-code"
-                  onSubmitEditing={verify}
-                  helper="Check your inbox: the code expires shortly."
-                />
-                <Button
-                  label="Verify & continue"
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  icon="checkmark"
-                  loading={busy}
-                  onPress={verify}
-                />
-                <PressableScale
-                  onPress={resend}
-                  disabled={cooldown > 0 || busy}
-                  className="items-center py-1"
-                  accessibilityRole="button"
-                  accessibilityLabel="Resend verification code"
-                >
-                  <Text
-                    className={`text-xs font-semibold ${
-                      cooldown > 0
-                        ? "text-light-subtle dark:text-dark-subtle"
-                        : "text-python-blue-dark dark:text-python-blue-light"
-                    }`}
-                  >
-                    {cooldown > 0
-                      ? `Resend code in ${cooldown}s`
-                      : "Didn't get it? Resend code"}
-                  </Text>
-                </PressableScale>
-              </View>
-            )}
-
-            {notice && !error ? (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                className="mt-4 flex-row items-start gap-2 rounded-xl border border-python-blue/40 bg-python-blue/10 p-3 dark:bg-python-blue/20"
-              >
-                <Ionicons
-                  name="mail-unread-outline"
-                  size={16}
-                  color={brand.blue}
-                />
-                <Text className="flex-1 text-xs font-semibold leading-5 text-python-blue-dark dark:text-python-blue-light">
-                  {notice}
-                </Text>
-              </Animated.View>
-            ) : null}
-
-            {error ? (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                className="mt-4 flex-row items-start gap-2 rounded-xl border border-danger/40 bg-danger/10 dark:bg-danger/20 p-3"
-              >
-                <Ionicons
-                  name="alert-circle"
-                  size={16}
-                  color={semantic.danger}
-                />
-                <Text className="flex-1 text-xs font-semibold leading-5 text-danger">
-                  {error}
-                </Text>
-              </Animated.View>
-            ) : null}
-          </Card>
-        </Animated.View>
-
-        <Text className="mt-5 text-center text-2xs leading-5 text-light-subtle dark:text-dark-subtle">
-          Only Lake Washington School District accounts can sign in.{"\n"}
-          Access is verified by the server on every request.
-        </Text>
-      </View>
+      <View className="mt-6">{form}</View>
     </ScrollView>
   );
 }

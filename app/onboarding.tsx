@@ -113,7 +113,7 @@ function Survey() {
         ) : (
           <>
             <Text className="font-semibold text-light-text dark:text-dark-text">
-              01 / What interests you?
+              What interests you?
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {CATEGORIES.map((category) => (
@@ -153,7 +153,7 @@ function Survey() {
               ))}
             </View>
             <Text className="font-semibold text-light-text dark:text-dark-text">
-              03 / Make space in your week
+              Make space in your week
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {DAYS.map((d) => (

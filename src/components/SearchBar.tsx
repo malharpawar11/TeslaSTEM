@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
-import { View, TextInput, Pressable, Platform } from "react-native";
+import { useRef, useState } from "react";
+import { Platform, Pressable, TextInput, View } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/context/ThemeContext";
 import { useAccessibility } from "@/context/AccessibilityContext";
-import { surface, brand } from "@/theme/tokens";
+import { surface } from "@/theme/tokens";
 
 interface Props {
   value: string;
@@ -13,10 +13,11 @@ interface Props {
   resultCount?: number;
 }
 
+/** A line to write on, set large enough that it reads as the page's question. */
 export function SearchBar({
   value,
   onChangeText,
-  placeholder = "Search clubs, advisors, days…",
+  placeholder = "Search by club, advisor, room or day",
   resultCount,
 }: Props) {
   const { isDark } = useTheme();
@@ -25,19 +26,15 @@ export function SearchBar({
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
 
-  const borderClass = focused
-    ? "border-python-blue"
-    : "border-light-border dark:border-dark-border";
-
   return (
     <View
-      className={`flex-row items-center gap-2.5 rounded-2xl border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
+      className={`flex-row items-center gap-3 border-b-2 ${
+        focused
+          ? "border-python-blue"
+          : "border-light-border-strong dark:border-dark-border-strong"
+      }`}
     >
-      <Ionicons
-        name="search"
-        size={17}
-        color={focused ? brand.blue : c.muted}
-      />
+      <Ionicons name="search" size={22} color={c.muted} />
       <TextInput
         ref={inputRef}
         value={value}
@@ -50,12 +47,15 @@ export function SearchBar({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         returnKeyType="search"
-        className="h-11 flex-1 text-base text-light-text dark:text-dark-text"
+        className="h-14 flex-1 text-light-text dark:text-dark-text"
         style={[
-          Platform.OS === "web"
-            ? ({ outlineStyle: "none" } as object)
-            : undefined,
-          dyslexicFont && fontReady ? { fontFamily: "OpenDyslexic" } : null,
+          { fontSize: 20 },
+          Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null,
+          dyslexicFont && fontReady
+            ? { fontFamily: "OpenDyslexic" }
+            : Platform.OS === "web"
+              ? null
+              : { fontFamily: "Atkinson" },
         ]}
       />
       {value.length > 0 ? (
@@ -67,12 +67,12 @@ export function SearchBar({
           accessibilityRole="button"
           accessibilityLabel="Clear search"
           hitSlop={8}
-          className="h-6 w-6 items-center justify-center rounded-full bg-light-surface-2 dark:bg-dark-surface-3"
+          className="h-8 w-8 items-center justify-center"
         >
-          <Ionicons name="close" size={13} color={c.muted} />
+          <Ionicons name="close" size={18} color={c.muted} />
         </Pressable>
       ) : resultCount != null && resultCount >= 0 ? (
-        <Text className="text-xs font-medium text-light-muted dark:text-dark-muted">
+        <Text className="text-sm text-light-muted dark:text-dark-muted">
           {resultCount}
         </Text>
       ) : null}

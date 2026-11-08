@@ -5,3 +5,6 @@ SIL Open Font License, 1.1
 
 â¡2012 by Abelardo Gonzalez. Copying is an act of love. Please copy.
 SIL Open Font License, 1.1
+Big Shoulders Display (c) The Big Shoulders Project Authors and Atkinson
+Hyperlegible (c) Braille Institute of America, Inc. are licensed under the SIL
+Open Font License 1.1; see OFL.txt. Copies in public/fonts are the same files.

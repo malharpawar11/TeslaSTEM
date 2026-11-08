@@ -18,16 +18,12 @@ import { MembershipProvider } from "@/context/MembershipContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WebsiteNavigation } from "@/components/WebsiteNavigation";
-import { APP_MAX_WIDTH, DESKTOP_NAV_WIDTH } from "@/theme/layout";
+import { DESKTOP_NAV_WIDTH, RAIL_WIDTH } from "@/theme/layout";
+import { surface } from "@/theme/tokens";
 import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
 
 cssInterop(GestureHandlerRootView, { className: "style" });
 
-/**
- * On web the app still lays out as a phone-width column. Centring it inside a
- * readable measure keeps line lengths sane on a laptop instead of stretching
- * every club row to 1400px.
- */
 const IS_WEB = Platform.OS === "web";
 
 function RootStack() {
@@ -55,32 +51,34 @@ function RootStack() {
       router.push("/onboarding");
     }
   }, [session, preferences.completed, loading, error, pathname, router]);
-  return (
-    <View className="flex-1">
-    {desktop ? <WebsiteNavigation /> : null}
-    <View
-      className="flex-1 bg-light-bg dark:bg-dark-bg"
-      style={
-        IS_WEB
-          ? { width: "100%", maxWidth: APP_MAX_WIDTH, alignSelf: "center" }
-          : undefined
+  // Forms and admin tools read as one column, not as a full-width canvas.
+  const document = desktop
+    ? {
+        contentStyle: {
+          paddingHorizontal: Math.max(0, (width - RAIL_WIDTH - 980) / 2),
+          backgroundColor: surface(isDark).bg,
+        },
       }
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <Stack
-        screenOptions={{ headerShown: false, animation: "slide_from_right" }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="club/[id]/index" />
-        <Stack.Screen name="club/[id]/manage" />
-        <Stack.Screen name="club/new" />
-        <Stack.Screen name="search" />
-        <Stack.Screen name="admin" />
-        <Stack.Screen name="policies" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="onboarding" />
-      </Stack>
-    </View>
+    : undefined;
+  return (
+    <View className={`flex-1 ${desktop ? "flex-row" : ""}`}>
+      {desktop ? <WebsiteNavigation /> : null}
+      <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <Stack
+          screenOptions={{ headerShown: false, animation: "slide_from_right" }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="club/[id]/index" />
+          <Stack.Screen name="club/[id]/manage" options={document} />
+          <Stack.Screen name="club/new" options={document} />
+          <Stack.Screen name="search" options={document} />
+          <Stack.Screen name="admin" options={document} />
+          <Stack.Screen name="policies" options={document} />
+          <Stack.Screen name="settings" options={document} />
+          <Stack.Screen name="onboarding" options={document} />
+        </Stack>
+      </View>
     </View>
   );
 }
