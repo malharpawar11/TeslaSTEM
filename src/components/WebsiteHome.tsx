@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AccessibleText as Text } from "./AccessibleText";
 import { useClubs } from "@/context/ClubsContext";
 import { useWebsiteLayout } from "@/theme/layout";
+import { clubInitials } from "@/types/domain";
 import { brand } from "@/theme/tokens";
 
 const categories = [
@@ -15,6 +16,10 @@ const categories = [
 export function WebsiteHome() {
   const { clubs, loading } = useClubs();
   const { wide } = useWebsiteLayout();
+  const featured = categories.flatMap(({ name }) => {
+    const club = clubs.find((item) => item.category === name && item.description.trim());
+    return club ? [club] : [];
+  });
   return (
     <ScrollView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <View className={`gap-10 ${wide ? "px-8 pb-12 pt-9" : "px-5 pb-8 pt-5"}`}>
@@ -31,8 +36,8 @@ export function WebsiteHome() {
               Discover student clubs, find meeting times that fit your week, and keep track of what’s happening on campus.
             </Text>
             <View className="mt-7 flex-row flex-wrap items-center gap-3">
-              <Link href="/browse" className="rounded-lg bg-white px-5 py-3 text-sm font-bold text-python-blue-ink hover:bg-python-blue-100">Explore clubs →</Link>
-              <Link href="/calendar" className="rounded-lg border border-white/35 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">View calendar</Link>
+              <Link href="/onboarding" className="rounded-lg bg-python-green-light px-5 py-3 text-sm font-bold text-python-green-ink hover:bg-python-green-200">Take the club quiz →</Link>
+              <Link href="/browse" className="rounded-lg border border-white/35 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Browse all clubs</Link>
             </View>
           </View>
           <View style={wide ? { width: 380 } : undefined} className="gap-2 rounded-xl border border-white/20 bg-white/10 p-4">
@@ -59,6 +64,58 @@ export function WebsiteHome() {
               );
             })}
           </View>
+        </View>
+
+        <View className={`gap-5 rounded-2xl border border-python-green/30 bg-python-green-50 p-6 dark:bg-python-green-900 ${wide ? "flex-row items-center gap-10 p-8" : ""}`}>
+          <View className="flex-1 gap-2">
+            <Text className="text-xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">Club Match Quiz</Text>
+            <Text accessibilityRole="header" className="text-3xl font-bold tracking-tight text-light-text dark:text-white">Find clubs that fit you</Text>
+            <Text className="max-w-xl text-base leading-6 text-light-secondary dark:text-dark-secondary">
+              Choose what you enjoy, add any career goals or free time, and see matching Tesla STEM clubs as you go. No sign-in needed to try it.
+            </Text>
+            <Link href="/onboarding" className="mt-2 self-start rounded-lg bg-python-green-dark px-5 py-3 text-sm font-bold text-white hover:bg-python-green-ink dark:bg-python-green-light dark:text-python-green-ink">Start the quiz →</Link>
+          </View>
+          <View className={`gap-2 ${wide ? "w-[310px]" : ""}`}>
+            {["Pick your interests", "Add goals or availability", "Explore your matches"].map((step, index) => (
+              <View key={step} className="flex-row items-center gap-3 rounded-lg border border-python-green/20 bg-light-surface p-3 dark:bg-dark-surface">
+                <Text className="text-sm font-bold text-python-green-dark dark:text-python-green-light">0{index + 1}</Text>
+                <Text className="flex-1 text-sm font-semibold text-light-text dark:text-dark-text">{step}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {featured.length > 0 ? (
+          <View className="gap-4">
+            <View className="flex-row flex-wrap items-end justify-between gap-3">
+              <View>
+                <Text className="mb-1 text-xs font-bold uppercase tracking-widest text-python-blue-dark dark:text-python-blue-light">From the directory</Text>
+                <Text accessibilityRole="header" className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Clubs to explore</Text>
+              </View>
+              <Link href="/browse" className="text-sm font-semibold text-python-blue-dark hover:underline dark:text-python-blue-light">View all clubs →</Link>
+            </View>
+            <View className={`gap-4 ${wide ? "flex-row" : ""}`}>
+              {featured.map((club) => (
+                <View key={club.id} className="min-w-0 flex-1 gap-3 rounded-xl border border-light-border bg-light-surface p-5 dark:border-dark-border dark:bg-dark-surface">
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-10 w-10 items-center justify-center rounded-lg bg-python-blue/10">
+                      <Text className="text-xs font-bold text-python-blue-dark dark:text-python-blue-light">{clubInitials(club.name)}</Text>
+                    </View>
+                    <Text className="flex-1 text-xs font-bold uppercase tracking-wide text-light-muted dark:text-dark-muted">{club.category}</Text>
+                  </View>
+                  <Link href={`/club/${club.id}`} className="self-start text-base font-bold text-python-blue-dark hover:underline dark:text-python-blue-light">{club.name} →</Link>
+                  <Text numberOfLines={3} className="text-sm leading-6 text-light-secondary dark:text-dark-secondary">{club.description}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        <View className="gap-2 border-t border-light-border pt-7 dark:border-dark-border">
+          <Text accessibilityRole="header" className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">About Tesla STEM Clubs</Text>
+          <Text className="max-w-3xl text-base leading-7 text-light-secondary dark:text-dark-secondary">
+            This site helps Tesla STEM students discover clubs, check meeting details, and plan around campus events. Browse without an account, or sign in with your school email to join clubs and save your preferences. Club announcement links open the original posts in Canvas.
+          </Text>
         </View>
 
         <View className="gap-4">

@@ -5,7 +5,7 @@ import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Card, Chip, Input, SkeletonRow } from "@/components/ui";
-import { SignInGate } from "@/components/SignInGate";
+import { useAuth } from "@/context/AuthContext";
 import { usePreferences } from "@/context/PreferencesContext";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -22,8 +22,9 @@ import { useClubs } from "@/context/ClubsContext";
 function Survey() {
   const router = useRouter(),
     insets = useSafeAreaInsets();
+  const { session } = useAuth();
   const { preferences, loading, error, refresh, save } = usePreferences();
-  const { clubs } = useClubs();
+  const { clubs, loading: clubsLoading, error: clubsError, refresh: refreshClubs } = useClubs();
   const { toast } = useToast();
   const [form, setForm] = useState<StudentPreferences>(preferences);
   const [day, setDay] = useState("Monday");
@@ -35,6 +36,7 @@ function Survey() {
     setForm(preferences);
   }, [preferences]);
   const commit = async (skip = false) => {
+    if (!session) return;
     setBusy(true);
     const result = await save({
       ...(skip ? { interests: [], careers: [], availability: [] } : form),
@@ -95,12 +97,12 @@ function Survey() {
       <View className="gap-4">
         <PageIntro
           eyebrow="YOUR PERSONAL CLUB GUIDE"
-          title="Follow your curiosity."
+          title="Club Match Quiz"
           description="Choose your interests, future goals, and free time. We will help you find your fit. Edit anytime; schedules use Pacific time."
         />
         {loading ? (
           <SkeletonRow count={3} />
-        ) : error ? (
+        ) : session && error ? (
           <>
             <Text className="text-danger">{error}</Text>
             <Button label="Retry" onPress={() => void refresh()} />
@@ -133,7 +135,7 @@ function Survey() {
               ))}
             </View>
             <Text className="font-semibold text-light-text dark:text-dark-text">
-              Career goals
+              02 / What careers interest you?
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {Object.keys(CAREERS).map((career) => (
@@ -232,9 +234,18 @@ function Survey() {
             <Text className="font-semibold text-light-text dark:text-dark-text">
               Your recommendations
             </Text>
-            {!recommended.length ? (
+            {clubsLoading ? (
+              <SkeletonRow count={2} />
+            ) : clubsError ? (
+              <>
+                <Text className="text-danger">Could not load clubs for recommendations.</Text>
+                <Button label="Retry loading clubs" variant="secondary" onPress={() => void refreshClubs()} />
+              </>
+            ) : !recommended.length ? (
               <Text className="text-light-muted dark:text-dark-muted">
-                Choose an interest or career to see matching clubs.
+                {form.interests.length || form.careers.length || form.availability.length
+                  ? "No matches for these choices yet. Try adding another interest or time."
+                  : "Choose an interest, career, or availability window to see matching clubs."}
               </Text>
             ) : (
               recommended.map(({ club, reasons }) => (
@@ -245,9 +256,12 @@ function Survey() {
                   <Text className="mt-1 text-sm text-light-muted dark:text-dark-muted">
                     {reasons.join(" · ")}
                   </Text>
+                  <Button label={`View ${club.name}`} variant="secondary" size="sm" className="mt-3 self-start" onPress={() => router.push(`/club/${club.id}`)} />
                 </Card>
               ))
             )}
+            {session ? (
+              <>
             <Button
               label="Save and discover clubs"
               loading={busy}
@@ -259,6 +273,15 @@ function Survey() {
               disabled={busy}
               onPress={() => void commit(true)}
             />
+              </>
+            ) : (
+              <>
+                <Text className="text-sm text-light-muted dark:text-dark-muted">
+                  You can explore your matches without signing in. Guest answers aren’t saved to an account.
+                </Text>
+                <Button label="Browse all clubs" variant="secondary" onPress={() => router.push("/browse")} />
+              </>
+            )}
           </>
         )}
       </View>
@@ -266,9 +289,5 @@ function Survey() {
   );
 }
 export default function OnboardingScreen() {
-  return (
-    <SignInGate>
-      <Survey />
-    </SignInGate>
-  );
+  return <Survey />;
 }

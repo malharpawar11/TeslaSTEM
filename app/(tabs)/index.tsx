@@ -348,11 +348,11 @@ function DashboardScreen() {
           description="See upcoming events, Canvas announcements, and resources from your clubs."
         >
           <Button
-            label="Discover something new"
+            label="Take the club quiz"
             variant="success"
             size="md"
             iconRight="arrow-forward"
-            onPress={() => router.push("/browse")}
+            onPress={() => router.push("/onboarding")}
           />
         </PageIntro>
       </View>
