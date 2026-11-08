@@ -1,9 +1,9 @@
-import { APP_MAX_WIDTH, DESKTOP_NAV_WIDTH } from "@/theme/layout";
+import { useWebsiteLayout } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
-import { useMemo, useState, useCallback } from "react";
-import { View, FlatList, ScrollView, Platform, useWindowDimensions } from "react-native";
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { View, FlatList, ScrollView } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
-import { useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Club } from "@/types/domain";
 import { useClubs } from "@/context/ClubsContext";
@@ -45,8 +45,9 @@ const FILTERS = [
 ];
 
 export default function BrowseScreen() {
-  const { width } = useWindowDimensions();
-  const columns = Platform.OS === "web" && width >= DESKTOP_NAV_WIDTH ? (width >= 1220 ? 3 : 2) : 1;
+  const { wide, contentWidth } = useWebsiteLayout();
+  const columns = contentWidth >= 1160 ? 3 : 2;
+  const { category } = useLocalSearchParams<{ category?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isMember, membershipFor, memberships, join, leave } =
@@ -55,6 +56,7 @@ export default function BrowseScreen() {
   const { clubs, loading, error, refresh } = useClubs();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<string>("All");
+  useEffect(() => { setFilter(category && FILTERS.includes(category) ? category : "All"); }, [category]);
   const [joinedOnly, setJoinedOnly] = useState(false);
   const { preferences } = usePreferences();
   const [availableOnly, setAvailableOnly] = useState(false);
@@ -154,7 +156,7 @@ export default function BrowseScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Club }) => (
-      <View className={columns === 1 ? "px-5" : "px-2.5"} style={{ width: columns === 1 ? "100%" : (Math.min(width, APP_MAX_WIDTH) - 20) / columns }}>
+      <View className={wide ? "" : "px-5"}>
         <ClubCard
           club={item}
           joined={isMember(item.id)}
@@ -164,7 +166,7 @@ export default function BrowseScreen() {
         />
       </View>
     ),
-    [isMember, membershipFor, toggleJoin, router, columns, width],
+    [isMember, membershipFor, toggleJoin, router, wide],
   );
 
   const filtersActive =
@@ -218,6 +220,121 @@ export default function BrowseScreen() {
         onAction={filtersActive ? clearFilters : () => router.push("/club/new")}
       />
     ) : null;
+
+  const filterControls = (<>
+      <View className="flex-row flex-wrap gap-2 py-2">
+        <Chip
+          label="Fits my schedule"
+          active={availableOnly}
+          onPress={() => {
+            if (!preferences.availability.length) {
+              router.push("/onboarding");
+              return;
+            }
+            setAvailableOnly((v) => !v);
+          }}
+        />
+        <Chip
+          label="Recommended"
+          active={recommendedOnly}
+          onPress={() => {
+            if (
+              !preferences.interests.length &&
+              !preferences.careers.length &&
+              !preferences.availability.length
+            ) {
+              router.push("/onboarding");
+              return;
+            }
+            setRecommendedOnly((v) => !v);
+          }}
+        />
+        <Button
+          label="Edit preferences"
+          variant="ghost"
+          size="sm"
+          onPress={() => router.push("/onboarding")}
+        />
+      </View>
+      {!wide ? <View className="mt-2 flex-row items-center justify-between gap-2">
+        <Button
+          label={`Filters${activeCount ? ` · ${activeCount}` : ""}`}
+          iconRight="options-outline"
+          variant="secondary"
+          size="sm"
+          onPress={() => setShowFilters((v) => !v)}
+        />
+        {filtersActive ? (
+          <Button
+            label="Reset"
+            size="sm"
+            variant="ghost"
+            onPress={clearFilters}
+          />
+        ) : null}
+      </View> : null}
+      {(wide || showFilters) ? (
+        <Card className={wide ? "gap-3 border-0 p-0" : "mt-3 gap-3 p-4"}>
+          <Text className="text-lg font-bold text-light-text dark:text-dark-text">
+            Make it your fit
+          </Text>
+          <Text className="text-xs leading-5 text-light-muted dark:text-dark-muted">
+            Combine filters to narrow your search. Meeting times that haven't
+            been published won't match a time filter.
+          </Text>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            Career goal
+          </Text>
+          <View className="-mx-5">
+            <FilterChips
+              options={["All careers", ...Object.keys(CAREERS)]}
+              selected={career}
+              onSelect={setCareer}
+            />
+          </View>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            Meeting day
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {["Any day", ...DAYS].map((value) => (
+              <Chip
+                key={value}
+                label={value}
+                active={day === value}
+                onPress={() => setDay(value)}
+              />
+            ))}
+          </View>
+          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
+            School period
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {["Any time", ...MEETING_PERIODS].map((value) => (
+              <Chip
+                key={value}
+                label={value}
+                active={period === value}
+                onPress={() => setPeriod(value)}
+              />
+            ))}
+          </View>
+          <Chip
+            label="Join without approval"
+            active={openOnly}
+            onPress={() => setOpenOnly((v) => !v)}
+          />
+          <Text className="text-xs text-light-muted dark:text-dark-muted">
+            For exact time ranges, use “Fits my schedule” and set your
+            availability.
+          </Text>
+          {!wide ? <Button
+            label={`Show ${data.length} clubs`}
+            iconRight="arrow-forward"
+            onPress={() => setShowFilters(false)}
+          /> : null}
+        </Card>
+      ) : null}
+    </>);
 
   const header = (
     <View className="px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
@@ -290,118 +407,7 @@ export default function BrowseScreen() {
           counts={counts}
         />
       </View>
-      <View className="flex-row flex-wrap gap-2 py-2">
-        <Chip
-          label="Fits my schedule"
-          active={availableOnly}
-          onPress={() => {
-            if (!preferences.availability.length) {
-              router.push("/onboarding");
-              return;
-            }
-            setAvailableOnly((v) => !v);
-          }}
-        />
-        <Chip
-          label="Recommended"
-          active={recommendedOnly}
-          onPress={() => {
-            if (
-              !preferences.interests.length &&
-              !preferences.careers.length &&
-              !preferences.availability.length
-            ) {
-              router.push("/onboarding");
-              return;
-            }
-            setRecommendedOnly((v) => !v);
-          }}
-        />
-        <Button
-          label="Edit preferences"
-          variant="ghost"
-          size="sm"
-          onPress={() => router.push("/onboarding")}
-        />
-      </View>
-      <View className="mt-2 flex-row items-center justify-between gap-2">
-        <Button
-          label={`Filters${activeCount ? ` · ${activeCount}` : ""}`}
-          iconRight="options-outline"
-          variant="secondary"
-          size="sm"
-          onPress={() => setShowFilters((v) => !v)}
-        />
-        {filtersActive ? (
-          <Button
-            label="Reset"
-            size="sm"
-            variant="ghost"
-            onPress={clearFilters}
-          />
-        ) : null}
-      </View>
-      {showFilters ? (
-        <Card className="mt-3 gap-3 p-4">
-          <Text className="text-lg font-bold text-light-text dark:text-dark-text">
-            Make it your fit
-          </Text>
-          <Text className="text-xs leading-5 text-light-muted dark:text-dark-muted">
-            Combine filters to narrow your search. Meeting times that haven't
-            been published won't match a time filter.
-          </Text>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            Career goal
-          </Text>
-          <View className="-mx-5">
-            <FilterChips
-              options={["All careers", ...Object.keys(CAREERS)]}
-              selected={career}
-              onSelect={setCareer}
-            />
-          </View>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            Meeting day
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            {["Any day", ...DAYS].map((value) => (
-              <Chip
-                key={value}
-                label={value}
-                active={day === value}
-                onPress={() => setDay(value)}
-              />
-            ))}
-          </View>
-          <Text className="text-sm font-semibold text-light-text dark:text-dark-text">
-            School period
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            {["Any time", ...MEETING_PERIODS].map((value) => (
-              <Chip
-                key={value}
-                label={value}
-                active={period === value}
-                onPress={() => setPeriod(value)}
-              />
-            ))}
-          </View>
-          <Chip
-            label="Join without approval"
-            active={openOnly}
-            onPress={() => setOpenOnly((v) => !v)}
-          />
-          <Text className="text-xs text-light-muted dark:text-dark-muted">
-            For exact time ranges, use “Fits my schedule” and set your
-            availability.
-          </Text>
-          <Button
-            label={`Show ${data.length} clubs`}
-            iconRight="arrow-forward"
-            onPress={() => setShowFilters(false)}
-          />
-        </Card>
-      ) : null}
+      {filterControls}
       {availableOnly ? (
         <Text className="pb-2 text-xs text-light-muted dark:text-dark-muted">
           Pacific time · Unknown meeting times are excluded.
@@ -436,6 +442,57 @@ export default function BrowseScreen() {
     </View>
   );
 
+  if (wide) {
+    const rows = Array.from({ length: Math.ceil(data.length / columns) }, (_, i) => data.slice(i * columns, (i + 1) * columns));
+    return (
+      <ScrollView className="flex-1 bg-light-bg dark:bg-dark-bg" contentContainerStyle={{ padding: 32, gap: 24 }}>
+        <PageIntro eyebrow="STUDENT ACTIVITIES" title="Club directory" description="Explore Tesla STEM clubs by interest, meeting time, or career goal." trailing={<Link href="/club/new" className="rounded-lg border border-light-border bg-light-surface px-4 py-2.5 text-sm font-semibold text-python-blue-dark dark:border-dark-border dark:bg-dark-surface dark:text-python-blue-light">Submit a club</Link>} />
+        <View className="flex-row items-start gap-6">
+          <Card style={{ width: 248 }} className="shrink-0 gap-4 p-4">
+            <View className="flex-row items-center justify-between">
+              <Text accessibilityRole="header" className="text-base font-bold text-light-text dark:text-dark-text">Filters</Text>
+              {filtersActive ? <Button label="Reset" variant="ghost" size="sm" onPress={clearFilters} /> : null}
+            </View>
+            <View className="gap-1">
+              <Text className="mb-1 text-xs font-semibold uppercase tracking-wide text-light-muted dark:text-dark-muted">Categories</Text>
+              {FILTERS.map((value) => (
+                <PressableScale key={value} onPress={() => setFilter(value)} accessibilityRole="button" accessibilityState={{ selected: filter === value }}
+                  className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 ${filter === value ? "bg-python-blue/10" : "hover:bg-light-surface-2 dark:hover:bg-dark-surface-2"}`}>
+                  <Text className={`text-sm font-semibold ${filter === value ? "text-python-blue-dark dark:text-python-blue-light" : "text-light-secondary dark:text-dark-secondary"}`}>{value === "All" ? "All clubs" : value}</Text>
+                  <Text className="text-xs text-light-muted dark:text-dark-muted">{counts[value] ?? 0}</Text>
+                </PressableScale>
+              ))}
+            </View>
+            <View className="border-t border-light-border pt-3 dark:border-dark-border">
+              <Chip label="My joined clubs" active={joinedOnly} onPress={() => setJoinedOnly((value) => !value)} />
+              {filterControls}
+            </View>
+          </Card>
+          <View className="min-w-0 flex-1 gap-4">
+            <SearchBar value={query} onChangeText={setQuery} resultCount={query ? data.length : undefined} />
+            <View className="flex-row flex-wrap items-center justify-between gap-3 border-b border-light-border pb-3 dark:border-dark-border">
+              <Text accessibilityLiveRegion="polite" className="text-base font-bold text-light-text dark:text-dark-text">{data.length} {data.length === 1 ? "club" : "clubs"}</Text>
+              <View className="flex-row flex-wrap items-center gap-2">
+                <Text className="text-xs text-light-muted dark:text-dark-muted">Sort by</Text>
+                {CLUB_SORTS.map((value) => <Chip key={value} label={value} active={sort === value} onPress={() => setSort(value)} />)}
+              </View>
+            </View>
+            {body ?? (
+              <View>
+                {rows.map((row) => (
+                  <View key={row[0].id} className="flex-row gap-4">
+                    {row.map((item) => <View key={item.id} className="min-w-0 flex-1">{renderItem({ item })}</View>)}
+                    {Array.from({ length: columns - row.length }, (_, i) => <View key={i} className="flex-1" />)}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       {body ? (
@@ -445,9 +502,6 @@ export default function BrowseScreen() {
         </ScrollView>
       ) : (
         <FlatList
-          key={columns}
-          numColumns={columns}
-          columnWrapperStyle={columns > 1 ? { paddingHorizontal: 10 } : undefined}
           ListHeaderComponent={header}
           data={data}
           keyExtractor={(c) => c.id}

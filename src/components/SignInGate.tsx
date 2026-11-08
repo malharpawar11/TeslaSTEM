@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
 import { ReactNode, useEffect, useState } from "react";
 import { View, Platform, ScrollView } from "react-native";
@@ -191,16 +192,16 @@ export function SignInGate({
       className="flex-1 bg-light-bg px-6 dark:bg-dark-bg"
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
-      <View className="flex-row justify-end pt-2">
+      {!isWebsite ? <View className="flex-row justify-end pt-2">
         <ThemeToggle />
-      </View>
+      </View> : null}
 
-      <View className="flex-1 justify-center py-6">
-        <PageIntro
+      <View className={isWebsite ? "mx-auto w-full max-w-[480px] py-8" : "flex-1 justify-center py-6"}>
+        {!isWebsite ? <PageIntro
           eyebrow="WELCOME TO YOUR CAMPUS"
           title="Good things start together."
           description="A school account connects you to your clubs and your community."
-        />
+        /> : null}
         <Animated.View entering={FadeIn.duration(180)} className="items-center">
           <View className="h-14 w-14 items-center justify-center rounded-xl bg-python-blue/10 dark:bg-python-blue/20">
             <Ionicons

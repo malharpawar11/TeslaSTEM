@@ -1,3 +1,5 @@
+import { WebsiteHome } from "@/components/WebsiteHome";
+import { isWebsite, useWebsiteLayout } from "@/theme/layout";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Image, ScrollView, RefreshControl } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
@@ -228,6 +230,7 @@ function MyClubsRow({ dashboard }: { dashboard: Dashboard }) {
 import { useCampusUpdates } from "@/context/CampusUpdatesContext";
 
 function DashboardScreen() {
+  const { wide } = useWebsiteLayout();
   const {
     events: eventVersion,
     announcements: announcementVersion,
@@ -293,7 +296,7 @@ function DashboardScreen() {
     <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: wide ? 12 : 0, paddingTop: wide ? 22 : 0 }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -337,8 +340,8 @@ function DashboardScreen() {
       <View className="px-5 pt-5">
         <PageIntro
           eyebrow="YOUR CAMPUS / TODAY"
-          title="Make room for what matters."
-          description="Your clubs, conversations, and next opportunities. All connected."
+          title="Your club dashboard"
+          description="See upcoming events, Canvas announcements, and resources from your clubs."
         >
           <Button
             label="Discover something new"
@@ -472,7 +475,7 @@ export default function HomeScreen() {
   const { session, configured } = useAuth();
 
   if (!configured || !session) {
-    return <Hero />;
+    return isWebsite ? <WebsiteHome /> : <Hero />;
   }
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">

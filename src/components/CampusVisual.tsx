@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { ReactNode, useEffect, useState } from "react";
 import {
   AccessibilityInfo,
@@ -140,6 +141,19 @@ export function PageIntro({
   trailing?: ReactNode;
   children?: ReactNode;
 }) {
+  if (isWebsite) {
+    return (
+      <View className="mb-2 gap-2 border-b border-light-border pb-5 dark:border-dark-border">
+        <Text className="text-xs font-bold uppercase tracking-widest text-python-blue-dark dark:text-python-blue-light">{eyebrow}</Text>
+        <View className="flex-row flex-wrap items-center justify-between gap-3">
+          <Text accessibilityRole="header" className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text">{title}</Text>
+          {trailing}
+        </View>
+        {description ? <Text className="max-w-2xl text-base leading-6 text-light-muted dark:text-dark-muted">{description}</Text> : null}
+        {children ? <View className="mt-2 self-start">{children}</View> : null}
+      </View>
+    );
+  }
   return (
     <View className="mb-5 overflow-hidden rounded-3xl">
       <Gradient

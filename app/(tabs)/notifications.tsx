@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
 import { useCallback, useMemo, useState } from "react";
 import { View, ScrollView, RefreshControl } from "react-native";
@@ -241,7 +242,7 @@ function NotificationsInbox() {
           </Text>
         </View>
         <View className="pt-1">
-          <ThemeToggle />
+          {!isWebsite ? <ThemeToggle /> : null}
         </View>
       </View>
 

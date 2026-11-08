@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { ReactNode } from 'react';
 import { View, ViewProps } from 'react-native';
 import { PressableScale } from './Pressable';
@@ -18,11 +19,11 @@ const ELEV: Record<Elevation, string> = {
 };
 
 const BASE =
-  'rounded-2xl border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface';
+  (isWebsite ? "rounded-xl" : "rounded-2xl") + " border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface";
 
 export function Card({ children, className, elevation = 'flat', ...rest }: BaseProps & ViewProps) {
   return (
-    <View {...rest} className={[BASE, ELEV[elevation], className ?? ''].filter(Boolean).join(' ')}>
+    <View {...rest} className={[BASE, isWebsite && elevation === "ambient" ? "" : ELEV[elevation], className ?? ''].filter(Boolean).join(' ')}>
       {children}
     </View>
   );
@@ -51,7 +52,7 @@ export function PressableCard({
       accessibilityLabel={accessibilityLabel}
       scaleTo={0.995}
       pressedOpacity={0.94}
-      className={[BASE, ELEV[elevation], className ?? ''].filter(Boolean).join(' ')}
+      className={[BASE, isWebsite && elevation === "ambient" ? "" : ELEV[elevation], isWebsite ? "cursor-pointer hover:border-python-blue/60" : "", className ?? ''].filter(Boolean).join(' ')}
     >
       {children}
     </PressableScale>

@@ -1,3 +1,4 @@
+import { isWebsite, useWebsiteLayout } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -31,6 +32,7 @@ type Scope = "My clubs" | "All clubs";
 export default function CalendarScreen() {
   const { events: eventsVersion, reconnected } = useCampusUpdates();
   const insets = useSafeAreaInsets();
+  const { wide } = useWebsiteLayout();
   const router = useRouter();
   const { toast } = useToast();
   const { memberships } = useMemberships();
@@ -136,7 +138,7 @@ export default function CalendarScreen() {
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: wide ? 12 : 0, paddingTop: wide ? 22 : 0 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -145,7 +147,7 @@ export default function CalendarScreen() {
           />
         }
       >
-        <View
+        {!isWebsite ? <View
           className="flex-row items-start justify-between px-5"
           style={{ paddingTop: insets.top + 8 }}
         >
@@ -160,17 +162,18 @@ export default function CalendarScreen() {
           <View className="pt-1">
             <ThemeToggle />
           </View>
-        </View>
+        </View> : null}
 
         <View className="px-5 pt-5">
           <PageIntro
             eyebrow="PLAN / PARTICIPATE"
-            title="Your next opportunity awaits."
-            description="Keep club events and application deadlines in view. Tap a day to explore its agenda."
+            title="Campus calendar"
+            description="Keep club events and application deadlines in view. Select a date to view its agenda. All times are Pacific."
           />
         </View>
 
-        <View className="mt-4 flex-row items-center gap-2 px-5">
+        <View className={wide ? "mt-4 flex-row flex-wrap items-center gap-3 px-5" : ""}>
+        <View className={wide ? "flex-row items-center gap-2" : "mt-4 flex-row items-center gap-2 px-5"}>
           {(["My clubs", "All clubs"] as Scope[]).map((option) => (
             <Chip
               key={option}
@@ -181,15 +184,15 @@ export default function CalendarScreen() {
           ))}
         </View>
 
-        <View className="mt-3 px-5">
+        <View className={wide ? "" : "mt-3 px-5"}>
           <Chip
             label="Deadlines only"
             active={deadlinesOnly}
             onPress={() => setDeadlinesOnly((value) => !value)}
           />
         </View>
-        <View className="mt-3 flex-row gap-2 px-5">
-          <View className="flex-1">
+        <View className={wide ? "ml-auto flex-row gap-2" : "mt-3 flex-row gap-2 px-5"}>
+          <View className={wide ? "" : "flex-1"}>
             <Button
               label="Export .ics"
               variant="secondary"
@@ -199,7 +202,7 @@ export default function CalendarScreen() {
               onPress={() => void exportAll()}
             />
           </View>
-          <View className="flex-1">
+          <View className={wide ? "" : "flex-1"}>
             <Button
               label="Remind me"
               disabled={Platform.OS === "web"}
@@ -211,6 +214,7 @@ export default function CalendarScreen() {
             />
           </View>
         </View>
+        </View>
         {Platform.OS === "web" ? (
           <Text className="px-5 pt-2 text-xs text-light-muted dark:text-dark-muted">
             Device reminders require the installed app. Export events to your
@@ -218,7 +222,8 @@ export default function CalendarScreen() {
           </Text>
         ) : null}
 
-        <View className="px-5 pt-5">
+        <View className={wide ? "flex-row items-start" : ""}>
+        <View className={wide ? "min-w-0 flex-[1.15] px-5 pt-5" : "px-5 pt-5"}>
           <MonthCalendar
             eventDays={eventDays}
             selected={selectedDay}
@@ -226,6 +231,8 @@ export default function CalendarScreen() {
           />
         </View>
 
+        <View className={wide ? "min-w-0 flex-1" : ""}>
+          {wide ? <Text accessibilityRole="header" className="px-5 pt-5 text-xl font-bold text-light-text dark:text-dark-text">Agenda</Text> : null}
         {loading ? (
           <View className="px-5 pt-6">
             <SkeletonRow count={4} />
@@ -278,6 +285,8 @@ export default function CalendarScreen() {
             </Animated.View>
           ))
         )}
+        </View>
+        </View>
       </ScrollView>
     </View>
   );

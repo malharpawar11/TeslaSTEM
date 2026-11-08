@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
 import { useCallback, useMemo, useState } from "react";
 import { View, ScrollView, Platform } from "react-native";
@@ -179,7 +180,7 @@ function AccountDashboard() {
             My account
           </Text>
         </View>
-        <ThemeToggle />
+        {!isWebsite ? <ThemeToggle /> : null}
       </View>
 
       <View className="mt-5">
@@ -191,7 +192,7 @@ function AccountDashboard() {
         />
         <PageIntro
           eyebrow="PROFILE / PREFERENCES"
-          title="Your campus, your way."
+          title="Profile and preferences"
           description="Manage your memberships, school profile, and notification preferences."
         />
       </View>

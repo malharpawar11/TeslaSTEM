@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { useState, ReactNode } from "react";
 import { View, TextInput, TextInputProps, Platform } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
@@ -56,7 +57,7 @@ export function Input({
       ) : null}
 
       <View
-        className={`flex-row items-center gap-2.5 rounded-2xl border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
+        className={`flex-row items-center gap-2.5 ${isWebsite ? "rounded-lg" : "rounded-2xl"} border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
       >
         {icon ? (
           <Ionicons

@@ -1,3 +1,4 @@
+import { useWebsiteLayout } from "@/theme/layout";
 import { canvasAnnouncementUrl, CANVAS_LINK_ERROR } from "@/lib/canvasAnnouncements";
 import { PageIntro } from "@/components/CampusVisual";
 import {
@@ -122,9 +123,10 @@ function SectionTabs({
   value: Section;
   onChange: (s: Section) => void;
 }) {
+  const { wide } = useWebsiteLayout();
   return (
     <ScrollView
-      horizontal
+      horizontal={!wide}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ gap: 6 }}
     >
@@ -137,7 +139,7 @@ function SectionTabs({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             scaleTo={0.97}
-            className={`h-9 items-center justify-center rounded-full px-4 ${
+            className={`h-10 px-4 ${wide ? "items-start justify-center rounded-lg" : "items-center justify-center rounded-full"} ${
               active
                 ? "bg-python-blue"
                 : "border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface"
@@ -207,6 +209,7 @@ function ManageClubScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const clubId = String(id);
   const router = useRouter();
+  const { wide } = useWebsiteLayout();
   const insets = useSafeAreaInsets();
   const { getClub, refresh: refreshClubs } = useClubs();
   const { toast, toastResult } = useToast();
@@ -661,7 +664,7 @@ function ManageClubScreen() {
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 40, paddingTop: wide ? 24 : 0, paddingHorizontal: wide ? 12 : 0 }}
       >
         <View
           className="flex-row items-start gap-3 px-5"
@@ -706,12 +709,13 @@ function ManageClubScreen() {
         <View className="px-5 pt-5">
           <PageIntro
             eyebrow="LEADERSHIP / WORKSPACE"
-            title="Bring your club to life."
+            title="Club management"
             description="Publish updates, plan events, and support your members. Your permissions control which tools are available."
           />
         </View>
 
-        <View className="px-5 pt-4">
+        <View className={wide ? "flex-row items-start" : ""}>
+        <View className={wide ? "w-[218px] shrink-0 px-5 pt-5" : "px-5 pt-4"}>
           <SectionTabs
             sections={sections}
             value={section}
@@ -719,7 +723,7 @@ function ManageClubScreen() {
           />
         </View>
 
-        <View className="px-5 pt-5">
+        <View className={wide ? "min-w-0 max-w-[850px] flex-1 px-5 pt-5" : "px-5 pt-5"}>
           {/* ------------------------------------------------ Overview */}
           {section === "Overview" ? (
             <Animated.View entering={FadeIn.duration(240)} className="gap-3">
@@ -1891,6 +1895,7 @@ function ManageClubScreen() {
               </Text>
             </Animated.View>
           ) : null}
+        </View>
         </View>
       </ScrollView>
 

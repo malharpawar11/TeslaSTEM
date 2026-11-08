@@ -1,4 +1,5 @@
-import { ScrollView } from 'react-native';
+import { isWebsite } from "@/theme/layout";
+import { ScrollView, View } from 'react-native';
 import { Chip } from './ui/Chip';
 
 interface Props {
@@ -9,6 +10,13 @@ interface Props {
 }
 
 export function FilterChips({ options, selected, onSelect, counts }: Props) {
+  if (isWebsite) {
+    return (
+      <View className="flex-row flex-wrap gap-2 px-5 py-1.5">
+        {options.map((opt) => <Chip key={opt} label={opt} active={opt === selected} onPress={() => onSelect(opt)} count={counts?.[opt]} />)}
+      </View>
+    );
+  }
   return (
     <ScrollView
       horizontal

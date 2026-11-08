@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { memo } from "react";
 import { View } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
@@ -38,7 +39,7 @@ function ClubCardBase({
         onPress={onPress}
         elevation="ambient"
         accessibilityLabel={`${club.name}, ${club.category} club. Open profile.`}
-        className="overflow-hidden p-5"
+        className={isWebsite ? "min-h-[250px] overflow-hidden p-4" : "overflow-hidden p-5"}
       >
         <View className="flex-row items-center gap-3">
           <Avatar
@@ -50,7 +51,7 @@ function ClubCardBase({
             <View className="self-start">
               <Tag label={club.category} size="sm" />
             </View>
-            <Text className="mt-2 text-xl font-bold tracking-tight text-light-text dark:text-dark-text">
+            <Text className="mt-2 text-base font-bold tracking-tight text-light-text dark:text-dark-text">
               {club.name}
             </Text>
           </View>
@@ -58,7 +59,7 @@ function ClubCardBase({
         </View>
         <Text
           numberOfLines={2}
-          className="mt-4 text-base leading-6 text-light-muted dark:text-dark-muted"
+          className="mt-4 text-sm leading-5 text-light-muted dark:text-dark-muted"
         >
           {club.description}
         </Text>
@@ -97,7 +98,7 @@ function ClubCardBase({
                   ? `Join ${club.name}`
                   : `Join ${club.name}`
             }
-            className={`min-h-11 flex-row items-center gap-2 rounded-full px-4 ${joined ? "bg-python-green/10" : pending ? "bg-warn/10" : "bg-python-blue/10"}`}
+            className={`min-h-11 flex-row items-center gap-2 ${isWebsite ? "rounded-lg px-2.5" : "rounded-full px-4"} ${joined ? "bg-python-green/10" : pending ? "bg-warn/10" : "bg-python-blue/10"}`}
           >
             <Ionicons
               name={
@@ -110,7 +111,7 @@ function ClubCardBase({
               size={18}
               color={color}
             />
-            <Text style={{ color }} className="text-sm font-bold">
+            <Text className={`text-sm font-bold ${joined ? "text-python-green-dark dark:text-python-green-light" : pending ? "text-warn dark:text-amber-300" : "text-python-blue-dark dark:text-python-blue-light"}`}>
               {label}
             </Text>
           </PressableScale>

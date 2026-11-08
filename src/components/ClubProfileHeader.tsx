@@ -1,3 +1,5 @@
+import { isWebsite, useWebsiteLayout } from "@/theme/layout";
+import { Link } from "expo-router";
 import { CampusVisual } from "./CampusVisual";
 
 import { View } from "react-native";
@@ -27,6 +29,24 @@ interface Props {
 
 export function ClubProfileHeader({ club, onBack, onShare }: Props) {
   const insets = useSafeAreaInsets();
+  const { wide } = useWebsiteLayout();
+  if (isWebsite) {
+    return (
+      <View className={`gap-4 px-5 ${wide ? "pb-5" : "pt-5"}`}>
+        <Link href="/browse" className="self-start text-sm font-semibold text-python-blue-dark hover:underline dark:text-python-blue-light">← Club directory</Link>
+        <View className={`flex-row items-center gap-4 rounded-xl border border-light-border bg-light-surface dark:border-dark-border dark:bg-dark-surface ${wide ? "p-7" : "p-4"}`}>
+          <View className="h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-python-blue/10 dark:bg-python-blue/20">
+            <Text className="text-lg font-bold text-python-blue-dark dark:text-python-blue-light">{clubInitials(club.name)}</Text>
+          </View>
+          <View className="min-w-0 flex-1 gap-1">
+            <Text className="text-xs font-bold uppercase tracking-widest text-python-green-dark dark:text-python-green-light">{club.category}</Text>
+            <Text accessibilityRole="header" className={`font-bold tracking-tight text-light-text dark:text-dark-text ${wide ? "text-4xl" : "text-2xl"}`}>{club.name}</Text>
+            <Text className="text-sm text-light-muted dark:text-dark-muted">{club.memberCount} {club.memberCount === 1 ? "member" : "members"}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   const facts: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
     { icon: "pricetag-outline", label: club.category },

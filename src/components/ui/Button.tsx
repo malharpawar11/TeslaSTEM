@@ -1,3 +1,4 @@
+import { isWebsite } from "@/theme/layout";
 import { ReactNode } from "react";
 import { ActivityIndicator } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
@@ -160,10 +161,10 @@ export function Button({
         "flex-row items-center justify-center",
         s.px,
         s.gap,
-        s.radius,
+        isWebsite ? "rounded-lg" : s.radius,
         v.container,
         fullWidth ? "w-full" : "",
-        off ? "opacity-45" : "",
+        off ? "opacity-45" : isWebsite ? "cursor-pointer hover:opacity-90" : "",
         className ?? "",
       ]
         .filter(Boolean)

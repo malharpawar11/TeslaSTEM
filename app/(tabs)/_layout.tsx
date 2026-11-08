@@ -1,14 +1,15 @@
-import { Platform, useWindowDimensions } from "react-native";
-import { DESKTOP_NAV_WIDTH } from "@/theme/layout";
+import { useTheme } from "@/context/ThemeContext";
+import { surface } from "@/theme/tokens";
+import { isWebsite } from "@/theme/layout";
 import { Tabs } from 'expo-router';
 import { TabBar } from '@/components/TabBar';
 
 export default function TabsLayout() {
-  const { width } = useWindowDimensions();
-  const desktop = Platform.OS === "web" && width >= DESKTOP_NAV_WIDTH;
+  const { isDark } = useTheme();
   return (
     <Tabs
-      tabBar={(props) => desktop ? null : <TabBar {...props} />}
+      sceneContainerStyle={isWebsite ? { backgroundColor: surface(isDark).bg } : undefined}
+      tabBar={(props) => isWebsite ? null : <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: true,

@@ -1,5 +1,6 @@
+import { surface } from "@/theme/tokens";
 import "../global.css";
-import { Platform, useWindowDimensions, View } from "react-native";
+import { View } from "react-native";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -18,26 +19,23 @@ import { MembershipProvider } from "@/context/MembershipContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WebsiteNavigation } from "@/components/WebsiteNavigation";
-import { APP_MAX_WIDTH, DESKTOP_NAV_WIDTH } from "@/theme/layout";
+import { APP_MAX_WIDTH, isWebsite } from "@/theme/layout";
 import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
 
 cssInterop(GestureHandlerRootView, { className: "style" });
 
 /**
- * On web the app still lays out as a phone-width column. Centring it inside a
- * readable measure keeps line lengths sane on a laptop instead of stretching
- * every club row to 1400px.
+ * A shared website header and centered content frame.
  */
-const IS_WEB = Platform.OS === "web";
+
 
 function RootStack() {
   const { isDark } = useTheme();
-  const { width } = useWindowDimensions();
-  const desktop = IS_WEB && width >= DESKTOP_NAV_WIDTH;
   const { session } = useAuth();
   const { preferences, loading, error } = usePreferences();
   const router = useRouter();
   const pathname = usePathname();
+  const pageWidth = ["/settings", "/onboarding", "/club/new", "/policies", "/search", "/account", "/notifications"].includes(pathname) ? 940 : APP_MAX_WIDTH;
   const prompted = useRef<string | null>(null);
   useEffect(() => {
     if (!session) {
@@ -56,19 +54,19 @@ function RootStack() {
     }
   }, [session, preferences.completed, loading, error, pathname, router]);
   return (
-    <View className="flex-1">
-    {desktop ? <WebsiteNavigation /> : null}
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+    {isWebsite ? <WebsiteNavigation /> : null}
     <View
       className="flex-1 bg-light-bg dark:bg-dark-bg"
       style={
-        IS_WEB
-          ? { width: "100%", maxWidth: APP_MAX_WIDTH, alignSelf: "center" }
+        isWebsite
+          ? { width: "100%", maxWidth: pageWidth, alignSelf: "center" }
           : undefined
       }
     >
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
-        screenOptions={{ headerShown: false, animation: "slide_from_right" }}
+        screenOptions={{ headerShown: false, animation: isWebsite ? "none" : "slide_from_right", contentStyle: isWebsite ? { backgroundColor: surface(isDark).bg } : undefined }}
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="club/[id]/index" />
@@ -87,7 +85,7 @@ function RootStack() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView className="flex-1 bg-light-surface-2 dark:bg-dark-surface-3">
+    <GestureHandlerRootView className="flex-1 bg-light-bg dark:bg-dark-bg">
       <SafeAreaProvider>
         <ThemeProvider>
           <AccessibilityProvider>

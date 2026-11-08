@@ -31,7 +31,7 @@ export function SearchBar({
 
   return (
     <View
-      className={`flex-row items-center gap-2.5 rounded-2xl border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
+      className={`flex-row items-center gap-2.5 ${Platform.OS === "web" ? "rounded-lg" : "rounded-2xl"} border bg-light-surface px-3 dark:bg-dark-surface-2 ${borderClass}`}
     >
       <Ionicons
         name="search"
