@@ -1,3 +1,4 @@
+import { canvasAnnouncementUrl, CANVAS_LINK_ERROR } from "@/lib/canvasAnnouncements";
 import { insforge } from "@/lib/insforge";
 import { upcomingEventFilter } from '@/lib/calendar';
 import { currentUserId, NOT_CONFIGURED, type RpcResult } from "./result";
@@ -62,7 +63,7 @@ export async function fetchClubAnnouncements(
     .limit(60);
   if (error || !data)
     throw new Error(error?.message ?? "Could not load data. Try again.");
-  return (data as unknown as DbAnnouncement[]).map(toAnnouncement);
+  return (data as unknown as DbAnnouncement[]).filter((row) => canvasAnnouncementUrl(row.body)).map(toAnnouncement);
 }
 
 /** School-wide announcements (club_id null), posted by the school admin. */
@@ -76,7 +77,7 @@ export async function fetchSchoolAnnouncements(): Promise<Announcement[]> {
     .limit(30);
   if (error || !data)
     throw new Error(error?.message ?? "Could not load data. Try again.");
-  return (data as unknown as DbAnnouncement[]).map(toAnnouncement);
+  return (data as unknown as DbAnnouncement[]).filter((row) => canvasAnnouncementUrl(row.body)).map(toAnnouncement);
 }
 
 export async function createAnnouncement(
@@ -85,13 +86,15 @@ export async function createAnnouncement(
   body: string,
 ): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
+  const url = canvasAnnouncementUrl(body);
+  if (!url) return { ok: false, error: CANVAS_LINK_ERROR };
   const uid = await currentUserId();
   if (!uid) return { ok: false, error: "Sign in to post an announcement." };
   const { error } = await insforge.database.from("announcements").insert([
     {
       club_id: clubId,
       title: title.trim(),
-      body: body.trim(),
+      body: url,
       created_by: uid,
     },
   ]);
@@ -105,10 +108,12 @@ export async function updateAnnouncement(
   body: string,
 ): Promise<RpcResult> {
   if (!insforge) return { ok: false, error: NOT_CONFIGURED };
+  const url = canvasAnnouncementUrl(body);
+  if (!url) return { ok: false, error: CANVAS_LINK_ERROR };
   const uid = await currentUserId();
   const { error } = await insforge.database
     .from("announcements")
-    .update({ title: title.trim(), body: body.trim(), updated_by: uid })
+    .update({ title: title.trim(), body: url, updated_by: uid })
     .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }

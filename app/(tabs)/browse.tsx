@@ -1,6 +1,7 @@
+import { APP_MAX_WIDTH, DESKTOP_NAV_WIDTH } from "@/theme/layout";
 import { PageIntro } from "@/components/CampusVisual";
 import { useMemo, useState, useCallback } from "react";
-import { View, FlatList, ScrollView } from "react-native";
+import { View, FlatList, ScrollView, Platform, useWindowDimensions } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -44,6 +45,8 @@ const FILTERS = [
 ];
 
 export default function BrowseScreen() {
+  const { width } = useWindowDimensions();
+  const columns = Platform.OS === "web" && width >= DESKTOP_NAV_WIDTH ? (width >= 1220 ? 3 : 2) : 1;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isMember, membershipFor, memberships, join, leave } =
@@ -151,7 +154,7 @@ export default function BrowseScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Club }) => (
-      <View className="px-5">
+      <View className={columns === 1 ? "px-5" : "px-2.5"} style={{ width: columns === 1 ? "100%" : (Math.min(width, APP_MAX_WIDTH) - 20) / columns }}>
         <ClubCard
           club={item}
           joined={isMember(item.id)}
@@ -161,7 +164,7 @@ export default function BrowseScreen() {
         />
       </View>
     ),
-    [isMember, membershipFor, toggleJoin, router],
+    [isMember, membershipFor, toggleJoin, router, columns, width],
   );
 
   const filtersActive =
@@ -442,6 +445,9 @@ export default function BrowseScreen() {
         </ScrollView>
       ) : (
         <FlatList
+          key={columns}
+          numColumns={columns}
+          columnWrapperStyle={columns > 1 ? { paddingHorizontal: 10 } : undefined}
           ListHeaderComponent={header}
           data={data}
           keyExtractor={(c) => c.id}

@@ -1,3 +1,4 @@
+import { canvasAnnouncementUrl } from "@/lib/canvasAnnouncements";
 import { callRpcValue } from "./result";
 import type {
   Announcement,
@@ -120,7 +121,7 @@ export async function fetchDashboard(limit = 10): Promise<Dashboard> {
       status: (r.status as MembershipStatus) ?? "active",
     })),
     events: (raw.events ?? []).map(toEvent),
-    announcements: (raw.announcements ?? []).map(toAnnouncement),
+    announcements: (raw.announcements ?? []).filter((r) => typeof r.body === "string" && canvasAnnouncementUrl(r.body)).map(toAnnouncement),
     files: (raw.files ?? []).map(toFile),
     notifications: (raw.notifications ?? []).map((r) => ({
       id: Number(r.id),
@@ -203,7 +204,7 @@ export async function searchPlatform(
       description: (r.description as string) ?? "",
       logoUrl: (r.logo_url as string | null) ?? null,
     })),
-    announcements: (raw.announcements ?? []).map(toAnnouncement),
+    announcements: (raw.announcements ?? []).filter((r) => typeof r.body === "string" && canvasAnnouncementUrl(r.body)).map(toAnnouncement),
     events: (raw.events ?? []).map(toEvent),
     files: (raw.files ?? []).map(toFile),
     notes: (raw.notes ?? []).map((r) => ({

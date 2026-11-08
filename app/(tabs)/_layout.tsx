@@ -1,10 +1,14 @@
+import { Platform, useWindowDimensions } from "react-native";
+import { DESKTOP_NAV_WIDTH } from "@/theme/layout";
 import { Tabs } from 'expo-router';
 import { TabBar } from '@/components/TabBar';
 
 export default function TabsLayout() {
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === "web" && width >= DESKTOP_NAV_WIDTH;
   return (
     <Tabs
-      tabBar={(props) => <TabBar {...props} />}
+      tabBar={(props) => desktop ? null : <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: true,
@@ -20,7 +24,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="browse" options={{ title: 'Clubs' }} />
       <Tabs.Screen name="calendar" options={{ title: 'Calendar' }} />
       <Tabs.Screen name="notifications" options={{ title: 'Alerts' }} />
-      <Tabs.Screen name="messages" options={{ title: 'Messages' }} />
       <Tabs.Screen name="account" options={{ title: 'Profile' }} />
     </Tabs>
   );

@@ -1,3 +1,4 @@
+import { canvasAnnouncementUrl, CANVAS_LINK_ERROR } from "@/lib/canvasAnnouncements";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
@@ -194,14 +195,14 @@ export function SchoolAnnouncementSection() {
   }, [load]);
 
   const post = useCallback(async () => {
-    if (!title.trim() || !body.trim()) {
-      toast("Add a title and a message.", "error");
+    if (!title.trim() || !canvasAnnouncementUrl(body)) {
+      toast(!title.trim() ? "Add a title." : CANVAS_LINK_ERROR, "error");
       return;
     }
     setBusy(true);
     const res = await createAnnouncement(null, title, body);
     setBusy(false);
-    if (toastResult(res, "Posted to the whole school.")) {
+    if (toastResult(res, "School-wide Canvas link added.")) {
       setTitle("");
       setBody("");
       setOpen(false);
@@ -214,7 +215,7 @@ export function SchoolAnnouncementSection() {
       <SectionHeader
         eyebrow="SCHOOL-WIDE"
         title="School announcements"
-        description="Goes to every student with an account, not just one club."
+        description="Publish in Canvas first, then add the link here."
         size="md"
       />
       <View className="mt-4">
@@ -228,11 +229,13 @@ export function SchoolAnnouncementSection() {
                 placeholder="Club fair Friday"
               />
               <Input
-                label="Message"
+                label="Canvas announcement URL"
                 value={body}
                 onChangeText={setBody}
-                multiline
-                placeholder="Details every student should see…"
+                autoCapitalize="none"
+                keyboardType="url"
+                maxLength={500}
+                placeholder="https://school.instructure.com/courses/123/discussion_topics/456"
               />
               <View className="flex-row gap-2.5">
                 <View className="flex-1">
@@ -246,7 +249,7 @@ export function SchoolAnnouncementSection() {
                 </View>
                 <View className="flex-1">
                   <Button
-                    label="Post"
+                    label="Add link"
                     variant="primary"
                     size="md"
                     fullWidth
@@ -260,7 +263,7 @@ export function SchoolAnnouncementSection() {
           </Card>
         ) : (
           <Button
-            label="Post a school-wide announcement"
+            label="Add school-wide Canvas link"
             variant="outline"
             size="md"
             icon="megaphone-outline"
@@ -274,7 +277,7 @@ export function SchoolAnnouncementSection() {
           <EmptyState
             icon="school-outline"
             title="Nothing posted yet"
-            description="Use this for club fairs, deadlines, and anything that affects every club."
+            description="School-wide Canvas links will appear here."
             tone="neutral"
           />
         ) : (
@@ -293,8 +296,8 @@ export function SchoolAnnouncementSection() {
 
       <ConfirmDialog
         visible={!!pendingDelete}
-        title="Delete announcement?"
-        message={`"${pendingDelete?.title ?? ""}" will be removed for every student.`}
+        title="Remove Canvas link?"
+        message={`"${pendingDelete?.title ?? ""}" will be removed from this site. The Canvas post will remain.`}
         confirmLabel="Delete"
         destructive
         busy={busy}
@@ -304,7 +307,7 @@ export function SchoolAnnouncementSection() {
           const res = await deleteAnnouncement(pendingDelete.id);
           setBusy(false);
           setPendingDelete(null);
-          if (toastResult(res, "Announcement deleted.")) await load();
+          if (toastResult(res, "Canvas link removed.")) await load();
         }}
         onCancel={() => setPendingDelete(null)}
       />

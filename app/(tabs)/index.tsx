@@ -126,12 +126,6 @@ function Hero() {
               body: "Meetings and deadlines from all your clubs in one calendar.",
               route: "/calendar",
             },
-            {
-              icon: "chatbubbles-outline",
-              title: "Start a conversation",
-              body: "Reach your club board directly. No email hunting.",
-              route: "/messages",
-            },
           ] as const
         ).map((item) => (
           <PressableScale
@@ -463,7 +457,7 @@ function DashboardScreen() {
               <EmptyState
                 icon="sparkles-outline"
                 title="All caught up"
-                description="Nothing new from your clubs yet. Announcements, files, and events land here as soon as they're posted."
+                description="New Canvas links, files, and events from your clubs will appear here."
                 tone="neutral"
               />
             </View>

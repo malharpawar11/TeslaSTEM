@@ -35,6 +35,7 @@ function load(path, mocks) {
 }
 async function main() {
   const base = {
+    "@/lib/canvasAnnouncements": load("src/lib/canvasAnnouncements.ts", {}),
     "@/lib/calendar": load("src/lib/calendar.ts", { "react-native": { Platform: { OS: "web" } } }),
     "@/lib/insforge": { insforge: sdk },
     "./result": {

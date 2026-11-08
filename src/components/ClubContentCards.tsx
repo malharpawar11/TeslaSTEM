@@ -1,7 +1,8 @@
+import { canvasAnnouncementUrl } from "@/lib/canvasAnnouncements";
 import { View, Linking, Platform } from "react-native";
 import { AccessibleText as Text } from "@/components/AccessibleText";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, PressableScale, Tag } from "@/components/ui";
+import { Button, Card, PressableScale, Tag } from "@/components/ui";
 import { useTheme } from "@/context/ThemeContext";
 import {
   formatEventDate,
@@ -74,6 +75,8 @@ export function AnnouncementCard({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
+  const url = canvasAnnouncementUrl(announcement.body);
+  if (!url) return null;
   return (
     <Card elevation="ambient" className="p-5">
       <View className="flex-row items-start justify-between gap-3">
@@ -122,9 +125,7 @@ export function AnnouncementCard({
           </View>
         ) : null}
       </View>
-      <Text className="mt-1.5 text-sm leading-5 text-light-secondary dark:text-dark-secondary">
-        {announcement.body}
-      </Text>
+      <Button className="mt-3 self-start" label="Open in Canvas" icon="open-outline" variant="secondary" size="sm" onPress={() => void Linking.openURL(url)} />
       <Text className="mt-2.5 text-2xs text-light-subtle dark:text-dark-subtle">
         {announcement.author ? `${announcement.author} · ` : ""}
         {relativeDate(announcement.date)}

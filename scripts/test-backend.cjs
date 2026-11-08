@@ -183,13 +183,17 @@ async function main() {
     ).error,
     null,
   );
+  const oldStyle = await president.sdk.database.from("announcements").insert([
+    { club_id: clubId, title: "Text-only post", body: "Legacy body", created_by: president.id },
+  ]);
+  assert(oldStyle.error, "Old clients cannot create an announcement without a Canvas link");
   const announcement = await president.sdk.database
     .from("announcements")
     .insert([
       {
         club_id: clubId,
         title: "Meeting update",
-        body: "New time for our meeting",
+        body: "https://example.instructure.com/courses/123/discussion_topics/456",
         created_by: president.id,
       },
     ])
@@ -350,270 +354,21 @@ async function main() {
   assert.equal(reviews.length, 1);
   assert.equal(reviews[0].rating, 5);
   assert(!("email" in reviews[0]));
-  const contacts = await ok(member, "message_contacts", { p_club_id: clubId });
-  assert(contacts.some((contact) => contact.user_id === president.id));
-  assert.deepEqual(
-    await ok(outsider, "message_contacts", { p_club_id: clubId }),
-    [],
-  );
-  await denied(outsider, "send_club_message", {
-    p_club_id: clubId,
-    p_recipient: president.id,
-    p_body: "Should be blocked",
-  });
-  await denied(member, "send_club_message", {
-    p_club_id: clubId,
-    p_recipient: president.id,
-    p_body: "When is our next meeting?",
-  });
-  await denied(president, "send_club_message", {
-    p_club_id: clubId,
-    p_recipient: member.id,
-    p_body: "Wednesday at 3 PM.",
-  });
-  const crypto = require("./load-message-crypto.cjs"),
-    { randomBytes } = require("node:crypto");
-  const random = (size) => new Uint8Array(randomBytes(size));
-  const memberKeys = await crypto.createVault(
-    "test member separate messaging phrase",
-    random,
-  );
-  const presidentKeys = await crypto.createVault(
-    "test president separate messaging phrase",
-    random,
-  );
-  const register = (actor, vault) =>
-    ok(actor, "register_message_vault", {
-      p_public_key: vault.public_key,
-      p_salt: vault.salt,
-      p_nonce: vault.nonce,
-      p_encrypted_key: vault.encrypted_key,
-      p_owner: actor.id,
+  for (const actor of [member, president, anon]) {
+    await denied(actor, "direct_inbox");
+    await denied(actor, "message_threads");
+    await denied(actor, "search_students", { p_query: "student" });
+    await denied(actor, "send_direct_message", {
+      p_peer: president.id,
+      p_body: "Retired messaging test",
     });
-  await register(member, memberKeys.vault);
-  await denied(member, "register_message_vault", {
-    p_public_key: presidentKeys.vault.public_key,
-    p_salt: presidentKeys.vault.salt,
-    p_nonce: presidentKeys.vault.nonce,
-    p_encrypted_key: presidentKeys.vault.encrypted_key,
-    p_owner: member.id,
-  });
-  await denied(outsider, "register_message_vault", {
-    p_public_key: presidentKeys.vault.public_key,
-    p_salt: presidentKeys.vault.salt,
-    p_nonce: presidentKeys.vault.nonce,
-    p_encrypted_key: presidentKeys.vault.encrypted_key,
-    p_owner: member.id,
-  });
-  const questionBinding = {
-    club_id: clubId,
-    sender_id: member.id,
-    recipient_id: president.id,
-  };
-  const question = crypto.encryptMessage(
-    "When is our next meeting?",
-    questionBinding,
-    memberKeys.secretKey,
-    presidentKeys.vault.public_key,
-    random,
-  );
-  const sendArgs = {
-    p_club_id: clubId,
-    p_recipient: president.id,
-    p_envelope: question,
-  };
-  await denied(member, "send_encrypted_club_message", sendArgs); // recipient not set up
-  await register(president, presidentKeys.vault);
-  assert.equal(
-    (
-      await ok(member, "message_peer_key", {
-        p_club_id: clubId,
-        p_peer: president.id,
-      })
-    )[0].public_key,
-    presidentKeys.vault.public_key,
-  );
-  assert.deepEqual(
-    await ok(outsider, "message_peer_key", {
-      p_club_id: clubId,
-      p_peer: president.id,
-    }),
-    [],
-  );
-  assert.deepEqual(await ok(outsider, "my_message_vault"), []);
-  assert.deepEqual(
-    (await outsider.sdk.database.from("message_identity_keys").select("*"))
-      .data,
-    [],
-  );
-  await denied(anon, "my_message_vault");
-  await denied(outsider, "send_encrypted_club_message", sendArgs);
-  await denied(member, "send_encrypted_club_message", {
-    ...sendArgs,
-    p_envelope: { ...question, sender_key: presidentKeys.vault.public_key },
-  });
-  await denied(member, "send_encrypted_club_message", {
-    ...sendArgs,
-    p_envelope: { ...question, plaintext: "Forbidden extra payload" },
-  });
-  await ok(member, "send_encrypted_club_message", sendArgs);
-  await denied(member, "send_encrypted_club_message", sendArgs); // nonce replay
-  const recipientHistory = await ok(president, "message_history", {
-    p_club_id: clubId,
-    p_peer: member.id,
-  });
-  assert.equal(
-    crypto.decryptMessage(
-      recipientHistory[0].envelope,
-      recipientHistory[0],
-      president.id,
-      presidentKeys.secretKey,
-    ),
-    "When is our next meeting?",
-  );
-  const replyBinding = {
-    club_id: clubId,
-    sender_id: president.id,
-    recipient_id: member.id,
-  };
-  await ok(president, "send_encrypted_club_message", {
-    p_club_id: clubId,
-    p_recipient: member.id,
-    p_envelope: crypto.encryptMessage(
-      "Wednesday at 3 PM.",
-      replyBinding,
-      presidentKeys.secretKey,
-      memberKeys.vault.public_key,
-      random,
-    ),
-  });
-  const history = await ok(member, "message_history", {
-    p_club_id: clubId,
-    p_peer: president.id,
-  });
-  assert.equal(history.length, 2);
-  const ownVault = (await ok(member, "my_message_vault"))[0];
-  const secondDeviceKey = await crypto.unlockVault(
-    "test member separate messaging phrase",
-    ownVault,
-  );
-  const reply = history.find((m) => m.sender_id === president.id);
-  assert.equal(
-    crypto.decryptMessage(reply.envelope, reply, member.id, secondDeviceKey),
-    "Wednesday at 3 PM.",
-  );
-  assert(history.every((m) => m.body === "[Encrypted message]" && m.envelope));
-  const stored = cli(
-    "db",
-    "query",
-    `select body,envelope from public.club_messages where club_id='${clubId}'`,
-  ).rows;
-  assert.equal(stored.length, 2);
-  assert(!JSON.stringify(stored).includes("next meeting"));
-  assert(!JSON.stringify(stored).includes("Wednesday at 3"));
-  assert.deepEqual(
-    await ok(outsider, "message_history", {
-      p_club_id: clubId,
-      p_peer: president.id,
-    }),
-    [],
-  );
-  assert.deepEqual(
-    (await outsider.sdk.database.from("club_messages").select("id")).data,
-    [],
-  );
-  const forged = await member.sdk.database.from("club_messages").insert([
-    {
-      club_id: clubId,
-      sender_id: president.id,
-      recipient_id: member.id,
-      body: "Forged",
-    },
-  ]);
-  assert(forged.error, "Forged direct insert must fail");
-  const inbox = await ok(member, "message_threads");
-  assert.equal(Number(inbox[0].unread), 1);
-  await ok(member, "read_club_messages", {
-    p_club_id: clubId,
-    p_peer: president.id,
-  });
-  assert.equal(Number((await ok(member, "message_threads"))[0].unread), 0);
-  const olderEnvelopes = Array.from({ length: 55 }, (_, i) =>
-    crypto.encryptMessage(
-      `History ${i}`,
-      questionBinding,
-      memberKeys.secretKey,
-      presidentKeys.vault.public_key,
-      random,
-    ),
-  );
-  // Stay below Windows' command-line length limit for generated ciphertext.
-  for (let offset = 0; offset < olderEnvelopes.length; offset += 10) {
-    const values = olderEnvelopes
-      .slice(offset, offset + 10)
-      .map(
-        (e) =>
-          `('${clubId}','${member.id}','${president.id}','[Encrypted message]','${JSON.stringify(e)}'::jsonb,'2020-01-01T12:00:00Z')`,
-      )
-      .join(",");
-    cli(
-      "db",
-      "query",
-      `insert into public.club_messages(club_id,sender_id,recipient_id,body,envelope,created_at) values ${values}`,
-    );
+    assert((await actor.sdk.database.from("direct_messages").select("id")).error);
+    assert((await actor.sdk.database.from("club_messages").select("id")).error);
   }
-  const firstPage = await ok(member, "message_history_page", {
-    p_club_id: clubId,
-    p_peer: president.id,
-  });
-  assert.equal(firstPage.length, 50);
-  const cursor = firstPage[firstPage.length - 1];
-  const secondPage = await ok(member, "message_history_page", {
-    p_club_id: clubId,
-    p_peer: president.id,
-    p_before: cursor.created_at,
-    p_before_id: cursor.id,
-  });
-  assert.equal(secondPage.length, 7, "Timestamp ties must not skip messages");
-  assert.equal(
-    new Set([...firstPage, ...secondPage].map((m) => m.id)).size,
-    57,
-  );
-  assert.deepEqual(
-    await ok(outsider, "message_history_page", {
-      p_club_id: clubId,
-      p_peer: president.id,
-    }),
-    [],
-  );
   await ok(member, "leave_club", { p_club_id: clubId });
   assert.deepEqual(
     await ok(anon, "club_reviews_public", { p_club_id: clubId }),
     [],
-  );
-  await denied(member, "send_club_message", {
-    p_club_id: clubId,
-    p_recipient: president.id,
-    p_body: "No longer a member",
-  });
-  await denied(member, "send_encrypted_club_message", {
-    ...sendArgs,
-    p_envelope: crypto.encryptMessage(
-      "No longer a member",
-      questionBinding,
-      memberKeys.secretKey,
-      presidentKeys.vault.public_key,
-      random,
-    ),
-  });
-  assert.equal(
-    (
-      await ok(member, "message_history", {
-        p_club_id: clubId,
-        p_peer: president.id,
-      })
-    ).length,
-    50,
   );
   const settings = await president.sdk.database
     .from("clubs")
@@ -647,7 +402,7 @@ async function main() {
     p_approve: false,
   });
   console.log(
-    "Backend integration passed: encrypted member/board delivery, second-device recovery, ciphertext-only storage, private vaults, read receipts, tied-timestamp pagination, authorization and nonce-replay denials, plus membership, preferences and reviews.",
+    "Backend integration passed: retired messaging access, Canvas link validation, content authorization, membership, preferences and reviews.",
   );
 }
 main().catch((error) => {

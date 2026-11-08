@@ -45,7 +45,7 @@ export const CLUB_PERMISSIONS: ClubPermission[] = [
 ];
 
 export const PERMISSION_LABELS: Record<ClubPermission, string> = {
-  announcements: 'Post announcements',
+  announcements: 'Manage Canvas links',
   events: 'Create & edit events',
   files: 'Upload files',
   notes: 'Write notes & resources',

@@ -38,7 +38,6 @@ const PREF_ROWS: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { key: "announcements", label: "Announcements", icon: "megaphone-outline" },
   { key: "events", label: "Events & changes", icon: "calendar-outline" },
   { key: "files", label: "New files", icon: "document-outline" },
   { key: "notes", label: "Notes & resources", icon: "reader-outline" },
@@ -184,7 +183,6 @@ function AccountDashboard() {
       </View>
 
       <View className="mt-5">
-        <Button label="Edit student profile" variant="ghost" onPress={() => router.push('/student-profile')} />
         <Button
           label="Settings"
           icon="settings-outline"

@@ -249,7 +249,7 @@ function NotificationsInbox() {
         <PageIntro
           eyebrow="UPDATES / YOUR CLUBS"
           title="Stay in the loop."
-          description="Announcements, new resources, and membership decisions from your communities."
+          description="Event changes, new resources, and membership decisions from your communities."
         />
       </View>
 
@@ -292,7 +292,7 @@ function NotificationsInbox() {
                 ? "Nothing yet"
                 : `No ${filter.toLowerCase()} notifications`
             }
-            description="Announcements, event changes, new files, and membership decisions from your clubs show up here."
+            description="Event changes, new files, and membership decisions from your clubs show up here."
             tone="neutral"
           />
         </View>

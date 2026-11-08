@@ -149,7 +149,6 @@ function NotificationSwitches({ clubId }: { clubId: string }) {
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
   }[] = [
-    { key: "announcements", label: "Announcements", icon: "megaphone-outline" },
     { key: "events", label: "Events", icon: "calendar-outline" },
     { key: "files", label: "New files", icon: "document-outline" },
     { key: "notes", label: "Notes & resources", icon: "reader-outline" },
@@ -441,13 +440,6 @@ export default function ClubProfileScreen() {
         </View>
 
         <View className="px-5 pt-4">
-          <Button
-            label="Message club board"
-            variant="secondary"
-            icon="chatbubbles-outline"
-            onPress={() => router.push(`/club/${clubId}/messages`)}
-          />
-          <View className="h-3" />
           <SegmentedTabs tabs={tabs} value={tab} onChange={setTab} />
         </View>
 
@@ -469,7 +461,7 @@ export default function ClubProfileScreen() {
                   <MetaRow
                     icon="calendar-outline"
                     label="Meeting"
-                    value={`${club.day} · ${club.time}`}
+                    value={`${club.day} Â· ${club.time}`}
                   />
                   <MetaRow
                     icon="location-outline"
@@ -559,8 +551,8 @@ export default function ClubProfileScreen() {
               {announcements.length === 0 ? (
                 <EmptyState
                   icon="megaphone-outline"
-                  title="No announcements yet"
-                  description="When this club shares updates, they'll appear here."
+                  title="No Canvas links yet"
+                  description="Links to this club’s Canvas announcements will appear here."
                   tone="neutral"
                 />
               ) : (
@@ -757,7 +749,7 @@ export default function ClubProfileScreen() {
                           value={requestMessage}
                           onChangeText={setRequestMessage}
                           multiline
-                          placeholder="Tell them who you are and what you do for the club…"
+                          placeholder="Tell them who you are and what you do for the clubâ€¦"
                         />
                       </View>
                       <View className="mt-3 flex-row gap-2.5">
@@ -906,7 +898,7 @@ export default function ClubProfileScreen() {
       <ConfirmDialog
         visible={leaveOpen}
         title={`Leave ${club.name}?`}
-        message="You'll stop receiving its announcements, files, and events, and lose access to member-only resources."
+        message="You'll stop receiving club alerts and lose access to member-only resources."
         confirmLabel="Leave club"
         destructive
         busy={busy}

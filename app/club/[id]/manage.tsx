@@ -1,3 +1,4 @@
+import { canvasAnnouncementUrl, CANVAS_LINK_ERROR } from "@/lib/canvasAnnouncements";
 import { PageIntro } from "@/components/CampusVisual";
 import {
   toSchoolInput as toLocalInput,
@@ -373,8 +374,8 @@ function ManageClubScreen() {
   // ------------------------------------------------------------------
 
   const submitAnnouncement = useCallback(async () => {
-    if (!annTitle.trim() || !annBody.trim()) {
-      toast("Add a title and a message.", "error");
+    if (!annTitle.trim() || !canvasAnnouncementUrl(annBody)) {
+      toast(!annTitle.trim() ? "Add a title." : CANVAS_LINK_ERROR, "error");
       return;
     }
     setBusy(true);
@@ -383,7 +384,7 @@ function ManageClubScreen() {
       : await createAnnouncement(clubId, annTitle, annBody);
     setBusy(false);
     if (
-      toastResult(res, annId ? "Announcement updated." : "Announcement posted.")
+      toastResult(res, annId ? "Announcement updated." : "Canvas link added.")
     ) {
       setAnnOpen(false);
       setAnnId(null);
@@ -787,10 +788,11 @@ function ManageClubScreen() {
           {/* ------------------------------------------- Announcements */}
           {section === "Announcements" ? (
             <Animated.View entering={FadeIn.duration(240)}>
+              <Text className="mb-3 text-sm text-light-muted dark:text-dark-muted">Publish in Canvas first, then add the link here.</Text>
               {annOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
                   <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
-                    {annId ? "Edit announcement" : "New announcement"}
+                    {annId ? "Edit Canvas link" : "New Canvas link"}
                   </Text>
                   <View className="gap-3">
                     <Input
@@ -800,11 +802,13 @@ function ManageClubScreen() {
                       placeholder="What's happening?"
                     />
                     <Input
-                      label="Message"
+                      label="Canvas announcement URL"
                       value={annBody}
                       onChangeText={setAnnBody}
-                      multiline
-                      placeholder="Share the details with members…"
+                      autoCapitalize="none"
+                      keyboardType="url"
+                      maxLength={500}
+                      placeholder="https://school.instructure.com/courses/123/discussion_topics/456"
                     />
                     <View className="flex-row gap-2.5">
                       <View className="flex-1">
@@ -821,7 +825,7 @@ function ManageClubScreen() {
                       </View>
                       <View className="flex-1">
                         <Button
-                          label={annId ? "Save" : "Post"}
+                          label={annId ? "Save link" : "Add link"}
                           variant="primary"
                           size="md"
                           fullWidth
@@ -835,7 +839,7 @@ function ManageClubScreen() {
                 </Card>
               ) : (
                 <Button
-                  label="Post an announcement"
+                  label="Add Canvas announcement link"
                   variant="outline"
                   size="lg"
                   fullWidth
@@ -871,11 +875,11 @@ function ManageClubScreen() {
                       }}
                       onDelete={() =>
                         setConfirm({
-                          title: "Delete announcement?",
-                          message: `"${a.title}" will be removed for every member.`,
+                          title: "Remove Canvas link?",
+                          message: `"${a.title}" will be removed from this site. The Canvas post will remain.`,
                           action: async () => {
                             const res = await deleteAnnouncement(a.id);
-                            if (toastResult(res, "Announcement deleted.")) {
+                            if (toastResult(res, "Canvas link removed.")) {
                               await fetchClubAnnouncements(clubId)
                                 .then(setAnnouncements)
                                 .catch((failure) =>
@@ -1560,7 +1564,7 @@ function ManageClubScreen() {
                       onDelete={() =>
                         setConfirm({
                           title: "Delete file?",
-                          message: `"${file.title}" will be removed for every member.`,
+                          message: `"${file.title}" will be removed from this site. The Canvas post will remain.`,
                           action: async () => {
                             const res = await deleteClubFile(file);
                             if (toastResult(res, "File deleted.")) {
@@ -1711,7 +1715,7 @@ function ManageClubScreen() {
                       onDelete={() =>
                         setConfirm({
                           title: "Delete note?",
-                          message: `"${note.title}" will be removed for every member.`,
+                          message: `"${note.title}" will be removed from this site. The Canvas post will remain.`,
                           action: async () => {
                             const res = await deleteNote(note.id);
                             if (toastResult(res, "Note deleted.")) {

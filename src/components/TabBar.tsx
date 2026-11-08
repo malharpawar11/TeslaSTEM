@@ -27,11 +27,6 @@ const ICONS: Record<string, { on: IconName; off: IconName; label: string }> = {
     off: "person-circle-outline",
     label: "Profile",
   },
-  messages: {
-    on: "chatbubbles",
-    off: "chatbubbles-outline",
-    label: "Messages",
-  },
 };
 
 /** Floating navigation with reserved layout space so content stays reachable. */

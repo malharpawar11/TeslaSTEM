@@ -54,7 +54,7 @@ async function main() {
   const loadRepo=(path,deps)=>{const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,require:name=>{if(!(name in deps))throw Error('Unexpected dependency '+name);return deps[name];}});return exports;};
   const result=loadRepo('src/data/result.ts',{'@/lib/insforge':{insforge:president.sdk}});
   assert.equal(await result.currentUserId(),president.id,'Actual app identity helper failed');
-  const content=loadRepo('src/data/contentRepo.ts',{'@/lib/insforge':{insforge:president.sdk},'./result':result,'@/lib/calendar':{}});
+  const content=loadRepo('src/data/contentRepo.ts',{'@/lib/insforge':{insforge:president.sdk},'./result':result,'@/lib/calendar':{},'@/lib/canvasAnnouncements':loadRepo('src/lib/canvasAnnouncements.ts',{})});
   let announcementId, eventId;
   const waitFor = (actor, area) =>
     new Promise((resolve, reject) => {
@@ -93,7 +93,7 @@ async function main() {
       waitFor(member, "announcements"),
       waitFor(member2, "announcements"),
     ];
-    const posted=await content.createAnnouncement(club,'Recording validation announcement','Two demo members must receive this.');
+    const posted=await content.createAnnouncement(club,'Recording validation announcement','https://example.instructure.com/courses/123/discussion_topics/456');
     assert.equal(posted.ok,true,posted.error);
     const announcement=await president.sdk.database.from('announcements').select('id').eq('club_id',club).eq('title','Recording validation announcement').single();
     assert.equal(announcement.error,null,announcement.error?.message);
@@ -104,12 +104,12 @@ async function main() {
         .from("announcements")
         .select("id,body")
         .eq("id", announcementId);
-      assert.equal(r.data?.[0]?.body, "Two demo members must receive this.");
+      assert.equal(r.data?.[0]?.body, "https://example.instructure.com/courses/123/discussion_topics/456");
       const notice = await a.sdk.database
         .from("notifications")
         .select("id")
         .eq("entity_id", announcementId);
-      assert(notice.data?.length, "Member announcement notification missing");
+      assert.equal(notice.data?.length, 0, "Canvas owns announcement notifications");
     }
     const eventUpdates = [
       waitFor(member, "events"),

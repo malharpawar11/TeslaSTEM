@@ -1,5 +1,5 @@
 import "../global.css";
-import { Platform, View } from "react-native";
+import { Platform, useWindowDimensions, View } from "react-native";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -9,7 +9,6 @@ import { cssInterop } from "nativewind";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { MessagingProvider } from "@/context/MessagingContext";
 import {
   PreferencesProvider,
   usePreferences,
@@ -18,7 +17,8 @@ import { ClubsProvider } from "@/context/ClubsContext";
 import { MembershipProvider } from "@/context/MembershipContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { ToastProvider } from "@/context/ToastContext";
-import { APP_MAX_WIDTH } from "@/theme/layout";
+import { WebsiteNavigation } from "@/components/WebsiteNavigation";
+import { APP_MAX_WIDTH, DESKTOP_NAV_WIDTH } from "@/theme/layout";
 import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
 
 cssInterop(GestureHandlerRootView, { className: "style" });
@@ -32,6 +32,8 @@ const IS_WEB = Platform.OS === "web";
 
 function RootStack() {
   const { isDark } = useTheme();
+  const { width } = useWindowDimensions();
+  const desktop = IS_WEB && width >= DESKTOP_NAV_WIDTH;
   const { session } = useAuth();
   const { preferences, loading, error } = usePreferences();
   const router = useRouter();
@@ -54,6 +56,8 @@ function RootStack() {
     }
   }, [session, preferences.completed, loading, error, pathname, router]);
   return (
+    <View className="flex-1">
+    {desktop ? <WebsiteNavigation /> : null}
     <View
       className="flex-1 bg-light-bg dark:bg-dark-bg"
       style={
@@ -75,8 +79,8 @@ function RootStack() {
         <Stack.Screen name="policies" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="onboarding" />
-        <Stack.Screen name="club/[id]/messages" />
       </Stack>
+    </View>
     </View>
   );
 }
@@ -89,7 +93,6 @@ export default function RootLayout() {
           <AccessibilityProvider>
             <AuthProvider>
               <CampusUpdatesProvider>
-                <MessagingProvider>
                   <PreferencesProvider>
                     <ClubsProvider>
                       <MembershipProvider>
@@ -101,7 +104,6 @@ export default function RootLayout() {
                       </MembershipProvider>
                     </ClubsProvider>
                   </PreferencesProvider>
-                </MessagingProvider>
               </CampusUpdatesProvider>
             </AuthProvider>
           </AccessibilityProvider>

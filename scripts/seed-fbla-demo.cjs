@@ -140,15 +140,6 @@ async function main() {
   await ok(admin, "approve_club", { p_club_id: clubId });
   await ok(member, "join_club", { p_club_id: clubId });
   await ok(member2, "join_club", { p_club_id: clubId });
-  const welcome = await president.sdk.database.from("announcements").insert([
-    {
-      club_id: clubId,
-      title: "Welcome to FBLA",
-      body: "Our club meets every Tuesday during A lunch (11:15–11:45) and B lunch (12:15–12:45) in Wrenchey’s Room. Watch this space for updates from your president.",
-      created_by: president.id,
-    },
-  ]);
-  assert.equal(welcome.error, null, welcome.error?.message);
   const events = [];
   for (const date of ["2026-10-20", "2026-10-27"])
     for (const [label, start, end] of [

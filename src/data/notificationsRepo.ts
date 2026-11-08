@@ -46,6 +46,7 @@ export async function fetchNotifications(
   const { data, error } = await insforge.database
     .from("notifications")
     .select("id, club_id, type, title, body, entity_id, read_at, created_at")
+    .not("type", "in", "(announcement,school_announcement)")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data)
@@ -58,7 +59,8 @@ export async function fetchUnreadCount(): Promise<number> {
   const { count, error } = await insforge.database
     .from("notifications")
     .select("id", { count: "exact", head: true })
-    .is("read_at", null);
+    .is("read_at", null)
+    .not("type", "in", "(announcement,school_announcement)");
   if (error || count === null)
     throw new Error(error?.message ?? "Could not load unread count.");
   return count;
