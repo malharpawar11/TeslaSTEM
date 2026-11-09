@@ -102,6 +102,70 @@ Shared pieces live in `src/components/system`, plus `ViewSwitch` for segmented c
 - Touch targets are at least 44px.
 - Don't convey a state by colour alone.
 
+## Club pages
+
+Every `/club/:id` page uses the same set of parts in `src/components/club`, with
+layout, sizes and timing in `src/components/club/tokens.ts`. Those values apply
+only there. The shared `ClubContentCards` still serve search, the dashboard and
+club management, so change club-page content in `ClubContent.tsx` instead.
+
+- Structure: a reading column and a full-height information panel (340–380px,
+  24px padding) split by one hairline. The tab rule runs across to that divider
+  and the panel's first line aligns with the back link.
+- Display type: the club name at 64, 54 or 44px by length (46, 40, 34 on phones),
+  plus the panel's meeting day, times and alerts heading. Headings inside tabs use
+  `ClubHeading`, which is Atkinson Bold.
+- Entry headings: 20 lead, 17 standard, 16 small. Agenda dates 22, next up 26.
+  Section headings 20. Reading width 700px, with a 20px lead.
+- The panel is bold but controlled, set by `PANEL_TYPE` and `PANEL_SPACE` in
+  tokens.ts. Keep its structure: blue weekday blocks; the meeting day at 30px and
+  the alerts heading at 20px in display type; lunch labels at 14 beside blue 19px
+  display times; a full-width 42px button at 15px; 46px label and value rows split
+  by hairlines, 13 and 15px regular; 14px alert labels with On or Off beside
+  40x22 green switches.
+- Each tab has its own shape: feed, agenda, file index, margin-labelled notes,
+  president above a two-column board. None use cards.
+- Tabs share one 2px blue underline that slides in 200ms. Panels fade in 170ms.
+- Membership is one button. Its states are join, sending, joined (a green outline once,
+  then quiet, "Leave club" on hover) and pending.
+
+## Club Match Quiz
+
+`/onboarding` is one page, because students return to change answers and compare
+results. Questions are on the left and live matches on the right (one column below
+960px of content). Its parts and sizes live in `src/components/quiz`.
+
+- Display type is for the 36px title only. Sections are 20px Atkinson Bold,
+  questions 16, choices 15, matches 18 or 19, reasons 15, metadata 14.
+- Controls are 44px tall with a 4px radius. A chosen answer is filled blue with a
+  white check and a bolder label, so state never depends on colour alone.
+- Every reason on a match comes from `recommendationReasons`. Never show scores,
+  percentages or a reason the matcher didn't return.
+- Time fields use the browser's time input: 12-hour display, 24-hour stored value.
+
+## Corner python
+
+A 3D python lives behind the bottom-right corner on every page except the
+quiz, whose Save button is pinned there. Its body slides out along a path that
+starts off-screen. Each page visit gets one appearance: it lunges out, hisses once
+and goes back in, then stays hidden until the next page. It ignores all clicks. It loads through `Scenes3D.ts` after the page settles, and holds one
+still pose under reduced motion.
+
+## Settings
+
+`/settings` puts each section's name in a margin column with its rows beside it,
+split by hairlines. Its parts and sizes live in `src/components/settings`: 32px
+display title, 17px section names, 15px labels, 14px descriptions and buttons, and
+40px controls (44px on phones). A switch row is one target, and handles Space itself.
+
+## Profile
+
+`/account` runs top to bottom: name, your clubs, then notification preferences and
+account links side by side. Its parts and sizes live in `src/components/profile`.
+The name is 44 to 96px on one line with the surname in blue, and role, email and
+club summary sit right under it. Clubs are rows at 28px. Section headings are 24px
+display type. Don't add promotional blocks to this page.
+
 ## Don't
 
 - Rounded card grids, or the same card repeated down a page

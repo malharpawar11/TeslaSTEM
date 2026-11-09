@@ -18,6 +18,7 @@ import { MembershipProvider } from "@/context/MembershipContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WebsiteNavigation } from "@/components/WebsiteNavigation";
+import { CornerPython } from "@/components/python/CornerPython";
 import { DESKTOP_NAV_WIDTH, RAIL_WIDTH } from "@/theme/layout";
 import { surface } from "@/theme/tokens";
 import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
@@ -76,9 +77,10 @@ function RootStack() {
           <Stack.Screen name="admin" options={document} />
           <Stack.Screen name="policies" options={document} />
           <Stack.Screen name="settings" options={document} />
-          <Stack.Screen name="onboarding" options={document} />
+          <Stack.Screen name="onboarding" />
         </Stack>
       </View>
+      <CornerPython />
     </View>
   );
 }
@@ -91,17 +93,17 @@ export default function RootLayout() {
           <AccessibilityProvider>
             <AuthProvider>
               <CampusUpdatesProvider>
-                  <PreferencesProvider>
-                    <ClubsProvider>
-                      <MembershipProvider>
-                        <ToastProvider>
-                          <NotificationsProvider>
-                            <RootStack />
-                          </NotificationsProvider>
-                        </ToastProvider>
-                      </MembershipProvider>
-                    </ClubsProvider>
-                  </PreferencesProvider>
+                <PreferencesProvider>
+                  <ClubsProvider>
+                    <MembershipProvider>
+                      <ToastProvider>
+                        <NotificationsProvider>
+                          <RootStack />
+                        </NotificationsProvider>
+                      </ToastProvider>
+                    </MembershipProvider>
+                  </ClubsProvider>
+                </PreferencesProvider>
               </CampusUpdatesProvider>
             </AuthProvider>
           </AccessibilityProvider>

@@ -5,3 +5,4 @@
  */
 export { default as PythonCanvas } from "./python/PythonCanvas";
 export { default as StemCanvas } from "./stem/StemCanvas";
+export { default as CornerPythonCanvas } from "./python/CornerPythonCanvas";
