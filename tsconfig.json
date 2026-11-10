@@ -13,6 +13,7 @@
   "exclude": [
     "backend",
     "node_modules",
-    "supabase/functions"
+    "supabase/functions",
+    "insforge/functions"
   ]
 }

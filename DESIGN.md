@@ -131,17 +131,30 @@ club management, so change club-page content in `ClubContent.tsx` instead.
 
 ## Club Match Quiz
 
-`/onboarding` is one page, because students return to change answers and compare
-results. Questions are on the left and live matches on the right (one column below
-960px of content). Its parts and sizes live in `src/components/quiz`.
+`/onboarding` asks one question at a time. Its parts live in `src/components/quiz`,
+and the matching engine lives in `src/lib/clubMatch.ts`.
 
-- Display type is for the 36px title only. Sections are 20px Atkinson Bold,
-  questions 16, choices 15, matches 18 or 19, reasons 15, metadata 14.
-- Controls are 44px tall with a 4px radius. A chosen answer is filled blue with a
-  white check and a bolder label, so state never depends on colour alone.
-- Every reason on a match comes from `recommendationReasons`. Never show scores,
-  percentages or a reason the matcher didn't return.
-- Time fields use the browser's time input: 12-hour display, 24-hour stored value.
+- Questions are about what a student enjoys doing, in the spirit of the O*NET
+  Interest Profiler: activities, the kind of challenge, working style, what
+  they want from a club, topics, experience and free times. Topics are offered
+  only when a real club covers them. Up to three follow-ups ("What kind of coding?")
+  appear only when earlier answers open an area that several clubs share.
+- Every club's profile is read from its own name and description, and the
+  matched words are kept. Reasons may only state what those words support.
+  Never hand-write club traits; if a listing is too thin, say so (the results
+  page names those clubs).
+- Scoring is the `WEIGHTS` table: specific answers count most, each question has
+  a cap, beginners are never ranked lower, member counts are never used, and a
+  club that meets only when the student is busy is halved and listed separately.
+- Layout: a 24px display label, "Question N of M" over a segmented blue bar, a 44px
+  question (32 on phones), cards with a 24px display title and 14px line (2px
+  border, 4px radius, solid blue with a white tick when chosen; ticks are squares
+  for many, circles for one). Back, Skip and Continue sit in a fixed bottom bar.
+  Questions slide in 220ms from the side they come from.
+- Results: best matches (30px names, 34 for the first) with reasons on a 3px blue
+  rule, the Mon–Fri strip, time, room, schedule fit and the club's own words about
+  experience. Then more to explore, good fits at busy times, something different,
+  every answer with Edit, and how matching works. Never show scores or percentages.
 
 ## Corner python
 
@@ -166,7 +179,35 @@ The name is 44 to 96px on one line with the surname in blue, and role, email and
 club summary sit right under it. Clubs are rows at 28px. Section headings are 24px
 display type. Don't add promotional blocks to this page.
 
-## Don't
+## Club map
+
+`/map` (sidebar "Map") answers one question: where and when does a club meet.
+Its parts live in `src/components/campusmap`. Floor outlines are traced from the
+2026–2027 clubs poster in `plan.ts`. Clubs are placed by the room number in their
+real `location`, so editing a club's room moves it on the map. Never type room
+assignments into the page.
+
+- Top: a 56px display title, one sentence, and the search line ("Find a club or
+  room"). Results list under the field; arrow keys, Enter and Escape work.
+  Picking a club switches floor, selects its room and marks that club in the panel.
+  A club with no room opens its club page.
+- Category filter: `TextTabs` with real counts. It changes which rooms are blue.
+- Map: one floor at a time as a white miniature, rooms as separate blocks with a
+  5-unit gap, the corridor in pale grey, soft shadows. Rooms with clubs are pale
+  blue with a blue edge. A count badge appears when two or more clubs share a room.
+  Rooms with your own clubs are green. The chosen room lifts and turns solid blue,
+  and colours ease over about 150ms. Floors slide vertically when switched (the first
+  sinks, the second rises). Rooms rise in once on load. Nothing moves on its own
+  after that. On a stage taller than wide, the building turns so the corridor runs
+  down the screen.
+- Floor control: numbered 44px squares above the map, the active one filled blue.
+- Panel: never empty. With no room picked, it gives an introduction and lists every
+  room with clubs on the floor. With a room picked, it shows the room number at
+  52px, floor and club count, then each club with its category, `WeekMarks` and
+  time. On wide screens the map column is sticky.
+- The homepage "Where clubs meet" section reuses the same scene in a simpler frame.
+
+## Don't## Don't
 
 - Rounded card grids, or the same card repeated down a page
 - Gradients, glassmorphism, glows, blobs, decorative shapes

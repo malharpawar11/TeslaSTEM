@@ -1,4 +1,9 @@
-import { canvasAnnouncementUrl, CANVAS_LINK_ERROR } from "@/lib/canvasAnnouncements";
+import {
+  canvasAnnouncementUrl,
+  canvasFeedUrl,
+  CANVAS_FEED_ERROR,
+  CANVAS_LINK_ERROR,
+} from "@/lib/canvasAnnouncements";
 import { insforge } from "@/lib/insforge";
 import { upcomingEventFilter } from '@/lib/calendar';
 import { currentUserId, NOT_CONFIGURED, type RpcResult } from "./result";
@@ -28,7 +33,7 @@ import type {
 // updated_by), so the author embed has to name the constraint explicitly:
 // an unqualified `profiles(...)` embed would be ambiguous and fail.
 const ANNOUNCEMENT_COLUMNS =
-  "id, club_id, title, body, pinned, created_at, created_by, author:profiles!announcements_created_by_fkey(display_name, email)";
+  "id, club_id, title, body, pinned, created_at, created_by, canvas_author, author:profiles!announcements_created_by_fkey(display_name, email)";
 
 interface DbAnnouncement {
   id: string;
@@ -36,11 +41,13 @@ interface DbAnnouncement {
   title: string;
   body: string;
   created_at: string | null;
+  canvas_author?: string | null;
   author?: { display_name: string | null; email: string | null } | null;
 }
 
 function toAnnouncement(row: DbAnnouncement): Announcement {
-  const author = row.author?.display_name ?? row.author?.email ?? undefined;
+  const author =
+    row.author?.display_name ?? row.author?.email ?? row.canvas_author ?? undefined;
   return {
     id: row.id,
     clubId: row.club_id,
@@ -480,4 +487,62 @@ export async function deleteNote(id: string): Promise<RpcResult> {
     .delete()
     .eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Canvas feed: a club's Canvas announcements arrive on the site automatically
+// ---------------------------------------------------------------------------
+
+export interface CanvasFeed {
+  feedUrl: string;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+}
+
+/** The club's connected Canvas feed, visible only to its officers with announcement rights. */
+export async function fetchCanvasFeed(clubId: string): Promise<CanvasFeed | null> {
+  if (!insforge) return null;
+  const { data, error } = await insforge.database
+    .from("club_canvas_feeds")
+    .select("feed_url, last_synced_at, last_error")
+    .eq("club_id", clubId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const row = data as { feed_url: string; last_synced_at: string | null; last_error: string | null };
+  return { feedUrl: row.feed_url, lastSyncedAt: row.last_synced_at, lastError: row.last_error };
+}
+
+export async function saveCanvasFeed(clubId: string, input: string): Promise<RpcResult> {
+  if (!insforge) return { ok: false, error: NOT_CONFIGURED };
+  const url = canvasFeedUrl(input);
+  if (!url) return { ok: false, error: CANVAS_FEED_ERROR };
+  const existing = await fetchCanvasFeed(clubId).catch(() => null);
+  const { error } = existing
+    ? await insforge.database.from("club_canvas_feeds").update({ feed_url: url }).eq("club_id", clubId)
+    : await insforge.database.from("club_canvas_feeds").insert([{ club_id: clubId, feed_url: url }]);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function removeCanvasFeed(clubId: string): Promise<RpcResult> {
+  if (!insforge) return { ok: false, error: NOT_CONFIGURED };
+  const { error } = await insforge.database.from("club_canvas_feeds").delete().eq("club_id", clubId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Reads the club's Canvas feed now instead of waiting for the next scheduled check. */
+export async function syncCanvasFeed(
+  clubId: string,
+): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
+  if (!insforge) return { ok: false, error: NOT_CONFIGURED };
+  const { data, error } = await insforge.functions.invoke("canvas-sync", {
+    body: { club_id: clubId },
+  });
+  if (error) return { ok: false, error: error.message ?? "Couldn't reach Canvas." };
+  const result = (data as { results?: { added?: number; error?: string }[] } | null)?.results?.[0];
+  if (!result) return { ok: false, error: "Connect a Canvas feed first." };
+  if (result.error) return { ok: false, error: result.error };
+  return { ok: true, added: result.added ?? 0 };
 }

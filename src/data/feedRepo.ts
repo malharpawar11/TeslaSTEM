@@ -82,7 +82,10 @@ function toAnnouncement(r: Record<string, unknown>): Announcement {
     title: r.title as string,
     body: r.body as string,
     date: (r.created_at as string) ?? "",
-    author: (r.author as string | undefined) ?? undefined,
+    author:
+      (r.author as string | undefined) ??
+      (r.canvas_author as string | undefined) ??
+      undefined,
   };
 }
 

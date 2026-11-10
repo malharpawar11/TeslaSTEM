@@ -9,6 +9,7 @@ const LABELS: Record<string, string> = {
   index: "Home",
   browse: "Clubs",
   calendar: "Calendar",
+  map: "Map",
   notifications: "Alerts",
   account: "Profile",
 };

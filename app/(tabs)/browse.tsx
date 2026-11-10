@@ -33,6 +33,7 @@ import { Button, EmptyState, SkeletonRow } from "@/components/ui";
 import { useClubs } from "@/context/ClubsContext";
 import { useMemberships } from "@/context/MembershipContext";
 import { usePreferences } from "@/context/PreferencesContext";
+import { hasAnswers } from "@/lib/clubMatch";
 import { useToast } from "@/context/ToastContext";
 import {
   CAREERS,
@@ -246,7 +247,8 @@ export default function BrowseScreen() {
     if (
       !preferences.interests.length &&
       !preferences.careers.length &&
-      !preferences.availability.length
+      !preferences.availability.length &&
+      !hasAnswers(preferences.answers)
     ) {
       router.push("/onboarding");
       return;

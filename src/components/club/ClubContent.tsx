@@ -149,8 +149,8 @@ export function ClubAnnouncements({
   if (items.length === 0)
     return (
       <ClubEmpty
-        title="No Canvas links yet"
-        description="Links to this club's Canvas announcements will appear here."
+        title="No Canvas announcements yet"
+        description="This club's Canvas announcements will appear here."
       />
     );
   return (

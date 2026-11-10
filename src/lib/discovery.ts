@@ -1,4 +1,11 @@
 import type { Club, ClubCategory } from "../types/domain";
+import {
+  hasAnswers,
+  scoreClub,
+  shortReasons,
+  WEIGHTS,
+  type QuizAnswers,
+} from "./clubMatch";
 
 export const DAYS = [
   "Monday",
@@ -73,12 +80,15 @@ export interface StudentPreferences {
   careers: string[];
   availability: Availability[];
   completed: boolean;
+  /** Club Match Quiz answers; null for students who took the older quiz. */
+  answers?: QuizAnswers | null;
 }
 export const EMPTY_PREFERENCES: StudentPreferences = {
   interests: [],
   careers: [],
   availability: [],
   completed: false,
+  answers: null,
 };
 
 export function minutes(value: string): number | null {
@@ -161,10 +171,28 @@ export function careerMatches(club: Club, career: string): boolean {
   );
 }
 
+/**
+ * How well a club fits, for sorting. Quiz answers use the Club Match engine;
+ * students who took the older quiz keep the older count of reasons.
+ */
+export function fitScore(club: Club, preferences: StudentPreferences): number {
+  if (hasAnswers(preferences.answers)) {
+    const match = scoreClub(club, preferences.answers!, preferences.availability, fitsAvailability);
+    return match.interest >= WEIGHTS.threshold && match.schedule !== "conflict" ? match.score : 0;
+  }
+  return recommendationReasons(club, preferences).length;
+}
+
 export function recommendationReasons(
   club: Club,
   preferences: StudentPreferences,
 ): string[] {
+  if (hasAnswers(preferences.answers)) {
+    const match = scoreClub(club, preferences.answers!, preferences.availability, fitsAvailability);
+    return match.interest >= WEIGHTS.threshold && match.schedule !== "conflict"
+      ? shortReasons(match)
+      : [];
+  }
   const reasons: string[] = [];
   if (preferences.interests.includes(club.category))
     reasons.push(`${club.category} interest`);
@@ -261,8 +289,7 @@ export function filterClubs(
         filters.sort === "Most members"
           ? b.memberCount - a.memberCount
           : filters.sort === "Best fit"
-            ? recommendationReasons(b, preferences).length -
-              recommendationReasons(a, preferences).length
+            ? fitScore(b, preferences) - fitScore(a, preferences)
             : 0;
       return score || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
     });

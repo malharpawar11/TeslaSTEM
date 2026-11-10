@@ -1,5 +1,6 @@
 import { canvasAnnouncementUrl, CANVAS_LINK_ERROR } from "@/lib/canvasAnnouncements";
 import { PageIntro } from "@/components/CampusVisual";
+import { CanvasFeedSettings } from "@/components/club/CanvasFeedSettings";
 import {
   toSchoolInput as toLocalInput,
   fromSchoolInput as fromLocalInput,
@@ -788,7 +789,17 @@ function ManageClubScreen() {
           {/* ------------------------------------------- Announcements */}
           {section === "Announcements" ? (
             <Animated.View entering={FadeIn.duration(240)}>
-              <Text className="mb-3 text-sm text-light-muted dark:text-dark-muted">Publish in Canvas first, then add the link here.</Text>
+              <CanvasFeedSettings
+                clubId={clubId}
+                onSynced={() =>
+                  void fetchClubAnnouncements(clubId)
+                    .then(setAnnouncements)
+                    .catch(() => undefined)
+                }
+              />
+              <Text className="mb-3 text-sm text-light-muted dark:text-dark-muted">
+                Posts from Canvas appear below. You can also add a single Canvas post by its link.
+              </Text>
               {annOpen ? (
                 <Card elevation="ambient" className="mb-4 p-4">
                   <Text className="mb-3 text-xs font-semibold text-light-muted dark:text-dark-muted">
@@ -839,7 +850,7 @@ function ManageClubScreen() {
                 </Card>
               ) : (
                 <Button
-                  label="Add Canvas announcement link"
+                  label="Add one Canvas post by link"
                   variant="outline"
                   size="lg"
                   fullWidth
@@ -857,8 +868,8 @@ function ManageClubScreen() {
               {announcements.length === 0 ? (
                 <EmptyState
                   icon="megaphone-outline"
-                  title="Nothing posted yet"
-                  description="Meeting reminders, competition info, deadlines: members see them instantly."
+                  title="No Canvas posts yet"
+                  description="Once Canvas is connected, your club's Canvas announcements appear here and on members' dashboards."
                   tone="neutral"
                 />
               ) : (
@@ -876,7 +887,7 @@ function ManageClubScreen() {
                       onDelete={() =>
                         setConfirm({
                           title: "Remove Canvas link?",
-                          message: `"${a.title}" will be removed from this site. The Canvas post will remain.`,
+                          message: `"${a.title}" will be removed from this site and won't be added again. The Canvas post will remain.`,
                           action: async () => {
                             const res = await deleteAnnouncement(a.id);
                             if (toastResult(res, "Canvas link removed.")) {
@@ -1562,7 +1573,7 @@ function ManageClubScreen() {
                       onDelete={() =>
                         setConfirm({
                           title: "Delete file?",
-                          message: `"${file.title}" will be removed from this site. The Canvas post will remain.`,
+                          message: `"${file.title}" will be deleted for everyone in this club. This can't be undone.`,
                           action: async () => {
                             const res = await deleteClubFile(file);
                             if (toastResult(res, "File deleted.")) {
@@ -1713,7 +1724,7 @@ function ManageClubScreen() {
                       onDelete={() =>
                         setConfirm({
                           title: "Delete note?",
-                          message: `"${note.title}" will be removed from this site. The Canvas post will remain.`,
+                          message: `"${note.title}" will be deleted for everyone in this club. This can't be undone.`,
                           action: async () => {
                             const res = await deleteNote(note.id);
                             if (toastResult(res, "Note deleted.")) {

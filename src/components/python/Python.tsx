@@ -16,7 +16,7 @@ const PythonCanvas = lazy(() =>
   import("@/components/Scenes3D").then((m) => ({ default: m.PythonCanvas })),
 );
 
-function webGLAvailable() {
+export function webGLAvailable() {
   if (Platform.OS !== "web" || typeof document === "undefined") return false;
   const nav = navigator as Navigator & { deviceMemory?: number };
   if (nav.deviceMemory != null && nav.deviceMemory < 2) return false;

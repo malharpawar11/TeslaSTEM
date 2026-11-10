@@ -4,42 +4,39 @@
  * comes from the site's tokens. See "Club Match Quiz" in DESIGN.md.
  */
 export const QUIZ_TYPE = {
-  titleDisplay: 36,
-  intro: { fontSize: 16, lineHeight: 24 },
-  section: { fontSize: 20, lineHeight: 26, fontWeight: "700" },
-  question: { fontSize: 16, lineHeight: 22, fontWeight: "700" },
+  question: 44,
+  questionPhone: 32,
+  results: 52,
+  resultsPhone: 38,
+  cardTitle: 24,
+  cardTitleSmall: 20,
+  matchName: 30,
+  cardLabel: { fontSize: 14, lineHeight: 19 },
+  helper: { fontSize: 16, lineHeight: 23 },
   body: { fontSize: 15, lineHeight: 22 },
-  choice: { fontSize: 15, lineHeight: 20 },
-  choiceOn: { fontSize: 15, lineHeight: 20, fontWeight: "700" },
-  fieldLabel: { fontSize: 14, lineHeight: 20 },
-  input: { fontSize: 16, lineHeight: 22 },
-  match: { fontSize: 18, lineHeight: 24, fontWeight: "700" },
-  matchTop: { fontSize: 19, lineHeight: 25, fontWeight: "700" },
-  why: { fontSize: 15, lineHeight: 22 },
-  button: { fontSize: 15, lineHeight: 20, fontWeight: "700" },
+  reason: { fontSize: 15, lineHeight: 22 },
   meta: { fontSize: 14, lineHeight: 20 },
   metaStrong: { fontSize: 14, lineHeight: 20, fontWeight: "700" },
+  section: { fontSize: 20, lineHeight: 26, fontWeight: "700" },
+  button: { fontSize: 16, lineHeight: 20, fontWeight: "700" },
 } as const;
 
 export const QUIZ_SPACE = {
-  pageMax: 1150,
+  questionMax: 980,
+  resultsMax: 1100,
   gutter: 32,
   gutterPhone: 20,
-  matchColumn: 420,
-  columnGap: 56,
-  section: 36,
-  stack: 12,
-  control: 8,
-  controlHeight: 44,
-  twoColumnFrom: 960,
+  cardGap: 10,
+  cardMinHeight: 92,
+  smallCardMinHeight: 64,
+  controlHeight: 48,
   phoneBelow: 640,
 } as const;
 
 export const QUIZ_MOTION = {
+  /** A question slides in from the side it's coming from. */
+  step: 220,
   select: 140,
-  list: 200,
-  enter: 170,
-  savedPause: 550,
 };
+
 export const QUIZ_RADIUS = 4;
-export const MATCHES_PER_PAGE = 5;

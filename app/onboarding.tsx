@@ -1,460 +1,391 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
+import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { AccessibleText as Text } from "@/components/AccessibleText";
-import { AvailabilityEditor } from "@/components/quiz/AvailabilityEditor";
-import { Choice } from "@/components/quiz/Choice";
-import { MatchList } from "@/components/quiz/MatchList";
+import { useReducedMotion } from "@/components/CampusVisual";
+import { AvailabilityGrid, OptionCard } from "@/components/quiz/QuizControls";
+import { QuizResults } from "@/components/quiz/QuizResults";
 import {
-  QUIZ_MOTION,
-  QUIZ_RADIUS,
-  QUIZ_SPACE,
-  QUIZ_TYPE,
-} from "@/components/quiz/tokens";
-import { Display, useHover, webFade, webSticky } from "@/components/system";
+  buildSteps,
+  pruneAnswers,
+  selectedFor,
+  withSelection,
+  type Step,
+} from "@/components/quiz/steps";
+import { QUIZ_MOTION, QUIZ_RADIUS, QUIZ_SPACE, QUIZ_TYPE } from "@/components/quiz/tokens";
+import { Display, TextLink, useHover, webFade } from "@/components/system";
 import { Button, SkeletonRow } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { useClubs } from "@/context/ClubsContext";
 import { usePreferences } from "@/context/PreferencesContext";
 import {
-  CAREERS,
-  recommendationReasons,
-  type StudentPreferences,
-} from "@/lib/discovery";
+  availablePeriods,
+  EMPTY_ANSWERS,
+  hasAnswers,
+  lunchMatters,
+  type Option,
+  type QuizAnswers,
+} from "@/lib/clubMatch";
+import type { Availability } from "@/lib/discovery";
 import { useLayout } from "@/theme/layout";
-import { CATEGORIES } from "@/types/domain";
 
-function toggled<T>(list: T[], value: T) {
-  return list.includes(value)
-    ? list.filter((v) => v !== value)
-    : [...list, value];
+function chunk<T>(items: T[], size: number) {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
 }
 
-function SectionHead({ title, count }: { title: string; count: number }) {
+function Progress({ index, total }: { index: number; total: number }) {
   return (
-    <View className="flex-row items-baseline justify-between gap-3">
-      <Text
-        accessibilityRole="header"
-        className="text-light-text dark:text-dark-text"
-        style={QUIZ_TYPE.section}
-      >
-        {title}
+    <View>
+      <Text className="text-light-secondary dark:text-dark-secondary" style={QUIZ_TYPE.metaStrong}>
+        Question {index + 1} of {total}
       </Text>
-      {count ? (
-        <Text
-          className="text-light-muted dark:text-dark-muted"
-          style={QUIZ_TYPE.meta}
-        >
-          {count} selected
-        </Text>
-      ) : null}
+      <View
+        className="mt-2 flex-row"
+        style={{ gap: 4 }}
+        accessibilityRole="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-valuenow={index + 1}
+      >
+        {Array.from({ length: total }, (_, i) => (
+          <View
+            key={i}
+            className={`h-1.5 flex-1 ${i <= index ? "bg-python-blue" : "bg-light-surface-2 dark:bg-dark-surface-2"}`}
+            style={[{ borderRadius: 2 }, webFade("background-color")]}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
-function SaveButton({
-  saving,
-  saved,
-  onPress,
+function OptionGrid({
+  options,
+  selected,
+  multi,
+  small,
+  columns,
+  onToggle,
+  label,
 }: {
-  saving: boolean;
-  saved: boolean;
-  onPress: () => void;
+  options: Option[];
+  selected: string[];
+  multi: boolean;
+  small: boolean;
+  columns: number;
+  onToggle: (id: string) => void;
+  label: string;
 }) {
-  const { hovered, hoverProps } = useHover();
-  const blocked = saving || saved;
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={blocked}
-      {...hoverProps}
-      accessibilityRole="button"
-      accessibilityLabel="Save and discover clubs"
-      aria-busy={saving}
-      aria-disabled={blocked}
-      className={`flex-row items-center justify-center gap-2 ${
-        saved
-          ? "bg-python-green"
-          : hovered && !blocked
-            ? "bg-python-blue-dark"
-            : "bg-python-blue"
-      }`}
-      style={[
-        {
-          height: QUIZ_SPACE.controlHeight,
-          borderRadius: QUIZ_RADIUS,
-          opacity: saving ? 0.75 : 1,
-        },
-        webFade("background-color, opacity"),
-      ]}
+    <View
+      role={multi ? "group" : "radiogroup"}
+      aria-label={label}
+      style={{ gap: QUIZ_SPACE.cardGap }}
     >
-      {saved ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
-      <Text className="text-white" style={QUIZ_TYPE.button}>
-        {saved ? "Saved" : saving ? "Saving" : "Save and discover clubs"}
-      </Text>
-    </Pressable>
+      {chunk(options, columns).map((row, r) => (
+        <View key={r} className="flex-row" style={{ gap: QUIZ_SPACE.cardGap }}>
+          {row.map((option) => (
+            <View key={option.id} className="flex-1 flex-row">
+              <OptionCard
+                title={option.title}
+                label={small ? undefined : option.label}
+                selected={selected.includes(option.id)}
+                multi={multi}
+                small={small}
+                onPress={() => onToggle(option.id)}
+              />
+            </View>
+          ))}
+          {Array.from({ length: columns - row.length }, (_, i) => (
+            <View key={`pad${i}`} className="flex-1" />
+          ))}
+        </View>
+      ))}
+    </View>
   );
 }
 
-function SkipLink({
-  disabled,
-  onPress,
-}: {
-  disabled: boolean;
-  onPress: () => void;
-}) {
+function SkipQuestion({ onPress, short }: { onPress: () => void; short: boolean }) {
   const { hovered, hoverProps } = useHover();
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
       {...hoverProps}
       accessibilityRole="button"
-      aria-disabled={disabled}
-      className="min-h-11 items-center justify-center"
+      accessibilityLabel="Skip this question"
+      className="min-h-11 justify-center px-2"
     >
       <Text
         className={`underline ${hovered ? "text-light-text dark:text-dark-text" : "text-light-secondary dark:text-dark-secondary"}`}
-        style={[QUIZ_TYPE.body, webFade("color")]}
+        style={QUIZ_TYPE.body}
       >
-        Skip for now
+        {short ? "Skip" : "Skip this question"}
       </Text>
     </Pressable>
   );
 }
 
-function Survey() {
+function Quiz() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { contentWidth, height } = useLayout();
+  const still = useReducedMotion();
+  const { contentWidth } = useLayout();
   const { session } = useAuth();
   const { preferences, loading, error, refresh, save } = usePreferences();
-  const {
-    clubs,
-    loading: clubsLoading,
-    error: clubsError,
-    refresh: refreshClubs,
-  } = useClubs();
-  const [form, setForm] = useState<StudentPreferences>(preferences);
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [columnHeight, setColumnHeight] = useState(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { clubs, loading: clubsLoading, error: clubsError, refresh: refreshClubs } = useClubs();
+
+  const [answers, setAnswers] = useState<QuizAnswers>(EMPTY_ANSWERS);
+  const [availability, setAvailability] = useState<Availability[]>([]);
+  const [stage, setStage] = useState<"quiz" | "results">("quiz");
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [saveState, setSaveState] = useState<"saving" | "saved" | "error" | "guest">("guest");
+  const [leaving, setLeaving] = useState(false);
+  const scroller = useRef<ScrollView>(null);
+  const hydrated = useRef(false);
+
+  // Start from what the student saved last time, so answers can be edited.
+  useEffect(() => {
+    if (loading || hydrated.current) return;
+    hydrated.current = true;
+    setAnswers(preferences.answers ?? EMPTY_ANSWERS);
+    setAvailability(preferences.availability);
+    if (preferences.completed && hasAnswers(preferences.answers)) {
+      setStage("results");
+      setSaveState(session ? "saved" : "guest");
+    }
+  }, [loading, preferences, session]);
+
+  const steps = useMemo(() => buildSteps(answers, clubs), [answers, clubs]);
+  const at = Math.min(index, steps.length - 1);
+  const step = steps[at];
 
   useEffect(() => {
-    setForm(preferences);
-  }, [preferences]);
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  const commit = async (skip = false) => {
-    if (!session) return;
-    setBusy(true);
-    setSaveError(null);
-    const result = await save({
-      ...(skip ? { interests: [], careers: [], availability: [] } : form),
-      completed: true,
-    });
-    setBusy(false);
-    if (!result.ok) {
-      setSaveError(result.error);
-      return;
-    }
-    if (skip) {
-      router.replace("/browse");
-      return;
-    }
-    setSaved(true);
-    timer.current = setTimeout(
-      () => router.replace("/browse"),
-      QUIZ_MOTION.savedPause,
-    );
-  };
-
-  // The same ranking as before. Only how many are displayed at once changed.
-  const matches = useMemo(
-    () =>
-      clubs
-        .map((club) => ({ club, reasons: recommendationReasons(club, form) }))
-        .filter((item) => item.reasons.length)
-        .sort((a, b) => b.reasons.length - a.reasons.length),
-    [clubs, form],
-  );
+    scroller.current?.scrollTo({ y: 0, animated: false });
+  }, [at, stage]);
 
   const phone = contentWidth < QUIZ_SPACE.phoneBelow;
-  const twoColumn = contentWidth >= QUIZ_SPACE.twoColumnFrom;
   const gutter = phone ? QUIZ_SPACE.gutterPhone : QUIZ_SPACE.gutter;
-  const answered =
-    form.interests.length + form.careers.length + form.availability.length > 0;
-  const unsaved =
-    Boolean(session) &&
-    JSON.stringify([form.interests, form.careers, form.availability]) !==
-      JSON.stringify([
-        preferences.interests,
-        preferences.careers,
-        preferences.availability,
-      ]);
+  const wide = contentWidth >= 900;
 
-  const heading = clubsLoading
-    ? "Finding your matches"
-    : !answered
-      ? "Your matches"
-      : matches.length === 0
-        ? "No matches yet"
-        : `${matches.length} ${matches.length === 1 ? "club matches" : "clubs match"} so far`;
+  const persist = async (final: QuizAnswers, windows: Availability[]) => {
+    if (!session) return setSaveState("guest");
+    setSaveState("saving");
+    const result = await save({ ...preferences, availability: windows, answers: final, completed: true });
+    setSaveState(result.ok ? "saved" : "error");
+  };
 
-  const results = (
-    <View>
-      <View accessibilityLiveRegion="polite">
-        <Text
-          accessibilityRole="header"
-          className="text-light-text dark:text-dark-text"
-          style={QUIZ_TYPE.section}
-        >
-          {heading}
+  const go = (next: number) => {
+    setDirection(next > at ? 1 : -1);
+    setIndex(next);
+  };
+  const finish = () => {
+    const final = pruneAnswers(answers, steps);
+    setAnswers(final);
+    setStage("results");
+    void persist(final, availability);
+  };
+  const advance = () => (at >= steps.length - 1 ? finish() : go(at + 1));
+
+  const skipQuiz = async () => {
+    if (!session) return router.push("/browse");
+    setLeaving(true);
+    // Keeps whatever was answered before; it only stops the quiz prompting.
+    await save({ ...preferences, completed: true });
+    setLeaving(false);
+    router.replace("/browse");
+  };
+
+  if (loading || (clubsLoading && !clubs.length))
+    return (
+      <View className="flex-1 bg-light-bg px-8 pt-16 dark:bg-dark-bg">
+        <SkeletonRow count={3} />
+      </View>
+    );
+
+  if ((session && error) || (clubsError && !clubs.length))
+    return (
+      <View className="flex-1 items-start gap-3 bg-light-bg px-8 pt-16 dark:bg-dark-bg">
+        <Display size="sm">Couldn't load the quiz</Display>
+        <Text className="text-danger" style={QUIZ_TYPE.body}>
+          {error ?? clubsError}
         </Text>
+        <Button
+          label="Try again"
+          onPress={() => void (error ? refresh() : refreshClubs())}
+        />
       </View>
-      <Text
-        className="mt-1 text-light-secondary dark:text-dark-secondary"
-        style={QUIZ_TYPE.meta}
-      >
-        {session
-          ? unsaved
-            ? "Updates as you choose. Save to keep these answers."
-            : "Updates as you choose."
-          : "Updates as you choose. Guest answers aren't saved to an account."}
-      </Text>
-      <View className="mt-2 border-t border-light-text dark:border-dark-text">
-        {clubsLoading ? (
-          <View className="pt-3">
-            <SkeletonRow count={2} />
-          </View>
-        ) : clubsError ? (
-          <View className="items-start gap-2 py-4">
-            <Text className="text-danger" style={QUIZ_TYPE.body}>
-              Could not load clubs for recommendations.
-            </Text>
-            <Button
-              label="Retry loading clubs"
-              variant="secondary"
-              onPress={() => void refreshClubs()}
-            />
-          </View>
-        ) : matches.length === 0 ? (
-          <Text
-            className="py-4 text-light-secondary dark:text-dark-secondary"
-            style={QUIZ_TYPE.body}
-          >
-            {answered
-              ? "Nothing fits these choices. Try another interest or add a time you're free."
-              : "Choose an interest, a career, or a time you're free, and clubs will appear here with the reason each one fits."}
-          </Text>
-        ) : (
-          <MatchList
-            matches={matches}
-            preferences={form}
-            onOpen={(id) => router.push(`/club/${id}`)}
-          />
-        )}
-      </View>
-      {/* Stays in view while the list scrolls, so saving is never a hunt. */}
-      <View
-        className="mt-3 bg-light-bg py-3 dark:bg-dark-bg"
-        style={[
-          Platform.OS === "web"
-            ? ({ position: "sticky", bottom: 0 } as object)
-            : null,
-        ]}
-      >
-        {session ? (
-          <>
-            <View className="flex-row items-center gap-5">
-              <View className="flex-1">
-                <SaveButton
-                  saving={busy}
-                  saved={saved}
-                  onPress={() => void commit()}
-                />
-              </View>
-              <SkipLink
-                disabled={busy || saved}
-                onPress={() => void commit(true)}
-              />
-            </View>
-            {saveError ? (
-              <Text
-                role="alert"
-                className="mt-2 text-danger"
-                style={QUIZ_TYPE.meta}
-              >
-                {saveError}
-              </Text>
-            ) : null}
-          </>
-        ) : (
-          <Button
-            label="Browse all clubs"
-            variant="secondary"
-            onPress={() => router.push("/browse")}
-          />
-        )}
-      </View>
-    </View>
-  );
+    );
 
-  const interestBasis = phone ? "46%" : "23%";
-  const questions = (
-    <View style={{ gap: QUIZ_SPACE.section }}>
-      <View>
-        <SectionHead
-          title="What interests you?"
-          count={form.interests.length}
-        />
+  if (stage === "results")
+    return (
+      <ScrollView
+        ref={scroller}
+        className="flex-1 bg-light-bg dark:bg-dark-bg"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 64 }}
+      >
         <View
-          role="group"
-          aria-label="What interests you?"
-          className="mt-3 flex-row flex-wrap"
-          style={{ gap: QUIZ_SPACE.control }}
+          className="w-full self-center"
+          style={{ maxWidth: QUIZ_SPACE.resultsMax, paddingHorizontal: gutter, paddingTop: insets.top + 32 }}
         >
-          {CATEGORIES.map((category) => (
-            <Choice
-              key={category}
-              label={category}
-              selected={form.interests.includes(category)}
-              onPress={() =>
-                setForm({
-                  ...form,
-                  interests: toggled(form.interests, category),
-                })
-              }
-              style={{ flexBasis: interestBasis, flexGrow: 1 }}
-            />
-          ))}
+          <QuizResults
+            clubs={clubs}
+            answers={answers}
+            availability={availability}
+            steps={steps}
+            phone={phone}
+            saveState={saveState}
+            signedIn={!!session}
+            onRetrySave={() => void persist(answers, availability)}
+            onEdit={(i) => {
+              setStage("quiz");
+              setDirection(1);
+              setIndex(i);
+            }}
+          />
         </View>
-      </View>
-      <View className="border-t border-light-border pt-8 dark:border-dark-border">
-        <SectionHead
-          title="What careers interest you?"
-          count={form.careers.length}
-        />
-        <View
-          role="group"
-          aria-label="What careers interest you?"
-          className="mt-3 flex-row flex-wrap"
-          style={{ gap: QUIZ_SPACE.control }}
-        >
-          {Object.keys(CAREERS).map((career) => (
-            <Choice
-              key={career}
-              label={career}
-              selected={form.careers.includes(career)}
-              onPress={() =>
-                setForm({ ...form, careers: toggled(form.careers, career) })
-              }
-            />
-          ))}
-        </View>
-      </View>
-      <View className="border-t border-light-border pt-8 dark:border-dark-border">
-        <AvailabilityEditor
-          windows={form.availability}
-          onChange={(availability) => setForm({ ...form, availability })}
-          phone={phone}
-        />
-      </View>
-    </View>
-  );
+      </ScrollView>
+    );
+
+  const isOptions = step.key !== "availability";
+  const selected = selectedFor(step, answers);
+  const multi = "multi" in step && step.multi;
+  const columns =
+    "size" in step && step.size === "small" ? (wide ? 4 : 2) : wide ? 3 : phone ? 1 : 2;
+  const toggle = (id: string) => {
+    const next = multi
+      ? selected.includes(id)
+        ? selected.filter((v) => v !== id)
+        : [...selected, id]
+      : selected.includes(id)
+        ? []
+        : [id];
+    setAnswers(withSelection(step, answers, next));
+  };
+  const count = isOptions ? selected.length : availability.filter((w) => w.period).length;
+  const last = at === steps.length - 1;
+  const entering = still
+    ? undefined
+    : (direction > 0 ? FadeInRight : FadeInLeft).duration(QUIZ_MOTION.step);
 
   return (
-    <ScrollView
-      className="flex-1 bg-light-bg dark:bg-dark-bg"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
-    >
-      <View
-        className="w-full self-center"
-        style={{
-          maxWidth: QUIZ_SPACE.pageMax,
-          paddingHorizontal: gutter,
-          paddingTop: insets.top + 32,
-        }}
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+      <ScrollView
+        ref={scroller}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
       >
-        <Display
-          fontSize={QUIZ_TYPE.titleDisplay}
-          accessibilityRole="header"
-          className="text-light-text dark:text-dark-text"
+        <View
+          className="w-full self-center"
+          style={{ maxWidth: QUIZ_SPACE.questionMax, paddingHorizontal: gutter, paddingTop: insets.top + 28 }}
         >
-          Club Match Quiz
-        </Display>
-        <Text
-          className="mt-1.5 text-light-secondary dark:text-dark-secondary"
-          style={[QUIZ_TYPE.intro, { maxWidth: 620 }]}
-        >
-          Tell us what you like and when you're free, and see which clubs fit
-          and why. You can change your answers anytime.
-        </Text>
+          <View className="flex-row items-center justify-between gap-4">
+            <Display fontSize={24} style={{ lineHeight: 28 }}>
+              Club Match Quiz
+            </Display>
+            <TextLink
+              label={leaving ? "Saving…" : session ? "Skip the quiz" : "Browse clubs instead"}
+              disabled={leaving}
+              onPress={() => void skipQuiz()}
+            />
+          </View>
+          <View className="mt-4">
+            <Progress index={at} total={steps.length} />
+          </View>
 
-        {loading ? (
-          <View className="mt-8">
-            <SkeletonRow count={3} />
-          </View>
-        ) : session && error ? (
-          <View className="mt-8 items-start gap-2">
-            <Text className="text-danger" style={QUIZ_TYPE.body}>
-              {error}
-            </Text>
-            <View className="flex-row gap-3">
-              <Button label="Retry" onPress={() => void refresh()} />
-              <Button
-                label="Back"
-                variant="ghost"
-                onPress={() => router.back()}
-              />
-            </View>
-          </View>
-        ) : (
-          <View
-            className={twoColumn ? "flex-row items-stretch" : ""}
-            style={{
-              marginTop: QUIZ_SPACE.section,
-              gap: twoColumn ? QUIZ_SPACE.columnGap : QUIZ_SPACE.section,
-            }}
-          >
-            <View className={twoColumn ? "flex-1" : ""} style={{ minWidth: 0 }}>
-              {questions}
-            </View>
-            <View
-              style={twoColumn ? { width: QUIZ_SPACE.matchColumn } : undefined}
+          <Animated.View key={step.key} entering={entering} className="mt-8">
+            <Display
+              fontSize={phone ? QUIZ_TYPE.questionPhone : QUIZ_TYPE.question}
+              accessibilityRole="header"
+              style={{ lineHeight: (phone ? QUIZ_TYPE.questionPhone : QUIZ_TYPE.question) + 2 }}
             >
-              {!twoColumn ? (
-                <View className="mb-8 border-t border-light-border dark:border-dark-border" />
-              ) : null}
-              <View
-                onLayout={(event) =>
-                  setColumnHeight(event.nativeEvent.layout.height)
-                }
-                style={
-                  twoColumn && columnHeight > 0 && columnHeight + 48 <= height
-                    ? webSticky(24)
-                    : undefined
-                }
+              {step.title}
+            </Display>
+            <View className="mt-2 flex-row flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <Text
+                className="max-w-xl flex-1 text-light-secondary dark:text-dark-secondary"
+                style={[QUIZ_TYPE.helper, { minWidth: 220 }]}
               >
-                {results}
-              </View>
+                {step.helper}
+              </Text>
+              {count ? (
+                <Text className="text-python-blue" style={QUIZ_TYPE.metaStrong} accessibilityLiveRegion="polite">
+                  {count} selected
+                </Text>
+              ) : null}
             </View>
+
+            <View className="mt-6">
+              {isOptions ? (
+                <OptionGrid
+                  options={(step as Exclude<Step, { key: "availability" }>).options}
+                  selected={selected}
+                  multi={multi}
+                  small={"size" in step && step.size === "small"}
+                  columns={columns}
+                  onToggle={toggle}
+                  label={step.title}
+                />
+              ) : (
+                <AvailabilityGrid
+                  windows={availability}
+                  periods={availablePeriods(clubs)}
+                  onChange={setAvailability}
+                  lunch={answers.lunch}
+                  onLunch={(lunch) => setAnswers({ ...answers, lunch })}
+                  showLunch={lunchMatters(clubs)}
+                />
+              )}
+            </View>
+          </Animated.View>
+        </View>
+      </ScrollView>
+
+      {/* Back and Continue stay in reach however long the question is. */}
+      <View
+        className="border-t border-light-border bg-light-bg dark:border-dark-border dark:bg-dark-bg"
+        style={{ paddingBottom: Math.max(12, insets.bottom), paddingTop: 12 }}
+      >
+        <View
+          className="w-full flex-row items-center justify-between self-center"
+          style={{ maxWidth: QUIZ_SPACE.questionMax, paddingHorizontal: gutter, gap: 12 }}
+        >
+          <View style={{ minWidth: phone ? 0 : 120 }}>
+            {at > 0 ? (
+              <Button label="Back" variant="secondary" icon="arrow-back" onPress={() => go(at - 1)} />
+            ) : null}
           </View>
-        )}
+          <View className="flex-row items-center" style={{ gap: phone ? 4 : 16 }}>
+            <SkipQuestion
+              short={phone}
+              onPress={() => {
+                if (isOptions) setAnswers(withSelection(step, answers, []));
+                advance();
+              }}
+            />
+            <Pressable
+              onPress={advance}
+              accessibilityRole="button"
+              accessibilityLabel={last ? "See my matches" : "Continue"}
+              className="flex-row items-center justify-center bg-python-blue px-6"
+              style={[{ height: QUIZ_SPACE.controlHeight, borderRadius: QUIZ_RADIUS }, webFade("background-color")]}
+            >
+              <Text className="text-white" style={QUIZ_TYPE.button}>
+                {last ? "See my matches" : "Continue"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 export default function OnboardingScreen() {
-  return <Survey />;
+  return <Quiz />;
 }

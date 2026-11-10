@@ -69,6 +69,7 @@ const SECTIONS: Section[] = [
     eyebrow: "Announcements",
     tone: "green",
     body: [
+      "Club and school announcements are posted in Canvas, so students have one place to check. This site never hosts announcement text or sends its own announcement alerts. It only links to the Canvas post.",
       "Canvas links, events, files, and notes can only be added by the special admin, a club’s verified president, or a board member the president granted that specific permission.",
       "These restrictions are enforced by the server on every write: the UI hides controls you cannot use, but access is ultimately decided by the database, not the client.",
     ],

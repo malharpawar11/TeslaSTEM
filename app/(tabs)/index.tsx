@@ -9,6 +9,7 @@ import Animated, {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccessibleText as Text } from "@/components/AccessibleText";
+import { CampusMap } from "@/components/campusmap/CampusMap";
 import { Python } from "@/components/python/Python";
 import type { SaddleClub, TitleBox } from "@/components/python/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -590,6 +591,8 @@ function Landing() {
             </View>
           </View>
         </View>
+
+        <CampusMap className="mt-20" />
       </View>
     </Page>
   );
@@ -768,7 +771,7 @@ function DashboardScreen() {
         <View className="mt-10">
           <EmptyState
             title="You haven't joined a club yet"
-            description="Join one and its meetings, Canvas links and files collect here."
+            description="Join one and its meetings, Canvas announcements and files collect here."
             actionLabel="Browse clubs"
             onAction={() => router.push("/browse")}
           />
@@ -824,7 +827,7 @@ function DashboardScreen() {
             {nothingNew ? (
               <EmptyState
                 title="All caught up"
-                description="New Canvas links, files and events from your clubs appear here."
+                description="New Canvas announcements, files and events from your clubs appear here."
               />
             ) : null}
           </View>
@@ -860,7 +863,7 @@ function DashboardScreen() {
 
             {announcements.length > 0 ? (
               <View className="mt-12">
-                <Rule title="Canvas links" />
+                <Rule title="From Canvas" />
                 {announcements.map((announcement) => (
                   <AnnouncementCard
                     key={announcement.id}
@@ -882,6 +885,8 @@ function DashboardScreen() {
           </View>
         </View>
       )}
+
+      {!loading ? <CampusMap className="mt-16" /> : null}
     </Page>
   );
 }

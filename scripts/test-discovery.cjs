@@ -24,7 +24,9 @@ function load(path, mocks = {}) {
   });
   return exports;
 }
-const discovery = load("src/lib/discovery.ts");
+const discovery = load("src/lib/discovery.ts", {
+  "./clubMatch": load("src/lib/clubMatch.ts"),
+});
 const calendar = load("src/lib/calendar.ts", {
   "react-native": { Platform: { OS: "web" } },
 });

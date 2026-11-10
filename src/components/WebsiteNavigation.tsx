@@ -12,6 +12,7 @@ const items = [
   ["/", "Home"],
   ["/browse", "Clubs"],
   ["/calendar", "Calendar"],
+  ["/map", "Map"],
   ["/notifications", "Alerts"],
   ["/account", "Profile"],
 ] as const;
