@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { Club } from '@/types/domain';
 import { fetchClubs } from '@/data/clubsRepo';
+import { explainLoadError } from '@/lib/loadErrors';
 
 interface ClubsContextValue {
   clubs: Club[];
@@ -25,8 +26,9 @@ export function ClubsProvider({ children }: { children: ReactNode }) {
     try {
       const result = await fetchClubs();
       if (!result.error) setClubs(result.clubs);
-      setError(result.error);
-    } catch { setError('Could not load clubs. Check your connection and retry.'); }
+      // Keep the reason: "didn't load" alone gives a student nothing to act on.
+      setError(result.error ? explainLoadError(result.error) : null);
+    } catch (err) { setError(explainLoadError(err)); }
     finally { setLoading(false); }
   }, []);
 

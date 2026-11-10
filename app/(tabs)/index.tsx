@@ -414,11 +414,16 @@ function Hero({ scroll }: { scroll: { current: number } }) {
         />
         <View className="mt-3 min-h-[52px]" accessibilityLiveRegion="polite">
           {error ? (
-            <View className="flex-row items-center gap-3">
-              <Text className="text-base" style={{ color: fg }}>
-                The club list didn't load.
+            <View className="gap-1">
+              <View className="flex-row items-center gap-3">
+                <Text className="text-base" style={{ color: fg }}>
+                  The club list didn't load.
+                </Text>
+                <TextLink label="Try again" onPress={refresh} />
+              </View>
+              <Text className="text-sm" style={{ color: fg }}>
+                {error}
               </Text>
-              <TextLink label="Try again" onPress={refresh} />
             </View>
           ) : loading && clubs.length === 0 ? null : (
             <Text className="text-base" style={{ color: fg }}>

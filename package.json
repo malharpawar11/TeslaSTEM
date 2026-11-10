@@ -6,7 +6,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-discovery.cjs && node scripts/test-auth-errors.cjs && node scripts/test-data-failures.cjs && node scripts/test-date-only-calendar.cjs && node scripts/test-recording-demo.cjs && node scripts/test-canvas-announcements.cjs && node --no-warnings scripts/test-canvas-feed.mjs && node --no-warnings scripts/test-club-match.mjs",
+    "test": "node scripts/test-discovery.cjs && node scripts/test-auth-errors.cjs && node scripts/test-data-failures.cjs && node scripts/test-load-errors.cjs && node scripts/test-date-only-calendar.cjs && node scripts/test-recording-demo.cjs && node scripts/test-canvas-announcements.cjs && node --no-warnings scripts/test-canvas-feed.mjs && node --no-warnings scripts/test-club-match.mjs",
     "test:backend": "node scripts/test-backend.cjs"
   },
   "dependencies": {
