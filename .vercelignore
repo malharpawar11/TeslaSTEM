@@ -10,6 +10,7 @@ dist/**
 build/**
 backend/**
 supabase/**
+insforge/**
 migrations/**
 scripts/**
 docs/**
