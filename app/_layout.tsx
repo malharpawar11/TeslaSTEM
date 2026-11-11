@@ -22,6 +22,7 @@ import { CornerPython } from "@/components/python/CornerPython";
 import { DESKTOP_NAV_WIDTH, RAIL_WIDTH } from "@/theme/layout";
 import { surface } from "@/theme/tokens";
 import { CampusUpdatesProvider } from "@/context/CampusUpdatesContext";
+import { Analytics } from "@vercel/analytics/react";
 
 cssInterop(GestureHandlerRootView, { className: "style" });
 
@@ -99,6 +100,7 @@ export default function RootLayout() {
                       <ToastProvider>
                         <NotificationsProvider>
                           <RootStack />
+                          {IS_WEB && <Analytics />}
                         </NotificationsProvider>
                       </ToastProvider>
                     </MembershipProvider>
