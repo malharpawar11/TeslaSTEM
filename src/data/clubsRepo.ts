@@ -1,6 +1,6 @@
 import { insforge, isInsforgeConfigured } from "@/lib/insforge";
 import { currentUserId, NOT_CONFIGURED, type RpcResult } from "./result";
-import { Club, ClubCategory, CATEGORIES } from "@/types/domain";
+import { Club, ClubCategory, CATEGORIES, type Officer } from "@/types/domain";
 import { validateMeeting } from "@/lib/discovery";
 
 export type ClubsResult =
@@ -100,8 +100,18 @@ export async function fetchClubs(): Promise<ClubsResult> {
 /** The club's leadership, shown on its public profile. */
 export async function fetchClubOfficers(
   clubId: string,
-): Promise<{ role: string; name: string; userId: string }[]> {
+): Promise<Officer[]> {
   if (!insforge) return [];
+  // Published school rosters do not require students to have app accounts.
+  // Listing someone here never grants them club-management permissions.
+  const { data: published, error: rosterError } = await insforge.database
+    .from("club_officer_directory")
+    .select("name,role,sort_order")
+    .eq("club_id", clubId)
+    .order("sort_order")
+    .limit(100);
+  if (rosterError || !published)
+    throw new Error(rosterError?.message ?? "Could not load leadership. Try again.");
   const { data, error } = await insforge.database
     .from("club_members")
     .select("user_id, role, position, profiles!club_members_user_id_fkey(display_name, email)")
@@ -111,7 +121,7 @@ export async function fetchClubOfficers(
     .limit(40);
   if (error || !data)
     throw new Error(error?.message ?? "Could not load data. Try again.");
-  return (
+  const members = (
     data as unknown as {
       user_id: string;
       role: string;
@@ -127,10 +137,18 @@ export async function fetchClubOfficers(
         r.profiles?.display_name ??
         r.profiles?.email?.split("@")[0] ??
         "Member",
-    }))
-    .sort((a, b) =>
-      a.role === "President" ? -1 : b.role === "President" ? 1 : 0,
-    );
+    }));
+  const officers: Officer[] = [...members];
+  const key = (o: Officer) => `${o.name.trim().toLowerCase()}|${o.role.trim().toLowerCase()}`;
+  const seen = new Set(officers.map(key));
+  for (const row of published as { name: string; role: string }[]) {
+    if (!seen.has(key(row))) {
+      officers.push({ name: row.name, role: row.role });
+      seen.add(key(row));
+    }
+  }
+  const rank = (o: Officer) => o.role === "President" ? 0 : o.role === "Co-President" ? 1 : 2;
+  return officers.sort((a, b) => rank(a) - rank(b));
 }
 
 export interface NewClubInput {
